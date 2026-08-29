@@ -21,7 +21,8 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-from funnel.stage1 import S, load, run, decide, eligible      # noqa: E402
+from funnel.stage1 import (S, load, run, decide, eligible,   # noqa: E402
+                           partial_years)
 
 # Positives are the high-conviction compounders, plus names the S&P 500
 # Quality Index independently selects. Negatives are widely-recognised
@@ -98,6 +99,7 @@ def main() -> int:
     block("NEGATIVES — must fail", [t for t in EXPECTED if not EXPECTED[t]])
 
     stale = recency(loaded)
+    partial = partial_years(loaded)
     newest = {t: max(int(y) for y in d["net_income"])
               for t, d in loaded.items() if d.get("net_income")}
     print(f"\nDATA RECENCY — newest fiscal year in use")
@@ -109,13 +111,23 @@ def main() -> int:
         print(f"  ok — every anchor is scored on filings from "
               f"FY{dt.date.today().year - 2} or later")
 
+    print("\nWHOLE YEARS — is every figure a full fiscal year?")
+    if partial:
+        print(f"  PARTIAL PERIODS: {', '.join(partial)}")
+    else:
+        print("  ok — no anchor's revenue collapses like a quarter "
+              "standing in for a year")
+
     wrong = [t for t in EXPECTED if verdict[t] != EXPECTED[t]]
     print("\n" + "=" * 66)
-    if not wrong and not stale:
+    if not wrong and not stale and not partial:
         print(f"REGRESSION TEST: PASS — all {len(EXPECTED)} anchors "
               f"behaved as specified, on current filings")
         return 0
 
+    if partial:
+        print(f"REGRESSION TEST: FAIL — {len(partial)} anchor(s) look like "
+              f"a PART-YEAR figure is standing in for a full year.")
     if stale:
         print(f"REGRESSION TEST: FAIL — {len(stale)} anchor(s) scored on "
               f"stale filings. The verdicts below may be correct and still "

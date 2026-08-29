@@ -8,6 +8,7 @@ Pure library — importing it does nothing. Run
 `tests/test_golden_set.py` for the 17-company regression test, or
 `scripts/run_stage1.py` for the whole index.
 """
+import datetime as _dt
 import os
 import requests, statistics as st
 
@@ -84,6 +85,10 @@ INSTANT = {  # balance-sheet items: a point in time, not a period
 }
 
 
+def _date(iso):
+    return _dt.date.fromisoformat(iso)
+
+
 def _pick(facts, tags, instant, min_recent_year=2023):
     """Latest annual value per fiscal year, for the FRESHEST qualifying tag.
 
@@ -116,6 +121,25 @@ def _pick(facts, tags, instant, min_recent_year=2023):
                 continue
             if not instant and u.get("fp") != "FY":
                 continue
+            # A 10-K also carries the QUARTERS inside it, and some filers
+            # tag those fp=FY too. Accenture's fiscal-2025 10-K contains
+            # both 2024-09-01..2025-08-31 ($10.23B, 364 days) and
+            # 2024-12-01..2025-02-28 ($2.24B, 89 days), filed the same
+            # day — so the newest-filed tie-break below fell to JSON
+            # order and a single QUARTER won. Its return on assets then
+            # read one quarter's profit over a full year's balance sheet:
+            # 2.7% instead of 12.4%.
+            #
+            # Duration facts must therefore be about a year long. 350-380
+            # days admits 52- and 53-week fiscal calendars. Instant facts
+            # (assets, equity) carry no start date and are exempt.
+            if not instant:
+                start, end = u.get("start"), u.get("end")
+                if not start:
+                    continue
+                days = (_date(end) - _date(start)).days
+                if not (350 <= days <= 380):
+                    continue
             # Entries carrying a `frame` key are deliberately NOT skipped.
             # EDGAR marks one entry per calendar period as canonical by
             # attaching a frame label, and for the MOST RECENT fiscal year
@@ -511,6 +535,45 @@ def eligible(verdict):
 def at_risk(gates):
     """Gates a watchlist member is closest to failing — Stage 3 input."""
     return [n for n, g, _ in gates if g == "near-pass"]
+
+
+# A quarter is roughly a quarter of a year, so a part-year figure standing
+# in for an annual one shows up as revenue falling off a cliff.
+PARTIAL_RATIO = 0.45
+
+
+def partial_years(loaded):
+    """Companies whose revenue collapses like a quarter standing in for a year.
+
+    The guard against a defect that outcome tests cannot see. A 10-K
+    carries the QUARTERS inside it as well as the year, and some filers
+    tag those `fp=FY` too. `_pick` grouped facts by the year in their
+    end-date and kept the newest-FILED one, so where a quarter and the
+    year were filed the same day the tie broke on JSON ordering and the
+    QUARTER could win. Accenture's return on assets read 2.7% instead of
+    12.4% — one quarter's profit over a full year's balance sheet.
+
+    `_pick` now requires 350-380 days, so this is the assertion that the
+    requirement is still holding. It runs over the WHOLE INDEX because
+    the golden set cannot do this job: not one of the seventeen anchors
+    was affected, so all seventeen passed both before and after the fix.
+
+    REVENUE is the test subject rather than profit. Profit legitimately
+    collapses — Boeing, Intel and Ford all halve theirs inside the
+    window — but revenue at this size does not, so a fall past
+    PARTIAL_RATIO is a period defect rather than a bad year.
+    """
+    bad = []
+    for t, d in sorted(loaded.items()):
+        rev = d.get("revenue") or {}
+        yrs = sorted(rev)
+        for prev, cur in zip(yrs, yrs[1:]):
+            before, after = rev[prev], rev[cur]
+            if before and before > 0 and after / before < PARTIAL_RATIO:
+                bad.append(f"{t} FY{cur} revenue {after/1e9:.1f}B "
+                           f"vs FY{prev} {before/1e9:.1f}B")
+                break
+    return bad
 
 
 def yearly(d, is_financial=False, is_utility=False, is_capital_intensive=False):
