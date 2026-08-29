@@ -29,7 +29,9 @@ Both stages are built and running — Stage 1 against live SEC EDGAR
 filings with a 17-company regression test plus a data-recency assertion,
 Stage 2 against daily prices with a 13-check validation suite. There is
 no Stage 3; section 5 records what it would have been and why it was
-removed. Nothing is deployed.
+removed. The result is published at
+**[smunka42-gh.github.io/vantage](https://smunka42-gh.github.io/vantage/)**,
+regenerated from each scan.
 
 Corrections forced by real data: the original returns bar excluded Amazon
 and Costco; the margin test was unrunnable on 13 of the 20 largest
@@ -57,8 +59,8 @@ Each is documented below with the measurement that caught it.
 | v0.2 | 28 Aug 2026 | Scoped to S&P 500. Tag-coverage audit across all 500. Institutional ownership tested and rejected; volume and short interest adopted. |
 | v0.1 | 28 Aug 2026 | Initial three-stage funnel concept, thresholds proposed from sampled distributions. |
 
-v2.0 marks the funnel as complete at two stages. There is no Stage 3 and
-none is planned — see section 5 for why.
+The funnel is complete at two stages. There is no Stage 3 and none is
+planned — see section 5 for why.
 
 ---
 
