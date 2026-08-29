@@ -1,0 +1,187 @@
+# Rescans the whole S&P 500 and rebuilds the public page once per trading
+# day, an hour after the US close, then commits the result. GitHub Pages
+# serves docs/ straight from main, so the commit IS the deploy.
+
+name: Daily scan
+
+on:
+  schedule:
+    # GitHub cron is UTC ONLY and does not observe daylight saving, so no
+    # single expression stays at 17:00 New York year-round. Both fire; the
+    # gate below decides which one actually scans.
+    - cron: "0 21 * * 1-5"    # 17:00 America/New_York while EDT
+    - cron: "0 22 * * 1-5"    # 17:00 America/New_York while EST
+  workflow_dispatch:          # manual run from the Actions tab
+
+permissions:
+  contents: write             # to commit the refreshed scan and page
+
+concurrency:
+  group: daily-scan
+  cancel-in-progress: false   # never interrupt a scan mid-flight
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45       # Stage 1 walks 470 EDGAR filings at ~0.11s each
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide whether this run should scan
+        id: gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, pathlib, sys
+          from datetime import datetime, timezone, timedelta
+
+          log = lambda m: print(m, file=sys.stderr)
+
+          if os.environ.get("EVENT_NAME") == "workflow_dispatch":
+              log("Manual run — proceeding.")
+              print("proceed=true"); raise SystemExit
+
+          # GATE ON STATE, NOT ON THE CLOCK.
+          #
+          # It is tempting to check "is it 17:00 in New York?" and skip
+          # otherwise. That silently breaks the whole schedule, because
+          # GitHub does not guarantee scheduled runs fire on time — under
+          # load they are delayed by hours or dropped entirely. A run
+          # scheduled for 21:00 UTC can execute at 05:00 UTC, by which
+          # point New York reads 01:00, an hour check rejects it, and the
+          # job exits having done nothing while reporting SUCCESS. The
+          # page then goes quietly stale with a green tick in the Actions
+          # tab.
+          #
+          # Asking "has today's scan already happened?" instead is true or
+          # false regardless of when the runner happens to wake up.
+          NY = timezone(timedelta(hours=-4))   # see note below
+          # America/New_York needs tzdata, which is not guaranteed on every
+          # runner image. The exact offset does not matter here: this only
+          # derives a DATE and asks whether 16:00 local has passed. An hour
+          # of drift cannot change either answer except within one hour of
+          # midnight, which the "two or more days behind" rule below picks
+          # up on the next run anyway.
+          now = datetime.now(timezone.utc).astimezone(NY)
+
+          scan = pathlib.Path("docs/scan.json")
+          if not scan.exists():
+              log("No previous scan recorded — proceeding.")
+              print("proceed=true"); raise SystemExit
+
+          state = json.loads(scan.read_text())
+          last = datetime.fromisoformat(state["generated_utc"]).astimezone(NY)
+          days_behind = (now.date() - last.date()).days
+          log(f"last scan {last.date()} · now {now.date()} {now:%H:%M} local "
+              f"· {days_behind} days behind")
+
+          if days_behind <= 0:
+              proceed, why = False, "already scanned today"
+          elif days_behind == 1 and now.hour < 16:
+              # One day behind but today's close has not happened, so there
+              # is genuinely nothing newer to fetch. Catches a run delayed
+              # into the small hours of the next morning.
+              proceed, why = False, "today's close has not happened yet"
+          else:
+              proceed, why = True, "behind, and a newer close is available"
+
+          log(f"decision: {'PROCEED' if proceed else 'SKIP'} — {why}")
+          print(f"proceed={'true' if proceed else 'false'}")
+          PY
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.proceed == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.gate.outputs.proceed == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Stage 1 — quality gate on SEC filings
+        if: steps.gate.outputs.proceed == 'true'
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: |
+          if [ -z "$SEC_USER_AGENT" ]; then
+            echo "SEC_USER_AGENT secret is not set. The SEC rejects"
+            echo "anonymous callers, so the scan cannot run without it."
+            exit 1
+          fi
+          python scripts/run_stage1.py
+
+      - name: Stage 2 — how far below normal
+        if: steps.gate.outputs.proceed == 'true'
+        run: python scripts/run_stage2.py
+
+      - name: Refuse to publish a bad scan
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+
+          # A partial scan must never reach the page. Both sources can fail
+          # softly — EDGAR rate-limits, and Yahoo can return empty frames —
+          # so check the SHAPE of the result, not just that a file exists.
+          s1 = json.loads(pathlib.Path("scripts/stage1_results.json").read_text())
+          s2 = json.loads(pathlib.Path("scripts/stage2_results.json").read_text())
+
+          eligible = sum(1 for r in s1.values()
+                         if r["tier"] in {"PASS","BORDERLINE","EXCEPTION"})
+          priced   = sum(1 for r in s2.values() if r.get("status") == "scored")
+
+          problems = []
+          if len(s1) < 450:  problems.append(f"only {len(s1)} companies gated")
+          if eligible < 150: problems.append(f"only {eligible} eligible — gate looks broken")
+          if eligible > 400: problems.append(f"{eligible} eligible — gate is not gating")
+          if priced < 450:   problems.append(f"only {priced} companies priced")
+
+          for p in problems: print("FAIL:", p)
+          if problems:
+              sys.exit("Refusing to publish. Previous page left in place.")
+          print(f"ok — {len(s1)} gated, {eligible} eligible, {priced} priced")
+          PY
+
+      - name: Rebuild the page
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          python scripts/build_site.py
+          python3 - <<'PY'
+          import json, pathlib, datetime as dt
+          s2 = json.loads(pathlib.Path("scripts/stage2_results.json").read_text())
+          s1 = json.loads(pathlib.Path("scripts/stage1_results.json").read_text())
+          # State the gate reads next time, and the only thing that makes
+          # "have we already scanned today?" answerable.
+          pathlib.Path("docs/scan.json").write_text(json.dumps({
+            "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "prices_as_of": next((r.get("as_of") for r in s2.values()
+                                  if r.get("as_of")), None),
+            "universe": len(s1),
+            "eligible": sum(1 for r in s1.values()
+                            if r["tier"] in {"PASS","BORDERLINE","EXCEPTION"}),
+            "below_normal": sum(1 for r in s2.values()
+                                if r.get("far_below_normal") and r.get("eligible")),
+          }, indent=1) + "\n")
+          PY
+
+      - name: Commit and push, but only if the numbers moved
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # scan.json changes on every run because it carries a timestamp,
+          # so comparing it would commit daily even on market holidays when
+          # nothing actually moved. Judge on the PAGE instead: if the
+          # rendered table is identical, there is nothing to publish.
+          if git diff --quiet -- docs/index.html; then
+            echo "Page is unchanged (holiday, or prices did not move) — nothing to commit."
+            exit 0
+          fi
+
+          git add docs/index.html docs/scan.json
+          git commit -m "Refresh scan ($(TZ=America/New_York date '+%Y-%m-%d'))"
+          git push

@@ -1,0 +1,491 @@
+<title>Vantage Screener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#FBFAF8; --surface:#FFFFFF; --raised:#F5F4F1;
+  --ink:#17191B; --muted:#70757A; --faint:#9AA0A4;
+  --rule:#E5E4E0; --rule-strong:#CFCEC8;
+  --accent:#14595F; --accent-soft:#E8F0F0; --accent-ink:#0E4247;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+/* Deliberately single-theme. The palette is paper: an off-white ground,
+   ink text, hairline rules — a research document, not a trading terminal.
+   Committing to one visual world rather than inverting into a dark theme
+   that would have to re-earn every contrast decision. */
+:root{color-scheme:light}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.55;
+  margin:0; padding:0 24px 96px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto}
+h1,h2,h3{text-wrap:balance; margin:0}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+
+/* ---------- masthead ---------- */
+.mast{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  padding:34px 0 0; border-bottom:1px solid var(--rule); padding-bottom:16px;
+}
+/* A masthead, not a logo. Letterspaced serif capitals read as a
+   publication nameplate, which suits a page that is deliberately a
+   document rather than an app. The trailing full stop is gone — it was
+   a stylistic tic carrying the accent colour and nothing else. */
+.mark{
+  font-family:var(--serif); font-size:17px; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase;
+}
+.mast .meta{
+  margin-left:auto; font-family:var(--mono); font-size:11.5px;
+  color:var(--faint); letter-spacing:.02em;
+}
+
+/* ---------- the answer ---------- */
+.answer{padding:56px 0 44px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:20px;
+}
+.headline{
+  font-family:var(--serif); font-weight:300;
+  font-size:clamp(30px,5.2vw,52px); line-height:1.12; letter-spacing:-.02em;
+  max-width:19ch;
+}
+.headline b{font-weight:500; font-variant-numeric:tabular-nums}
+.headline .of{color:var(--muted)}
+.sub{
+  margin-top:22px; color:var(--muted); max-width:56ch; font-size:14.5px;
+}
+
+/* ---------- table ---------- */
+.sect{margin-top:56px}
+.sect-head{
+  display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.sect-head h2{
+  font-family:var(--serif); font-weight:400; font-size:22px;
+  letter-spacing:-.01em;
+}
+.sect-head .note{font-size:13px; color:var(--muted); margin-left:auto}
+.sect-lede{color:var(--muted); font-size:13.5px; max-width:62ch; margin:0 0 18px}
+
+.scroller{overflow-x:auto; border:1px solid var(--rule); border-radius:3px; background:var(--surface)}
+/* table-layout:fixed with explicit widths. The default (auto) sizes
+   columns by content and dumps all the leftover width wherever it likes,
+   which left a chasm after COMPANY and another before SHAPE. Fixed widths
+   make the spacing a decision rather than an accident. */
+table{border-collapse:collapse; width:100%; min-width:720px;
+      table-layout:fixed}
+col.c-name{width:24%}
+col.c-main{width:14%}
+col.c-cap {width:14%}
+col.c-ma  {width:12%}
+col.c-shape{width:16%}
+col.c-links{width:8%}
+thead th{
+  font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); font-weight:500;
+  text-align:right; padding:13px 11px; border-bottom:1px solid var(--rule-strong);
+  white-space:nowrap; background:var(--raised);
+}
+thead th:first-child,thead th.l{text-align:left}
+thead th.sortable{cursor:pointer; user-select:none}
+thead th.sortable:hover{color:var(--ink)}
+thead th .caret{opacity:0; margin-left:5px}
+thead th[aria-sort] .caret{opacity:1; color:var(--accent)}
+tbody td{
+  padding:12px 11px; text-align:right; border-bottom:1px solid var(--rule);
+  font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+tbody td.l{text-align:left; font-family:var(--sans); font-size:13.5px}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover{background:var(--raised)}
+tbody tr.row.open{background:var(--accent-soft)}
+.tkr{font-family:var(--mono); font-weight:600; font-size:13.5px; letter-spacing:.01em}
+.co{color:var(--muted); font-size:12.5px; margin-top:1px;
+    white-space:normal; line-height:1.35}
+.big{font-size:15px; font-weight:600; letter-spacing:-.01em}
+.dim{color:var(--muted)}
+
+/* shape pill — deliberately NOT colour-coded good/bad */
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--sans); font-size:11.5px; color:var(--muted);
+  border:1px solid var(--rule-strong); border-radius:2px;
+  padding:2px 8px; white-space:nowrap;
+}
+.dot{width:5px; height:5px; border-radius:50%; background:var(--faint); flex:none}
+.pill[data-s="falling now"] .dot{background:var(--ink)}
+.pill[data-s="fell, now flat"] .dot{background:var(--faint); box-shadow:0 0 0 1px var(--faint) inset; background:transparent}
+.pill[data-s="fell, now rising"] .dot{background:transparent; border:1px solid var(--rule-strong)}
+
+.rowlinks{display:flex; gap:10px; justify-content:flex-end}
+.rowlinks a{
+  font-family:var(--sans); font-size:11.5px; color:var(--muted);
+  border-bottom:1px solid var(--rule-strong); padding-bottom:1px;
+}
+.rowlinks a:hover{color:var(--accent); border-color:var(--accent); text-decoration:none}
+
+.flag{
+  font-family:var(--mono); font-size:10px; letter-spacing:.06em;
+  color:var(--accent); border:1px solid var(--accent); border-radius:2px;
+  padding:1px 5px; margin-left:7px; vertical-align:1px;
+}
+
+/* ---------- expanded working ---------- */
+/* The detail cell must reset THREE things it inherits from tbody td:
+   text-align (right, for numbers), white-space (nowrap, so table cells
+   stay on one line) and the mono font. Without the nowrap reset none of
+   the prose below can wrap, and long sentences run off the page. */
+tr.detail > td{
+  padding:0; text-align:left; white-space:normal;
+  font-family:var(--sans); background:var(--raised);
+  border-bottom:1px solid var(--rule);
+}
+.work{
+  padding:26px 22px 30px;
+  /* No width cap. Overflow is prevented at the source instead: the gate
+     grid uses minmax(0,1fr) and .calc wraps, so long monospace lines can
+     no longer push the table past the page the way they once did. */
+}
+/* Each part of the working sits in its own bordered card, so the eye can
+   tell "why it qualifies" from "how the number was reached" without
+   reading the headings. */
+.card{
+  background:var(--surface); border:1px solid var(--rule);
+  border-radius:3px; padding:18px 20px 20px; margin-bottom:14px;
+}
+.card:last-child{margin-bottom:0}
+.work h4{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink); font-weight:600;
+  margin:0 0 14px;
+}
+
+.gate{
+  display:grid; grid-template-columns:minmax(120px,168px) minmax(0,1fr) 62px;
+  gap:18px; align-items:baseline; padding:9px 0;
+  border-bottom:1px solid var(--rule);
+}
+.gate>*{min-width:0}
+.gate:last-of-type{border-bottom:0}
+.gate .g{font-size:12.5px; color:var(--muted); line-height:1.45}
+.gate .d{
+  font-size:13px; color:var(--ink); line-height:1.55;
+}
+/* figures stay mono inside the sentences, so they still read as reported */
+.gate .d b{font-family:var(--mono); font-weight:600}
+.gate .v{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); text-align:right;
+}
+.gate.risk .d{color:var(--ink)}
+.gate.risk .v{color:var(--accent); font-weight:600}
+
+.calc{
+  font-family:var(--mono); font-size:12px; line-height:2;
+  color:var(--muted); overflow-wrap:anywhere;
+}
+.calc b{color:var(--ink); font-weight:600}
+.calc .sep{color:var(--rule-strong); padding:0 8px}
+
+.card.stale-card{background:var(--raised)}
+.stale{font-size:13px; color:var(--muted); line-height:1.6; margin:0}
+.stale b{color:var(--ink); font-weight:600}
+.links{display:flex; gap:8px; margin-top:24px; flex-wrap:wrap}
+.links a{
+  font-family:var(--sans); font-size:12.5px; color:var(--ink);
+  border:1px solid var(--rule-strong); border-radius:2px;
+  padding:7px 13px; background:var(--surface);
+}
+.links a:hover{border-color:var(--accent); color:var(--accent); text-decoration:none}
+
+/* ---------- quiet day ---------- */
+/* Shown INSTEAD of the table when nothing clears the bar — see render().
+   Most days this is what the page says, and it is the correct answer
+   rather than an empty state to apologise for. */
+.quiet{background:var(--surface); padding:56px 30px; text-align:center}
+.quiet .q1{
+  font-family:var(--serif); font-weight:300; font-size:27px;
+  letter-spacing:-.015em; margin-bottom:10px;
+}
+.quiet .q2{color:var(--muted); font-size:13.5px; max-width:46ch; margin:0 auto}
+
+/* ---------- notes ---------- */
+.notes{margin-top:56px; border-top:1px solid var(--rule); padding-top:24px}
+.notes h3{
+  font-family:var(--mono); font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted); font-weight:500; margin-bottom:14px;
+}
+.note-grid{display:grid; grid-template-columns:1fr; gap:16px}
+@media(min-width:700px){.note-grid{grid-template-columns:1fr 1fr}}
+.note-grid p{margin:0; font-size:13px; color:var(--muted); line-height:1.6}
+.note-grid p b{color:var(--ink); font-weight:600}
+.foot{
+  margin-top:40px; padding-top:18px; border-top:1px solid var(--rule);
+  font-size:11.5px; color:var(--faint); line-height:1.7;
+}
+.foot code{font-family:var(--mono); font-size:11px}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mark">Vantage</div>
+    <div class="meta">S&amp;P 500 · last close Thu 27 Aug 2026 · filings via SEC EDGAR</div>
+  </header>
+
+  <section class="answer">
+    <div class="eyebrow">Today</div>
+    <h1 class="headline">
+      <b>16</b> companies worth owning are trading more than
+      <b>10%</b> below their own normal
+    </h1>
+    <p class="sub">
+      Ranked by how far each has moved from where it usually trades. Not a
+      buy list — the funnel gets you to the short list, then you go and read
+      about the business.
+    </p>
+
+  </section>
+
+  <section class="sect">
+    <div class="sect-head">
+      <h2>The list</h2>
+      <div class="note">Click a row to see the working</div>
+    </div>
+    <p class="sect-lede">
+      Sorted by how far below normal. Market cap is sortable but never ranks
+      the list — grouping by size would bury the unfamiliar names this screen
+      exists to surface.
+    </p>
+
+    <div class="scroller">
+      <table id="tbl">
+        <colgroup>
+          <col class="c-name"><col class="c-main"><col class="c-cap">
+          <col class="c-ma"><col class="c-ma"><col class="c-shape">
+          <col class="c-links">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="l sortable" data-k="t">Company<span class="caret">↓</span></th>
+            <th class="sortable" data-k="b" aria-sort="descending">Below normal<span class="caret">↓</span></th>
+            <th class="sortable" data-k="c">Market cap<span class="caret">↓</span></th>
+            <th>200-day</th>
+            <th>50-day</th>
+            <th>Shape</th>
+            <th>Open</th>
+          </tr>
+        </thead>
+        <tbody id="body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="notes">
+    <h3>How to read this</h3>
+    <div class="note-grid">
+      <p><b>Below normal</b> measures price against its own price history —
+        how far it has moved from where it usually trades. It is not a
+        discount: a business worth 40% less, priced 40% lower, reads exactly
+        like an unchanged business priced 40% lower.</p>
+      <p><b>Shape</b> dates the fall. The 50-day average catches up to a new
+        price level in about two months; the 200-day takes a year. Both gaps
+        wide means it is happening now; only the 200-day wide means it
+        happened months ago.</p>
+      <p><b>Closest to failing</b> is the one fact no finance site can give
+        you, because it exists only relative to our own bars. 3
+        of this list are grazing a gate.</p>
+      <p><b>Where this list comes from.</b> All 500 S&amp;P
+        constituents are tested against five quality gates on audited SEC
+        filings; 258 clear every one. Of those, 16 are
+        currently more than 10% below their own normal.</p>
+      <p><b>Filed through</b> says where our knowledge stops. The quality
+        gate reads annual filings, so a verdict can be two to twelve months
+        old — everything since is yours to check.</p>
+    </div>
+    <div class="foot">
+      Not investment advice. This encodes one person's screening rules in
+      software; it is not from a licensed advisor. Fundamentals from SEC
+      EDGAR as filed; prices from Yahoo Finance, split- and
+      dividend-adjusted. <code>Spec v2.1 · 5 gates · no Stage 3</code>
+    </div>
+  </section>
+</div>
+
+<script>
+const ROWS=[{"t":"MNST","n":"Monster Beverage","s":"Consumer Staples","b":40.5,"m2":40.6,"m5":40.3,"p":46.7,"sh":"falling now","c":91.8,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/MNST","g":"https://www.google.com/finance/quote/MNST:NASDAQ","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 18.2% vs 8% bar \u00b7 latest 19.1% (level)"],["3 Cumulative 5y FCF","pass","$+6.9B over 5y"],["4 Debt serviceable","pass","equity/assets 82.6% vs 10% bar (no interest tag)"],["5 Op margin durable","pass","latest 29.2% is 112% of 3y avg 26.1% (70% bar)"]]},{"t":"TTD","n":"Trade Desk (The)","s":"Communication Services","b":37.4,"m2":48.2,"m5":21.2,"p":13.42,"sh":"fell, now flat","c":6.4,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/TTD","g":"https://www.google.com/finance/quote/TTD:NASDAQ","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on equity median 9.0% vs 10% bar \u00b7 latest 17.8% (improving)"],["3 Cumulative 5y FCF","pass","$+2.8B over 5y"],["4 Debt serviceable","pass","interest coverage 329.2x vs 4.0x bar"],["5 Op margin durable","pass","latest 20.3% is 175% of 3y avg 11.7% (70% bar)"]]},{"t":"ROL","n":"Rollins, Inc.","s":"Industrials","b":23.3,"m2":31.6,"m5":11.0,"p":35.94,"sh":"fell, now flat","c":17.5,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/ROL","g":"https://www.google.com/finance/quote/ROL:NYSE","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 18.3% vs 8% bar \u00b7 latest 18.3% (level)"],["3 Cumulative 5y FCF","pass","$+2.5B over 5y"],["4 Debt serviceable","pass","interest coverage 25.4x vs 4.0x bar"],["5 Op margin durable","pass","latest 19.3% is 102% of 3y avg 18.9% (70% bar)"]]},{"t":"PODD","n":"Insulet Corporation","s":"Health Care","b":22.9,"m2":33.5,"m5":6.9,"p":143.41,"sh":"fell, now flat","c":10.1,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/PODD","g":"https://www.google.com/finance/quote/PODD:NASDAQ","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 6.7% vs 8% bar \u00b7 latest 11.7% (improving)"],["3 Cumulative 5y FCF","pass","$+0.6B over 5y"],["4 Debt serviceable","pass","interest coverage 8.0x vs 4.0x bar"],["5 Op margin durable","pass","latest 17.5% is 171% of 3y avg 10.3% (70% bar)"]]},{"t":"LII","n":"Lennox International","s":"Industrials","b":21.1,"m2":21.6,"m5":20.4,"p":391.15,"sh":"falling now","c":13.6,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/LII","g":"https://www.google.com/finance/quote/LII:NYSE","ar":"4 Debt serviceable|interest coverage 4.1x vs 4.0x bar","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 21.3% vs 8% bar \u00b7 latest 3.3% (level)"],["3 Cumulative 5y FCF","pass","$+2.5B over 5y"],["4 Debt serviceable","near-pass","interest coverage 4.1x vs 4.0x bar"],["5 Op margin durable","pass","latest 15.7% is 95% of 3y avg 16.4% (70% bar)"]]},{"t":"PNR","n":"Pentair","s":"Industrials","b":20.7,"m2":28.2,"m5":9.4,"p":62.1,"sh":"fell, now flat","c":9.8,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/PNR","g":"https://www.google.com/finance/quote/PNR:NYSE","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 9.9% vs 8% bar \u00b7 latest 9.9% (level)"],["3 Cumulative 5y FCF","pass","$+2.8B over 5y"],["4 Debt serviceable","pass","equity/assets 56.3% vs 10% bar (no interest tag)"],["5 Op margin durable","pass","latest 20.5% is 118% of 3y avg 17.4% (70% bar)"]]},{"t":"NKE","n":"Nike, Inc.","s":"Consumer Discretionary","b":18.7,"m2":25.6,"m5":8.5,"p":38.44,"sh":"fell, now flat","c":58.7,"fy":2026,"pe":"2026-05-31","y":"https://finance.yahoo.com/quote/NKE","g":"https://www.google.com/finance/quote/NKE:NYSE","ar":"5 Op margin durable|latest 8.4% is 75% of 3y avg 11.2% (70% bar)","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 13.0% vs 8% bar \u00b7 latest 8.0% (level)"],["3 Cumulative 5y FCF","pass","$+21.4B over 5y"],["4 Debt serviceable","pass","equity/assets 38.7% vs 10% bar (no interest tag)"],["5 Op margin durable","near-pass","latest 8.4% is 75% of 3y avg 11.2% (70% bar)"]]},{"t":"ZTS","n":"Zoetis","s":"Health Care","b":16.7,"m2":27.4,"m5":0.6,"p":75.02,"sh":"fell, now rising","c":32.0,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/ZTS","g":"https://www.google.com/finance/quote/ZTS:NYSE","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 16.2% vs 8% bar \u00b7 latest 17.2% (level)"],["3 Cumulative 5y FCF","pass","$+9.3B over 5y"],["4 Debt serviceable","pass","interest coverage 15.1x vs 4.0x bar"],["5 Op margin durable","pass","latest 35.5% is 105% of 3y avg 33.7% (70% bar)"]]},{"t":"LULU","n":"Lululemon Athletica","s":"Consumer Discretionary","b":16.2,"m2":25.5,"m5":2.2,"p":115.0,"sh":"fell, now rising","c":13.7,"fy":2025,"pe":"2026-02-01","y":"https://finance.yahoo.com/quote/LULU","g":"https://www.google.com/finance/quote/LULU:NASDAQ","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 21.3% vs 8% bar \u00b7 latest 20.7% (level)"],["3 Cumulative 5y FCF","pass","$+5.5B over 5y"],["4 Debt serviceable","pass","equity/assets 58.7% vs 10% bar (no interest tag)"],["5 Op margin durable","pass","latest 19.9% is 96% of 3y avg 20.7% (70% bar)"]]},{"t":"ISRG","n":"Intuitive Surgical","s":"Health Care","b":14.9,"m2":21.8,"m5":4.6,"p":367.07,"sh":"fell, now flat","c":133.5,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/ISRG","g":"https://www.google.com/finance/quote/ISRG:NASDAQ","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 9.9% vs 8% bar \u00b7 latest 11.4% (level)"],["3 Cumulative 5y FCF","pass","$+7.3B over 5y"],["4 Debt serviceable","pass","equity/assets 87.1% vs 10% bar (no interest tag)"],["5 Op margin durable","pass","latest 29.3% is 112% of 3y avg 26.1% (70% bar)"]]},{"t":"DECK","n":"Deckers Brands","s":"Consumer Discretionary","b":14.8,"m2":15.7,"m5":13.3,"p":86.33,"sh":"falling now","c":12.0,"fy":2026,"pe":"2026-03-31","y":"https://finance.yahoo.com/quote/DECK","g":"https://www.google.com/finance/quote/DECK:NYSE","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 23.4% vs 8% bar \u00b7 latest 27.1% (level)"],["3 Cumulative 5y FCF","pass","$+3.6B over 5y"],["4 Debt serviceable","pass","interest coverage 499.2x vs 4.0x bar"],["5 Op margin durable","pass","latest 23.1% is 109% of 3y avg 21.1% (70% bar)"]]},{"t":"TJX","n":"TJX Companies","s":"Consumer Discretionary","b":12.7,"m2":13.0,"m5":12.4,"p":134.22,"sh":"falling now","c":149.3,"fy":2026,"pe":"2026-01-31","y":"https://finance.yahoo.com/quote/TJX","g":"https://www.google.com/finance/quote/TJX:NYSE","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 15.8% vs 8% bar \u00b7 latest 16.1% (level)"],["3 Cumulative 5y FCF","pass","$+18.1B over 5y"],["4 Debt serviceable","pass","interest coverage 92.4x vs 4.0x bar"],["5 Op margin durable","pass","latest 12.1% is 114% of 3y avg 10.6% (70% bar)"]]},{"t":"CHRW","n":"C.H. Robinson","s":"Industrials","b":12.2,"m2":12.2,"m5":12.3,"p":151.14,"sh":"falling now","c":17.6,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/CHRW","g":"https://www.google.com/finance/quote/CHRW:NASDAQ","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 12.2% vs 8% bar \u00b7 latest 12.4% (level)"],["3 Cumulative 5y FCF","pass","$+3.7B over 5y"],["4 Debt serviceable","pass","equity/assets 36.5% vs 10% bar (no interest tag)"],["5 Op margin durable","pass","latest 4.9% is 124% of 3y avg 3.9% (70% bar)"]]},{"t":"TPR","n":"Tapestry, Inc.","s":"Consumer Discretionary","b":11.8,"m2":10.2,"m5":14.2,"p":123.24,"sh":"falling now","c":25.0,"fy":2026,"pe":"2026-06-27","y":"https://finance.yahoo.com/quote/TPR","g":"https://www.google.com/finance/quote/TPR:NYSE","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","pass","return on assets median 12.8% vs 8% bar \u00b7 latest 22.6% (level)"],["3 Cumulative 5y FCF","pass","$+5.6B over 5y"],["4 Debt serviceable","pass","interest coverage 16.0x vs 4.0x bar"],["5 Op margin durable","pass","latest 23.9% is 177% of 3y avg 13.5% (70% bar)"]]},{"t":"WMT","n":"Walmart","s":"Consumer Staples","b":11.2,"m2":13.0,"m5":8.4,"p":102.63,"sh":"fell, now flat","c":820.4,"fy":2026,"pe":"2026-01-31","y":"https://finance.yahoo.com/quote/WMT","g":"https://www.google.com/finance/quote/WMT:NASDAQ","ar":"2 Return on capital|return on assets median 8.4% vs 8% bar \u00b7 latest 8.3% (level)","gt":[["1 Sustained profit","pass","profit negative 0/5y (allowed 0) \u00b7 net income positive 5/5"],["2 Return on capital","near-pass","return on assets median 8.4% vs 8% bar \u00b7 latest 8.3% (level)"],["3 Cumulative 5y FCF","pass","$+65.8B over 5y"],["4 Debt serviceable","pass","interest coverage 12.9x vs 4.0x bar"],["5 Op margin durable","pass","latest 4.2% is 106% of 3y avg 4.0% (70% bar)"]]},{"t":"CRH","n":"CRH plc","s":"Materials","b":10.8,"m2":14.0,"m5":5.9,"p":95.58,"sh":"fell, now flat","c":63.8,"fy":2025,"pe":"2025-12-31","y":"https://finance.yahoo.com/quote/CRH","g":"https://www.google.com/finance/quote/CRH:NYSE","ar":"","gt":[["1 Sustained profit","pass","profit negative 0/4y (allowed 0) \u00b7 net income positive 4/4"],["2 Return on capital","pass","return on assets median 7.2% vs 8% bar \u00b7 latest 7.4% (improving)"],["3 Cumulative 5y FCF","pass","$+13.2B over 5y"],["4 Debt serviceable","pass","interest coverage 6.7x vs 4.0x bar"],["5 Op margin durable","pass","latest 14.5% is 116% of 3y avg 12.5% (70% bar)"]]}];
+const fmtCap=c=>c==null?"—":(c>=1000?(c/1000).toFixed(2)+"T":c.toFixed(1)+"B");
+const body=document.getElementById("body");
+let sortKey="b",sortDir=-1;
+
+// Plain English for the gate names. The backend labels are precise but
+// assume finance vocabulary; these say the same thing to a reader who
+// does not have it.
+const GATE_LABEL={
+  "Sustained profit":"Profitable every year",
+  "Return on capital":"Earns well on its assets",
+  "Cumulative 5y FCF":"Generates spare cash",
+  "Debt serviceable":"Debt under control",
+  "Op margin durable":"Margins holding up",
+};
+
+// Rewrites the backend's terse detail strings into sentences. Every
+// number is carried through unchanged — only the words around them
+// differ. If a string does not match its expected shape the raw version
+// is shown rather than a guess, so this can never invent a figure.
+function plain(gate, d){
+  let m;
+  if(gate==="Sustained profit" &&
+     (m=d.match(/profit negative (\d+)\/(\d+)y \(allowed (\d+)\)[^]*?net income positive (\d+)\/(\d+)/))){
+    const [,neg,yrs,,niGood,niYrs]=m;
+    return `Made an operating profit in ${yrs-neg} of the last ${yrs} years, `
+         + `and a bottom-line profit in ${niGood} of ${niYrs}.`;
+  }
+  if(gate==="Return on capital"){
+    if((m=d.match(/return on (assets|equity) median ([\d.]+)% vs (\d+)% bar[^]*?latest ([\d.]+)%/))){
+      const [,kind,med,bar,latest]=m;
+      const what = kind==="assets" ? "everything it owns" : "shareholders' money";
+      return `Earns ${med}% a year on ${what}, against a ${bar}% bar. `
+           + `Most recent year: ${latest}%.`;
+    }
+  }
+  if(gate==="Cumulative 5y FCF" && (m=d.match(/\$\+?([\d.]+)B over (\d+)y/))){
+    return `Threw off $${m[1]}B of spare cash over ${m[2]} years, after paying `
+         + `for the equipment and buildings it needs.`;
+  }
+  if(gate==="Debt serviceable"){
+    if((m=d.match(/interest coverage ([\d.]+)x vs ([\d.]+)x bar/)))
+      return `Profits cover its interest bill ${m[1]} times over. `
+           + `It needs to cover it at least ${m[2]} times.`;
+    if((m=d.match(/equity\/assets ([\d.]+)% vs (\d+)% bar/)))
+      return `Owns ${m[1]}% of its assets outright rather than owing them, `
+           + `against a ${m[2]}% bar.`;
+  }
+  if(gate==="Op margin durable" &&
+     (m=d.match(/latest ([\d.]+)% is (\d+)% of 3y avg ([\d.]+)% \((\d+)% bar\)/))){
+    const [,latest,pct,avg,bar]=m;
+    return `Keeps ${latest} cents of profit per dollar of sales. That is ${pct}% `
+         + `of its ${avg}% three-year average — it must stay above ${bar}%.`;
+  }
+  return d;   // unrecognised shape: show it as filed rather than guess
+}
+
+function detail(r){
+  const a200=(r.p/(1-r.m2/100)), a50=(r.p/(1-r.m5/100));
+  const gates=r.gt.map(g=>{
+    const risk = r.ar && r.ar.startsWith(g[0]);
+    const raw  = g[0].replace(/^\d+\s+/, "");
+    return `<div class="gate${risk?" risk":""}">
+      <div class="g">${GATE_LABEL[raw]||raw}</div>
+      <div class="d">${plain(raw, g[2])}</div>
+      <div class="v">${risk?"closest":(g[1]||"n/a")}</div>
+    </div>`;}).join("");
+
+  const months=Math.round((new Date("2026-08-29")-new Date(r.pe))/2629800000);
+  const ended=new Date(r.pe).toLocaleDateString("en-GB",
+    {day:"numeric",month:"long",year:"numeric"});
+
+  return `<div class="work">
+    <div class="card">
+      <h4>Why it is on the watchlist</h4>
+      ${gates}
+    </div>
+
+    <div class="card stale-card">
+      <h4>How current this is</h4>
+      <p class="stale">These checks read the company's last annual report,
+        covering the year to <b>${ended}</b>. Roughly <b>${months} months</b>
+        of trading have happened since, and none of it is reflected above —
+        that part is for you to catch up on.</p>
+    </div>
+
+    <div class="card">
+      <h4>How ${r.b.toFixed(1)}% was calculated</h4>
+      <div class="calc">
+        today <b>$${r.p.toFixed(2)}</b><span class="sep">·</span>average over
+        50 days <b>$${a50.toFixed(2)}</b><span class="sep">·</span>over 200 days
+        <b>$${a200.toFixed(2)}</b><br>
+        below normal = 0.60 × <b>${r.m2.toFixed(1)}%</b> + 0.40 ×
+        <b>${r.m5.toFixed(1)}%</b> = <b>${r.b.toFixed(1)}%</b>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  // The quiet-day state is BEHAVIOUR, not an illustration. It replaces the
+  // table rather than sitting beside it — the two are mutually exclusive,
+  // and showing both at once contradicted the headline.
+  if(ROWS.length===0){
+    document.querySelector(".scroller").innerHTML =
+      `<div class="quiet">
+         <div class="q1">Nothing is more than 10% below normal today.</div>
+         <div class="q2">Every company worth owning is trading close to where
+           it usually does. Nothing to look at today.</div>
+       </div>`;
+    document.querySelector(".sect-head .note").textContent = "";
+    return;
+  }
+  const rows=[...ROWS].sort((x,y)=>{
+    const a=x[sortKey],b=y[sortKey];
+    if(a==null)return 1; if(b==null)return -1;
+    return (typeof a==="string"?a.localeCompare(b):a-b)*sortDir;
+  });
+  body.innerHTML=rows.map((r,i)=>`
+    <tr class="row" data-i="${i}" tabindex="0">
+      <td class="l"><div class="tkr">${r.t}${r.ar?'<span class="flag">AT RISK</span>':""}</div>
+        <div class="co">${r.n}</div></td>
+      <td class="big">${r.b.toFixed(1)}%</td>
+      <td class="dim">$${fmtCap(r.c)}</td>
+      <td class="dim">${r.m2.toFixed(1)}%</td>
+      <td class="dim">${r.m5.toFixed(1)}%</td>
+      <td><span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span></td>
+      <td><span class="rowlinks">
+        <a href="${r.y}" target="_blank" rel="noopener" title="Yahoo Finance">Yahoo</a>
+        ${r.g?`<a href="${r.g}" target="_blank" rel="noopener" title="Google Finance">Google</a>`:""}
+      </span></td>
+    </tr>
+    <tr class="detail" hidden><td colspan="7">${detail(r)}</td></tr>`).join("");
+  document.querySelectorAll("#body tr.row").forEach(tr=>{
+    const toggle=()=>{
+      const d=tr.nextElementSibling;
+      const open=!d.hidden; d.hidden=open; tr.classList.toggle("open",!open);
+    };
+    // a link inside the row must not also expand it
+    tr.querySelectorAll("a").forEach(a=>
+      a.addEventListener("click",e=>e.stopPropagation()));
+    tr.addEventListener("click",toggle);
+    tr.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}
+    });
+  });
+}
+document.querySelectorAll("th.sortable").forEach(th=>{
+  th.addEventListener("click",()=>{
+    const k=th.dataset.k;
+    sortDir = (k===sortKey) ? -sortDir : (k==="t"?1:-1);
+    sortKey=k;
+    document.querySelectorAll("th").forEach(x=>x.removeAttribute("aria-sort"));
+    th.setAttribute("aria-sort",sortDir===1?"ascending":"descending");
+    render();
+  });
+});
+render();
+// open Nike by default so the working is visible on arrival
+
+</script>

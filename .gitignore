@@ -11,3 +11,4 @@ scripts/*.log
 
 # Private working notes — session history, decisions in progress.
 BUILD_LOG.md
+.preview/
