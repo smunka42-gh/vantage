@@ -804,6 +804,19 @@ is free and adequate for prices, and it is **not** trusted for
 fundamentals, which come from EDGAR. It can rate-limit and can return
 empty frames.
 
+**Prices must be split- and dividend-adjusted.** This is a correctness
+requirement, not a preference. On raw prices a 2-for-1 stock split makes
+a company appear to have fallen 50% overnight, and every ex-dividend date
+produces a small false dislocation. Both would be scored as opportunities.
+Averages are computed from adjusted closing prices throughout, and the
+52-week high likewise, so that a price and its own history are always on
+the same basis.
+
+**Definitions, stated so they cannot drift:** `SMA200` is the simple mean
+of the last 200 adjusted closes, `SMA50` the last 50; `high52` is the
+highest adjusted close in the last 252 trading days. Trading days, not
+calendar days.
+
 The predecessor once published a near-empty scan and blanked its own
 page. Stage 2 therefore **validates before it writes**, and refuses to
 publish rather than publish something wrong:
@@ -953,6 +966,18 @@ real numbers rather than a guess.
 4. **Nothing is a black box.** Every threshold shows the company's actual
    value beside the bar it had to clear, so a rejection is a fact the
    reader can disagree with.
+   **This means showing inputs and outputs, not internal arithmetic.** A
+   company view shows *18.7% below its own normal*, and beneath it the two
+   figures it came from — *25.6% below its 200-day, 8.5% below its 50-day*.
+   A reader who cares can check the arithmetic; a reader who doesn't is
+   not made to read a formula. The weights and the effective-influence
+   note in §4.3 belong on a methodology page, one level down — accurate
+   and available, never the headline.
+   **The weights are never user-adjustable.** A slider invites tuning
+   until the answer flatters a prior, which is the exact failure the
+   Stage 1 grading design exists to prevent. The predecessor shipped a
+   weights slider *and* a methodology page describing the opposite of what
+   the weights did; both halves of that were mistakes.
 5. **"Closest to its limit" is shown per company** — which gate to watch.
    That is what turns a screen into a monitoring tool.
 6. **CANNOT ASSESS is never merged into REJECTED.** No record and a bad

@@ -26,7 +26,10 @@ trade off. Stages 2 and 3 are scores.
   currently passes 17/17. Latest full run: 210 pass, 29 borderline,
   202 rejected, 29 not assessable, 30 REITs not yet covered —
   **239 of 500 eligible**.
-- **Stage 2 — not started.**
+- **Stage 2 — built.** Two moving-average components blended as real
+  percentages, with an absolute 10% "on sale" bar so the honest answer
+  on a calm day is an empty list. 13-check validation suite passing.
+  Latest run: **16 of 239 on sale**.
 - **Stage 3 — not started.**
 - **UI — not started, deliberately.** All three stages get built and
   validated first; the interface is specified only once there are real
@@ -43,17 +46,22 @@ python3 -m venv .venv
 
 export SEC_USER_AGENT="vantage you@example.com"
 
-.venv/bin/python tests/test_golden_set.py   # 17-company regression, ~20s
-.venv/bin/python scripts/run_stage1.py      # full S&P 500 run, ~9 min
+.venv/bin/python tests/test_golden_set.py   # Stage 1 regression, ~20s
+.venv/bin/python tests/test_stage2.py       # Stage 2 validation, ~30s
+.venv/bin/python scripts/run_stage1.py      # quality gate, ~9 min
+.venv/bin/python scripts/run_stage2.py      # dislocation, ~1 min
 ```
 
 ## Layout
 
 ```
-funnel/stage1.py     the six gates, grading and tiers — pure library
+funnel/stage1.py     the six quality gates, grading and tiers
 funnel/universe.py   S&P 500 constituents, sectors, track assignment
-scripts/run_stage1.py  runs the whole index, writes stage1_results.json
-tests/               the golden-set regression
+funnel/prices.py     price history and the checks that gate publishing
+funnel/stage2.py     the dislocation score and shape labels
+scripts/run_stage1.py  quality gate over the whole index
+scripts/run_stage2.py  dislocation over the whole index
+tests/               golden-set regression + Stage 2 validation suite
 docs/FUNNEL_SPEC.md  the specification
 ```
 
