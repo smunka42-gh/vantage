@@ -1,6 +1,6 @@
 # The Quality Dislocation Funnel
 
-**Vantage · Funnel Spec v0.8 · 29 Aug 2026**
+**Vantage · Funnel Spec v0.9 · 29 Aug 2026**
 
 Find durably excellent companies, wait for one of them to be temporarily
 marked down, and check that the markdown is sentiment rather than damage.
@@ -29,7 +29,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v0.8** | 29 Aug 2026 | Shock-year rule tightened: a company counts only if it was **profitable the year before**, so a loss must be specific to that year. Stops chronic loss-makers standing in as evidence of an industry-wide event, which had made Industrials 2020 fire spuriously. Only Energy 2020 fires. |
+| **v0.9** | 29 Aug 2026 | **Stage 2 rebuilt from measurement.** Score is now two moving-average components blended as real percentages — `0.60*d_ma200 + 0.40*d_ma50` — with an absolute 10% "on sale" bar replacing the percentile rank. The 52-week high is dropped from the score (0.74 correlated with the 200-day, and contaminated by spikiness) and kept as displayed context; the analyst target moves to Stage 3, where its question actually belongs. Standardisation removed as unnecessary once the components are commensurate, with the residual ≈68/32 effective split disclosed rather than engineered away. Adds the fresh/stabilising/recovering shape label, the data-quality gates and the Stage 2 validation plan. |
+| v0.8 | 29 Aug 2026 | Shock-year rule tightened: a company counts only if it was **profitable the year before**, so a loss must be specific to that year. Stops chronic loss-makers standing in as evidence of an industry-wide event, which had made Industrials 2020 fire spuriously. Only Energy 2020 fires. |
 | v0.7 | 29 Aug 2026 | Health insurers routed to the financials track. Financials' Gate 1 falls back to net income where no operating-income series is filed. Unassessable companies 36 → 29; eligible 238 of 500 (48%). **Ported into the Vantage repository as its source of truth; section 6 reduced to UI principles only — the detailed interface spec is now a separate document, written after Stage 3.** |
 | v0.6 | 29 Aug 2026 | Capital-intensive track (telecom/cable/media, ROE 10%) and the sector shock-year rule. Energy 5→10 and Comm Services 4→10 eligible. Full-500: 230 of 500 (46%) eligible. |
 | v0.5 | 29 Aug 2026 | Utilities track added (ROE 8%, operating cash flow replaces FCF, coverage 2.5×) — utilities went from 1/31 to 17/31 eligible. Canonical per-track gate table added. Full-500: 219 of 500 (44%). |
@@ -58,7 +59,7 @@ STAGE 1 — QUALITY GATE          hard pass/fail
 Recomputed quarterly, on filings.
         |
         v
-STAGE 2 — DISLOCATION           0-100 score
+STAGE 2 — DISLOCATION           % below its own normal
 How far below its own normal trading range is each one today?
 Recomputed daily, on prices.
         |
@@ -504,7 +505,7 @@ universe can widen later without silently surfacing names you cannot
 actually buy.
 
 *Requires price data, so it is the one gate not computed from EDGAR. It
-runs with Stage 2.*
+runs with Stage 2 — see §4.6.*
 
 ### 3.15 Sector handling
 
@@ -621,45 +622,231 @@ Applies to every Stage 1 PASS, BORDERLINE and EXCEPTION — the tier
 carries through so the interface can show it, but all three are scored.
 Answers: **how far below its own normal is this today?**
 
-### The calculation
+"Its own normal" means the company's own trading history, not a
+valuation multiple and not a comparison to other companies. A P/E screen
+here would fight the funnel by rejecting the very dislocations it exists
+to find.
+
+### 4.1 The calculation
 
 ```python
-# 1. Three raw measures of "below its own normal", in %
-d_ma   = (SMA200 - price) / SMA200      # below long-run trend
-d_high = (high52 - price) / high52      # below yearly peak
-d_tgt  = (target - price) / price       # below analyst consensus
+d_ma200 = (SMA200 - price) / SMA200     # below its long-run normal
+d_ma50  = (SMA50  - price) / SMA50      # below its recent normal
 
-# 2. Standardise each ACROSS THE WATCHLIST so weights mean what they say
-z(x) = (x - median(x)) / IQR(x)         # robust to outliers
-
-# 3. Weight and combine
-raw = 0.50*z(d_ma) + 0.30*z(d_high) + 0.20*z(d_tgt)
-
-# 4. Map to 0-100 for display (percentile within the watchlist)
-DislocationScore = percentile_rank(raw) * 100
+Dislocation = 0.60 * d_ma200 + 0.40 * d_ma50        # a real percentage
+OnSale      = Dislocation >= 0.10                   # absolute, cohort-free
 ```
 
-**Standardisation is not cosmetic — it is the fix for a measured bug.** A
-component only moves a ranking to the extent it *varies* across the
-names being ranked. In the predecessor's blend, three components with
-stated weights 50/25/25 had spreads of 11.3, 27.4 and 13.3 points, so the
-*effective* weights were ≈36/43/21 — the 52-week high dominated despite
-being nominally quarter-weighted, and removing it changed 6 of the top 20
-names. Standardising each component before weighting is what makes the
-stated weights true.
+Two components, both measured the same way, both reported as real
+percentages. A company at `Dislocation = 0.187` is *18.7% below its own
+normal* — a figure that means the same thing today, next quarter, and
+against any watchlist.
 
-**Why 50/30/20.** The moving average is the closest thing to "its own
-normal" and gets the most weight. The 52-week high is a single day, so it
-is a supporting signal, not a lead one. The analyst target is a forecast
-carrying documented optimism bias, so it is weighted least.
+Names are ordered by `Dislocation`. There is no percentile and no
+standardisation; §4.3 explains why both were removed.
 
-**Why median/IQR rather than mean/standard deviation.** A single crashed
-stock would drag a mean and inflate a standard deviation, compressing
-everyone else. Median and interquartile range are unaffected by extremes.
+### 4.2 Why these two, and not the 52-week high or the analyst target
 
-**Why percentile for display.** A raw z-score is meaningless to a reader.
-"87" communicates "more dislocated than 87% of your watchlist", which is
-exactly the question being asked.
+Four candidate components were measured across all 500 constituents on
+29 Aug 2026. Rank correlation, on the 239 eligible:
+
+| | d_ma200 | d_ma50 | d_high | d_tgt |
+|---|---|---|---|---|
+| **d_ma200** | 1.00 | 0.53 | **0.74** | 0.43 |
+| **d_ma50** | 0.53 | 1.00 | 0.43 | 0.57 |
+| **d_high** | 0.74 | 0.43 | 1.00 | 0.46 |
+| **d_tgt** | 0.43 | 0.57 | 0.46 | 1.00 |
+
+**The two moving averages are kept because they are not redundant.** At
+0.53 they carry substantially different information — a prediction that
+they would correlate above 0.8 was made before measuring and was wrong.
+
+**The 52-week high is dropped from the score.** It is the most redundant
+component in the set (0.74 with the 200-day), and its distinctive part is
+contaminated: distance from a 52-week high is heavily determined by
+whether the stock had a *spike* in the last year. A company that popped
+on a takeover rumour ten months ago and drifted back reads as "40% below
+its 52-week high" while trading exactly at its own normal. That is a
+volatile stock, not a dislocated one. It remains **displayed** on the
+company view as context, because it is meaningful to a human reader — it
+simply does not drive the ranking.
+
+**The analyst target moves to Stage 3.** It is not a measure of "cheap
+versus its own normal" at all; it is an outside opinion on whether a fall
+is *justified* — which is precisely the Stage 3 question. It also
+correlates most strongly with the 50-day (0.57), consistent with targets
+being anchored to price and lagging it, so as a dislocation input it is
+partly a slow echo of a move already captured.
+
+Measured, both excluded components are one-directional:
+
+| | |
+|---|---|
+| Analyst target above current price | 450 of 496 (**90.7%**), median premium **+13.0%** |
+| Price below its 52-week high | 486 of 498 (**97.6%**), median **10.3%** below |
+
+Under a percentile design this would be harmless — subtracting a median
+removes the level. **Under the absolute threshold adopted in §4.1 it is
+decisive:** at the original 30% and 20% weights, those two floors would
+have handed every company roughly **5.7 points of score for free**, before
+it had fallen at all, and a "10% below normal" bar would be cleared by
+stocks trading *above* their moving averages.
+
+### 4.3 Why there is no standardisation and no percentile
+
+The predecessor blended three components at a stated 50/25/25 whose real
+influence was ≈36/43/21, because **a component only moves a ranking to
+the extent it varies** across the names being ranked. Standardisation —
+subtracting the median and dividing by the interquartile range — was the
+fix, and it was the right fix *for that blend*, because the components
+were measured in incommensurate units.
+
+Removing those components removes the need. `d_ma200` and `d_ma50` are
+both "percent below a moving average": same units, comparable spread. A
+raw blend is close to honest, and it keeps the score in real percentage
+terms.
+
+**The stated weights are still not exactly the effective ones, and this
+is disclosed rather than engineered away.** Measured across the 239
+eligible, `d_ma200` has an IQR of 15.6 points against `d_ma50`'s 11.0 —
+a 1.41× ratio. So:
+
+| stated | effective (200d : 50d) |
+|---|---|
+| 50/50 | 59 / 41 |
+| **60/40** | **68 / 32** |
+| 70/30 | 77 / 23 |
+
+**60/40 is adopted, and its real influence is ≈68/32.** The trade is
+explicit: standardising would make the weights exact but would destroy
+the real-percentage units, and those units are what allow an absolute
+threshold — which is what allows the page to say *nothing is on sale
+today*. Honest units were judged worth more than exact weights, and the
+gap is stated here rather than hidden.
+
+For calibration: ranking on the 200-day alone changes only 2 of the top
+20 names. The weighting is not a sensitive parameter and should not be
+tuned further.
+
+### 4.4 Why an absolute threshold, not a percentile rank
+
+A percentile always has a 99th percentile. A percentile-ranked score
+would nominate a most-dislocated company every single day, including days
+when all 239 sit at their highs — manufacturing a daily recommendation
+out of nothing. That directly contradicts §6 principle 2.
+
+An absolute bar can return zero. Measured across the eligible list on
+29 Aug 2026 — a period when the median eligible company was trading
+**4.6% above** its own normal:
+
+| Bar | Companies of 239 |
+|---|---|
+| ≥ 5% | 34 (14.2%) |
+| ≥ 8% | 23 (9.6%) |
+| **≥ 10%** | **16 (6.7%)** |
+| ≥ 15% | 10 (4.2%) |
+| ≥ 20% | 7 (2.9%) |
+
+**10% is adopted.** Sixteen candidates is the right width for Stage 3 to
+narrow to a handful of ACT verdicts. A 20% bar here would do Stage 3's
+filtering job for it and collapse the funnel into a single stage.
+
+### 4.5 The shape of the decline
+
+The two averages together carry information neither has alone: **when the
+fall happened**. The 50-day average catches up to a new price level in
+about two months; the 200-day takes a year. A stock that drops from $100
+to $60 and holds:
+
+| | SMA50 | SMA200 | d_ma50 | d_ma200 |
+|---|---|---|---|---|
+| Day 1 | $100 | $100 | 40% | 40% |
+| Day 25 | $80 | $95 | 25% | 37% |
+| Day 50 | $60 | $90 | **0%** | 33% |
+
+So both large means the fall is recent or ongoing; a large 200-day with a
+small 50-day means it happened months ago and price has settled.
+
+```python
+shape_ratio = d_ma50 / d_ma200          # only when d_ma200 > 0
+```
+
+| ratio | label | meaning |
+|---|---|---|
+| ≥ 0.70 | **still falling** | as far below its short average as its long one — recent or ongoing |
+| 0.20 – 0.70 | **stabilising** | fell some time ago, price has found a floor |
+| < 0.20 | **recovering** | back near or above its 50-day |
+
+This is a **label, not a score adjustment** — it annotates the ranking
+without altering it. It matters because the thesis is temporary shocks:
+"still falling" is a shock in progress with an unknown bottom,
+"stabilising" is one that can now be assessed, and "recovering" means the
+opportunity has largely passed.
+
+Observed on the sixteen names clearing the bar: MNST at ratio 0.99 is
+falling right now; NKE at 0.33 fell and has steadied; ZTS at 0.02 has
+been flat for months. A single number cannot distinguish those.
+
+A ratio above 1.0 (the 50-day gap exceeding the 200-day gap) means the
+decline is accelerating, and falls inside "still falling".
+
+### 4.6 Gate 6 — liquidity, executed here
+
+Gate 6 belongs to Stage 1 but needs prices, so it runs with Stage 2.
+Median daily dollar volume over 63 trading days ≥ $25M. Every S&P 500
+name is expected to clear it comfortably; if any name fails, that is a
+finding to investigate, not a routine rejection.
+
+### 4.7 Data source and its known weaknesses
+
+Prices come from Yahoo Finance via the unofficial `yfinance` library. It
+is free and adequate for prices, and it is **not** trusted for
+fundamentals, which come from EDGAR. It can rate-limit and can return
+empty frames.
+
+The predecessor once published a near-empty scan and blanked its own
+page. Stage 2 therefore **validates before it writes**, and refuses to
+publish rather than publish something wrong:
+
+| Check | Bar |
+|---|---|
+| Tickers returning data | ≥ 95% |
+| Trading days per ticker | ≥ 200 (else "insufficient history", never scored as flat) |
+| Prices | no zero or negative values |
+| Most recent bar | within 5 calendar days |
+
+Any failure aborts the run and leaves the previous results in place.
+
+Companies with under 200 trading days of history are marked
+**insufficient history** and are never scored as though they were
+trading flat — the same distinction Stage 1 draws between CANNOT ASSESS
+and REJECTED.
+
+### 4.8 Scope of computation
+
+Components are computed for **all 500 constituents**, not just the 239
+eligible, because the ticker inspector (§6.7) must be able to answer for
+a rejected company too. Only the eligible list is ranked and only it can
+be "on sale".
+
+### 4.9 How Stage 2 will be validated
+
+Stage 2 has no golden set — there is no independently known right answer
+for "how dislocated is this". Validation is therefore mechanical:
+
+1. **Arithmetic check.** Recompute one company's 200-day average by hand
+   from raw closes and confirm it matches to the cent.
+2. **Sanity anchors.** A stock at its 52-week high must score at or below
+   zero; one trading far under both averages must score near the top. A
+   violation means a sign is inverted.
+3. **Effective-weight check.** Measure the realised influence split and
+   confirm it matches the ≈68/32 stated in §4.3. This is the direct test
+   for the bug that broke the predecessor.
+4. **Shape-label check.** Confirm the three labels partition the on-sale
+   list and that each example behaves as §4.5 describes.
+5. **Second-source spot check.** Verify three companies' prices against a
+   source other than yfinance, so the data is known to be *right*, not
+   merely *present*.
 
 ---
 
@@ -681,6 +868,17 @@ Six independent checks, each scored −1, 0 or +1, then summed to a
 | **Distance from failing Stage 1** | Stage 1 outputs | Comfortably clears every gate | Within 10% of failing any gate |
 | **Volume character** | 10-day vs average volume | Ratio ≤ 1.0 — the fall happened on ordinary volume: drift, not stampede | Ratio ≥ 1.5 — heavy volume on the way down: institutions distributing |
 | **Short interest** | short % of float | Below ~3% — no organised bear thesis | Above ~6% — informed money positioned for further decline |
+
+**Received from Stage 2, not yet placed.** The analyst price target moved
+here in v0.9 (see §4.2): it is an outside opinion on whether a fall is
+justified, which is this stage's question rather than Stage 2's. It is
+*parked, not adopted* — the open question is whether the target **level**
+adds anything beyond the conviction **trend** already listed above, given
+that targets are anchored to price and lag it (rank correlation 0.57 with
+the 50-day move). Measured: the target sits above the current price for
+90.7% of the index at a median premium of +13.0%, so any use of it must
+be relative to that floor rather than treating "target above price" as
+information. To be settled when Stage 3 is specified.
 
 **The fourth signal is the one that matters most and is unique to this
 design:** it asks whether the company is on the verge of ceasing to be
@@ -809,6 +1007,16 @@ exactly what went wrong in the predecessor project.
   short interest, analyst revisions and quarterly trajectory all encode
   what the news means without needing to interpret prose. Revisit if the
   six signals prove insufficient.
+- **Stage 2's components** — settled by measurement in v0.9. Two moving
+  averages; the 52-week high displayed but not scored; the analyst target
+  relocated to Stage 3. See §4.2.
+- **Ordering versus triggering** — settled. One absolute number does both
+  jobs. A percentile rank was specified through v0.8 and removed because
+  it can never return "nothing is on sale". See §4.4.
+- **Standardisation** — settled. Necessary for incommensurate components,
+  unnecessary once every component is a percentage below a moving
+  average. The residual gap between stated and effective weights is
+  disclosed instead. See §4.3.
 
 ### Still open
 
@@ -843,6 +1051,9 @@ exactly what went wrong in the predecessor project.
 - **S&P 500 Quality Index** — S&P Dow Jones Indices. Used only as an
   independent cross-check when assembling the golden set; no index
   methodology or data is reproduced here.
+- **yfinance** — Ran Aroussi and contributors, Apache 2.0. An unofficial
+  client for Yahoo Finance data; used for prices and analyst figures, not
+  for fundamentals. `https://github.com/ranaroussi/yfinance`
 - **ASU 2016-01** (equity securities measured at fair value through net
   income) — Financial Accounting Standards Board. The accounting change
   that explains Berkshire's 2022 reported loss.

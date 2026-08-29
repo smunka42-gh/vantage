@@ -1,5 +1,8 @@
-# Stage 1 only. Deliberately minimal — no UI dependencies until there is
-# a UI, and no pinned versions yet while the shape of the project moves.
-requests
-pandas
-lxml
+# Deliberately minimal — no UI dependencies until there is a UI, and no
+# pinned versions yet while the shape of the project moves.
+
+requests        # SEC EDGAR, and the constituent-list fetch
+pandas          # tabular work throughout
+lxml            # HTML table parsing for the constituent list
+yfinance        # Stage 2 prices. Unofficial Yahoo client — trusted for
+                # prices only, never for fundamentals (those come from EDGAR).
