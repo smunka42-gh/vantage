@@ -1,6 +1,6 @@
 # The Quality Dislocation Funnel
 
-**Vantage · Funnel Spec v0.7 · 29 Aug 2026**
+**Vantage · Funnel Spec v0.8 · 29 Aug 2026**
 
 Find durably excellent companies, wait for one of them to be temporarily
 marked down, and check that the markdown is sentiment rather than damage.
@@ -29,6 +29,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v0.8** | 29 Aug 2026 | Shock-year rule tightened: a company counts only if it was **profitable the year before**, so a loss must be specific to that year. Stops chronic loss-makers standing in as evidence of an industry-wide event, which had made Industrials 2020 fire spuriously. Only Energy 2020 fires. |
 | v0.7 | 29 Aug 2026 | Health insurers routed to the financials track. Financials' Gate 1 falls back to net income where no operating-income series is filed. Unassessable companies 36 → 29; eligible 238 of 500 (48%). **Ported into the Vantage repository as its source of truth; section 6 reduced to UI principles only — the detailed interface spec is now a separate document, written after Stage 3.** |
 | v0.6 | 29 Aug 2026 | Capital-intensive track (telecom/cable/media, ROE 10%) and the sector shock-year rule. Energy 5→10 and Comm Services 4→10 eligible. Full-500: 230 of 500 (46%) eligible. |
 | v0.5 | 29 Aug 2026 | Utilities track added (ROE 8%, operating cash flow replaces FCF, coverage 2.5×) — utilities went from 1/31 to 17/31 eligible. Canonical per-track gate table added. Full-500: 219 of 500 (44%). |
@@ -171,9 +172,10 @@ screen exists to be able to say.
 
 ### 3.3 Sector-wide shock years
 
-Where at least half of a sector's ten largest companies post an operating
-loss in the same year, that year is excluded from Gate 1 for every
-company in that sector.
+Where at least half of a sector's ten largest companies are **knocked
+into** an operating loss in the same year — having been profitable the
+year before — that year is excluded from Gate 1 for every company in that
+sector.
 
 ```
 Energy — share of the largest names with negative operating income:
@@ -188,34 +190,33 @@ that a *year* was industry-wide — rather than a lowered bar, and it is
 self-limiting: nine energy names still fail on their own record even with
 2020 excused.
 
+**Why the prior-year condition is load-bearing.** An earlier version
+counted *any* loss in the year, and that let chronically unprofitable
+companies stand in as evidence of an industry-wide event — exactly
+backwards, since a company that loses money every year says nothing about
+whether one particular year was exceptional. Measured:
+
+```
+share of the ten largest posting an operating loss
+                     2019    2020    2021
+Energy                10%     77%      0%    <- spike
+Industrials           20%     50%     30%    <- plateau
+```
+
+Industrials 2020 tripped the old rule at exactly the 50% threshold,
+carried there by Boeing and DuPont, which were losing money either side
+of 2020 as well. Requiring a profitable prior year drops Industrials 2020
+to 30% (does not fire) while Energy 2020 holds at 67% (still fires). Only
+Energy 2020 fires across the index.
+
+A company is counted only where figures exist for **both** the year and
+the year before, so one with a gap is left out of the numerator and the
+denominator alike rather than silently diluting the share.
+
 Sector size is ranked on **total assets**, which Stage 1 already loads
 from EDGAR, rather than market capitalisation. That avoids a second data
 source for one ranking, and balance-sheet size is the more appropriate
 measure of "one of this sector's big names" anyway.
-
-#### Open defect — the rule now also fires on Industrials 2020
-
-Ranking by assets rather than market cap pulls the airlines into the
-Industrials top ten, and the rule fires there at exactly the 50%
-threshold. The evidence does not look like Energy's:
-
-```
-                     2019    2020    2021
-Energy negative       10%     77%      0%      clean spike
-Industrials negative  20%     50%     30%      elevated plateau
-```
-
-Two of the five Industrials "shock" names are Boeing and DuPont, which
-posted operating losses in 2019 and 2021 as well. They are chronic
-underperformers riding along in the count, not evidence that 2020 was
-exogenous — and they inflate a marginal 50% into a trigger.
-
-The rule as written counts *any* loss in the year. What it claims to
-detect is a **spike**. Proposed fix: a company only counts toward a
-shock year if it was profitable in the adjacent year, so its loss is
-specific to that year. That drops Industrials 2020 to 3/10 (30%, does not
-fire) while Energy 2020 stays at 6/9 (67%, still fires). **Not yet
-implemented — pending review.**
 
 The shock window is the same five years the gates judge on. An earlier
 draft used six, which meant the rule could excuse a year the gates never
@@ -576,17 +577,39 @@ Which gate does the rejecting:
 
 | Gate | Outright fails | Near-fails |
 |---|---|---|
-| 1 · Sustained profit | 66 | 0 |
+| 1 · Sustained profit | 68 | 0 |
 | 2 · Return on capital | 129 | 26 |
 | 3 · Cumulative 5y FCF | 29 | 0 |
 | 4 · Debt serviceable | 57 | 13 |
 | 5 · Op margin durable | 76 | 14 |
 
-The earlier measurement was 238 eligible (208 PASS / 30 BORDERLINE /
-203 REJECTED). The one-company difference is entirely the Industrials
-2020 shock year described in §3.3, which fires here because sector size
-is now ranked on total assets rather than market cap. Resolving that
-defect is expected to return the figure to 238.
+By sector:
+
+| Sector | Eligible | of | Pass | Borderline | Rejected | Cannot assess |
+|---|---|---|---|---|---|---|
+| Industrials | 47 | 83 | 44 | 3 | 30 | 6 |
+| Financials | 47 | 76 | 42 | 5 | 28 | 1 |
+| Information Technology | 36 | 73 | 32 | 4 | 34 | 3 |
+| Health Care | 26 | 59 | 21 | 5 | 30 | 3 |
+| Consumer Discretionary | 23 | 47 | 21 | 2 | 21 | 3 |
+| Consumer Staples | 15 | 34 | 11 | 4 | 16 | 3 |
+| Utilities | 17 | 31 | 13 | 4 | 12 | 2 |
+| Materials | 8 | 25 | 7 | 1 | 14 | 3 |
+| Energy | 10 | 21 | 9 | 1 | 9 | 2 |
+| Communication Services | 10 | 21 | 10 | 0 | 8 | 3 |
+| Real Estate | — | 30 | — | — | — | — |
+
+Tightening the shock rule moved Gate 1's outright fails from 66 to 68 —
+two Industrials companies no longer have 2020 excused — but changed no
+tier, because both were already rejected on other gates. The eligible
+count is unaffected by the fix.
+
+An earlier measurement gave 238 eligible (208 PASS / 30 BORDERLINE / 203
+REJECTED). That difference is **not** the shock rule: it is the
+constituent list. This repository fetches the index live rather than
+reading a static ticker file, so membership drifts with the real index
+(~20–25 names a year). Comparisons across runs are only meaningful when
+the universe is pinned.
 
 ---
 

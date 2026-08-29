@@ -22,11 +22,12 @@ from funnel.universe import load_sp500, track_for            # noqa: E402
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "stage1_results.json"
 
-# A year where most of a sector's LARGEST companies posted an operating
-# loss is an exogenous, industry-wide event rather than evidence about
-# any one company, so it is excluded from Gate 1 for that sector.
+# A year where most of a sector's LARGEST companies were KNOCKED INTO an
+# operating loss is an exogenous, industry-wide event rather than evidence
+# about any one company, so it is excluded from Gate 1 for that sector.
 SHOCK_SHARE = 0.50
 SHOCK_TOP_N = 10
+SHOCK_MIN_ASSESSABLE = 4      # too few evaluable names to call a trend
 
 
 def _cik_map() -> dict[str, str]:
@@ -41,6 +42,26 @@ def _shock_years(data: dict, sectors: dict) -> dict[str, set[str]]:
     from EDGAR, rather than market capitalisation. That avoids pulling in
     a second data source for one ranking, and balance-sheet size is the
     more appropriate measure of "one of this sector's big names" anyway.
+
+    A company counts toward a shock year only if it was PROFITABLE THE
+    YEAR BEFORE — the loss has to be specific to that year. Counting
+    every loss instead lets chronically unprofitable companies stand in
+    as evidence of an industry-wide event, which is exactly backwards:
+    a company that loses money every year says nothing about whether one
+    particular year was exceptional.
+
+    Measured, this is the difference between detecting a shock and
+    detecting a weak sector:
+
+        share of the ten largest posting an operating loss
+                             2019    2020    2021
+        Energy                10%     77%      0%   <- spike
+        Industrials           20%     50%     30%   <- plateau
+
+    Industrials 2020 tripped the old rule at exactly the 50% threshold,
+    carried there by Boeing and DuPont, which were losing money either
+    side of 2020 as well. Requiring a profitable prior year drops it to
+    30% (does not fire) while Energy 2020 holds at 67% (still fires).
     """
     by_sector = collections.defaultdict(list)
     for t in data:
@@ -53,15 +74,24 @@ def _shock_years(data: dict, sectors: dict) -> dict[str, set[str]]:
             return max(assets.values()) if assets else 0.0
 
         biggest = sorted(names, key=size, reverse=True)[:SHOCK_TOP_N]
-        neg, total = collections.Counter(), collections.Counter()
+
+        # knocked_down: lost money in year y having earned it in y-1.
+        # assessable: had figures for BOTH years, so the question could
+        # actually be asked of them. A company missing either year is
+        # left out of both, rather than silently diluting the share.
+        knocked_down, assessable = collections.Counter(), collections.Counter()
         for t in biggest:
             oi = data[t]["op_income"]
             for y in sorted(oi)[-5:]:          # same window the gates judge on
-                total[y] += 1
-                if oi[y] <= 0:
-                    neg[y] += 1
-        for y, n in total.items():
-            if n >= 4 and neg[y] / n >= SHOCK_SHARE:
+                prior = oi.get(str(int(y) - 1))
+                if prior is None:
+                    continue
+                assessable[y] += 1
+                if oi[y] <= 0 < prior:
+                    knocked_down[y] += 1
+
+        for y, n in assessable.items():
+            if n >= SHOCK_MIN_ASSESSABLE and knocked_down[y] / n >= SHOCK_SHARE:
                 shock[sector].add(y)
     return shock
 
