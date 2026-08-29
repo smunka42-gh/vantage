@@ -136,8 +136,11 @@ jobs:
           s1 = json.loads(pathlib.Path("scripts/stage1_results.json").read_text())
           s2 = json.loads(pathlib.Path("scripts/stage2_results.json").read_text())
 
+          # Must match funnel ELIGIBLE_TIERS. This also counted an
+          # EXCEPTION tier that spec v2.3 removed from the funnel; no
+          # company can carry it any more.
           eligible = sum(1 for r in s1.values()
-                         if r["tier"] in {"PASS","BORDERLINE","EXCEPTION"})
+                         if r["tier"] in {"PASS","BORDERLINE"})
           priced   = sum(1 for r in s2.values() if r.get("status") == "scored")
 
           problems = []
@@ -155,24 +158,10 @@ jobs:
       - name: Rebuild the page
         if: steps.gate.outputs.proceed == 'true'
         run: |
+          # build_site.py writes docs/scan.json as well as the page, so the
+          # gate's state and the published numbers come from one run and
+          # cannot drift apart.
           python scripts/build_site.py
-          python3 - <<'PY'
-          import json, pathlib, datetime as dt
-          s2 = json.loads(pathlib.Path("scripts/stage2_results.json").read_text())
-          s1 = json.loads(pathlib.Path("scripts/stage1_results.json").read_text())
-          # State the gate reads next time, and the only thing that makes
-          # "have we already scanned today?" answerable.
-          pathlib.Path("docs/scan.json").write_text(json.dumps({
-            "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
-            "prices_as_of": next((r.get("as_of") for r in s2.values()
-                                  if r.get("as_of")), None),
-            "universe": len(s1),
-            "eligible": sum(1 for r in s1.values()
-                            if r["tier"] in {"PASS","BORDERLINE","EXCEPTION"}),
-            "below_normal": sum(1 for r in s2.values()
-                                if r.get("far_below_normal") and r.get("eligible")),
-          }, indent=1) + "\n")
-          PY
 
       - name: Commit and push, but only if the numbers moved
         if: steps.gate.outputs.proceed == 'true'

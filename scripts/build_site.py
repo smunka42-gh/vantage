@@ -28,6 +28,7 @@ STAGE1 = ROOT / "scripts/stage1_results.json"
 STAGE2 = ROOT / "scripts/stage2_results.json"
 TEMPLATE = ROOT / "site/template.html"
 OUT = ROOT / "docs/index.html"
+SCAN = ROOT / "docs/scan.json"
 
 ELIGIBLE_TIERS = {"PASS", "BORDERLINE"}
 
@@ -150,7 +151,25 @@ def build() -> int:
 
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(page)
+
+    # The state the daily workflow's gate reads to answer "have we already
+    # scanned today?". Written HERE, by the same run that renders the page,
+    # so the two can never disagree.
+    #
+    # It used to be written by the workflow instead, which meant every
+    # local rebuild left it behind: the published page read 262 eligible
+    # and 17 below normal while the published scan.json still said 258 and
+    # 16. Two writers, one of which only ran in CI. Now there is one.
+    SCAN.write_text(json.dumps({
+        "generated_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "prices_as_of": as_of,
+        "universe": len(s1),
+        "eligible": eligible,
+        "below_normal": n,
+    }, indent=1) + "\n")
+
     print(f"wrote {OUT.relative_to(ROOT)}  ({len(page):,} bytes)")
+    print(f"wrote {SCAN.relative_to(ROOT)}")
     print(f"   {n} of {eligible} companies more than "
           f"{stage2.BELOW_NORMAL_BAR:.0%} below normal · prices {as_of_txt}")
     print(f"   {n_risk} grazing a Stage 1 gate")
