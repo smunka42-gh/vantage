@@ -11,6 +11,13 @@ on:
     # gate below decides which one actually scans.
     - cron: "0 21 * * 1-5"    # 17:00 America/New_York while EDT
     - cron: "0 22 * * 1-5"    # 17:00 America/New_York while EST
+    # TEMPORARY — REMOVE TODAY. Proves GitHub actually emits the schedule
+    # event for this repo, which no run has ever demonstrated: the only
+    # run so far was a manual workflow_dispatch. Fires every 10 minutes,
+    # including weekends, so it does not wait for Monday. Each fire is a
+    # no-op: the state gate sees today's scan already recorded and exits
+    # in seconds without scanning, building or deploying.
+    - cron: "*/10 * * * *"
   workflow_dispatch:          # manual run from the Actions tab
 
 permissions:
