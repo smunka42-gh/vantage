@@ -11,6 +11,18 @@ Three stages, every calculation stated in full.
 > until this file is changed. See [CONTRIBUTING.md](../CONTRIBUTING.md)
 > for what may and may not enter this repository.
 
+## Tenets
+
+Five rules that govern every stage. A design either violates one or it
+doesn't. Full text and the evidence behind each is in
+[TENETS.md](../TENETS.md) — the only copy that should be edited.
+
+1. **No reconstruction of time periods.** Figures exactly as filed; never derive a period the filer didn't report.
+2. **Don't display what isn't used.** Drivers and audit trail only. Decoration is cut.
+3. **Measure before deciding.** Every threshold comes from real data, never intuition.
+4. **A check must change outcomes, or be cut.** If removing it changes nothing, it stays removed.
+5. **Thresholds never move to admit a company.** A named exception, or it stays out.
+
 ## What this version is
 
 Stage 1 is built and running against live SEC EDGAR filings, with a
