@@ -42,11 +42,8 @@ def build() -> int:
     s2 = json.loads(STAGE2.read_text())
     sectors = {c["ticker"]: c["sector"] for c in load_sp500()}
 
-    rows = []
-    for t, r in s2.items():
-        if not (r.get("far_below_normal") and r.get("eligible")):
-            continue
-        a = s1.get(t, {})
+    def pack(t, r, a):
+        """One company, in the shape the page reads."""
         asof = a.get("asof") or {}
         at_risk = a.get("at_risk") or []
         # the at-risk gate's own wording, straight from Stage 1 — the page
@@ -55,19 +52,43 @@ def build() -> int:
         for g in a.get("gates", []):
             if g["gate"] in at_risk:
                 risk = f"{g['gate']}|{g['detail']}"
-        rows.append({
-            "t": t, "n": r.get("name"), "s": sectors.get(t),
-            "b": round(r["below_normal"] * 100, 1),
-            "m2": round(r["d_ma200"] * 100, 1),
-            "m5": round(r["d_ma50"] * 100, 1),
-            "p": round(r["price"], 2), "sh": r["shape"],
-            "lo": round(r["low52"], 2), "hi": round(r["high52"], 2),
+        # Every price field is optional. The lookup answers for companies
+        # the funnel never priced — REITs, and names with too little
+        # history — so a missing figure must travel as null rather than
+        # crash the build or, worse, be filled in with a zero.
+        def pct(key):
+            v = r.get(key)
+            return None if v is None else round(v * 100, 1)
+
+        def usd(key):
+            v = r.get(key)
+            return None if v is None else round(v, 2)
+
+        return {
+            "t": t, "n": r.get("name") or a.get("name"), "s": sectors.get(t),
+            "tier": a.get("tier"),
+            "b": pct("below_normal"),
+            "m2": pct("d_ma200"),
+            "m5": pct("d_ma50"),
+            "p": usd("price"), "sh": r.get("shape"),
+            "lo": usd("low52"), "hi": usd("high52"),
             "c": round(r["market_cap"] / 1e9, 1) if r.get("market_cap") else None,
             "fy": asof.get("fiscal_year"), "pe": asof.get("period_end"),
             "y": r.get("yahoo"), "g": r.get("google"), "ar": risk,
             "gt": [[g["gate"], g["grade"], g["detail"]] for g in a.get("gates", [])],
-        })
+        }
+
+    # The ranked list: only what clears the bar.
+    rows = [pack(t, r, s1.get(t, {})) for t, r in s2.items()
+            if r.get("far_below_normal") and r.get("eligible")]
     rows.sort(key=lambda x: -x["b"])
+
+    # Every company, for the lookup. A static page cannot fetch live —
+    # SEC and Yahoo both block cross-origin browser requests — so the
+    # answer has to already be here. It compresses to a few KB.
+    everything = sorted(
+        (pack(t, s2.get(t, {}), a) for t, a in s1.items()),
+        key=lambda x: x["t"])
 
     eligible = sum(1 for r in s1.values() if r["tier"] in ELIGIBLE_TIERS)
     n = len(rows)
@@ -79,6 +100,7 @@ def build() -> int:
     page = TEMPLATE.read_text()
     for k, v in {
         "ROWS": json.dumps(rows, separators=(",", ":")),
+        "ALL": json.dumps(everything, separators=(",", ":")),
         "COUNT": str(n),
         # the page must read correctly when the answer is 1, or 0
         "NOUN": "company" if n == 1 else "companies",

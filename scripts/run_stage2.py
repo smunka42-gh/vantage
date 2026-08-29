@@ -36,7 +36,11 @@ GOOGLE_EXCHANGE = {"NMS": "NASDAQ", "NGM": "NASDAQ", "NCM": "NASDAQ",
 
 
 def _links_and_caps(tickers: list[str]) -> dict[str, dict]:
-    """Market cap and deep-dive links, fetched only for the on-sale names.
+    """Market cap and deep-dive links for every company with a price.
+
+    Fetched for ALL constituents, not just the flagged ones, because the
+    ticker lookup has to answer for any S&P 500 company — and especially
+    for the ones that did not qualify. ~2.4 minutes for 500.
 
     Market cap plays NO part in the funnel — it neither gates nor ranks.
     It is here because it changes what a reader would do, which under
@@ -100,7 +104,7 @@ def main() -> int:
         if s["status"] == "insufficient history":
             short_history.append(t)
 
-    # --- market cap and deep-dive links, on-sale names only -----------
+    # --- market cap and deep-dive links, every company ----------------
     flagged_tickers = [t for t, r in scored.items()
                        if r["far_below_normal"] and r["eligible"]]
     extra = _links_and_caps(flagged_tickers)

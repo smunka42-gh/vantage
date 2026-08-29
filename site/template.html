@@ -143,6 +143,33 @@ tbody tr.row.open{background:var(--accent-soft)}
 }
 .rowlinks a:hover{color:var(--accent); border-color:var(--accent); text-decoration:none}
 
+/* The lookup row is a real row, not a search box bolted above the table:
+   the ticker is typed into the Company cell and the rest of the row fills
+   in beside it, so it reads and expands exactly like the sixteen below. */
+#lookup tr.lk{background:var(--raised)}
+#lookup tr.lk:hover{background:var(--raised)}
+#tk{
+  font-family:var(--mono); font-size:13.5px; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase;
+  width:100%; padding:5px 8px; color:var(--ink);
+  background:var(--surface); border:1px solid var(--rule-strong);
+  border-radius:2px;
+}
+#tk::placeholder{
+  font-family:var(--sans); font-size:12.5px; font-weight:400;
+  letter-spacing:normal; text-transform:none; color:var(--faint);
+}
+#tk:focus{outline:none; border-color:var(--accent)}
+.lk-msg{
+  font-family:var(--sans); font-size:12.5px; color:var(--muted);
+  text-align:left;
+}
+.tierbadge{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted);
+  border:1px solid var(--rule-strong); border-radius:2px; padding:1px 6px;
+}
+
 .flag{
   font-family:var(--mono); font-size:10px; letter-spacing:.06em;
   color:var(--accent); border:1px solid var(--accent); border-radius:2px;
@@ -332,6 +359,20 @@ tr.detail > td{
             <th>External links</th>
           </tr>
         </thead>
+        <tbody id="lookup">
+          <tr class="row lk" tabindex="0">
+            <td class="l"><input id="tk" type="text" autocomplete="off"
+                 spellcheck="false" maxlength="6"
+                 placeholder="Type any S&amp;P 500 ticker" aria-label="Look up a ticker"></td>
+            <td class="big lk-b">—</td>
+            <td class="dim lk-c">—</td>
+            <td class="dim lk-m2">—</td>
+            <td class="dim lk-m5">—</td>
+            <td class="lk-sh">—</td>
+            <td class="lk-lk">—</td>
+          </tr>
+          <tr class="detail lk-detail" hidden><td colspan="7"></td></tr>
+        </tbody>
         <tbody id="body"></tbody>
       </table>
     </div>
@@ -370,6 +411,11 @@ tr.detail > td{
 
 <script>
 const ROWS={{ROWS}};
+// Every S&P 500 company, so the lookup can answer instantly and offline.
+// A static page cannot fetch live — SEC EDGAR and Yahoo both refuse
+// cross-origin browser requests — so the answer has to already be here.
+const ALL={{ALL}};
+const BY_TICKER = Object.fromEntries(ALL.map(r => [r.t, r]));
 const fmtCap=c=>c==null?"—":(c>=1000?(c/1000).toFixed(2)+"T":c.toFixed(1)+"B");
 const body=document.getElementById("body");
 let sortKey="b",sortDir=-1;
@@ -454,8 +500,18 @@ function detail(r){
   const upFromLow    = ((r.p - r.lo) / r.lo  * 100).toFixed(1);
   const downFromHigh = ((r.hi - r.p) / r.hi * 100).toFixed(1);
 
-  return `<div class="work">
-    <div class="card">
+  // The heading has to tell the truth for whatever was looked up. On the
+  // ranked list every row qualified; the lookup can return a company that
+  // failed, or one with too little history to judge.
+  const H = {
+    "PASS":"Why it is on the watchlist",
+    "BORDERLINE":"Why it is on the watchlist — and what it barely cleared",
+    "REJECTED":"Why it did not qualify",
+    "CANNOT ASSESS":"Not enough filing history to judge",
+  }[r.tier] || "Not assessed";
+
+  const scaleCard = (r.lo == null || r.hi == null || r.hi <= r.lo) ? "" :
+   `<div class="card">
       <h4>Where today's price sits in its 52-week range</h4>
       <div class="scale">
         <div class="track">
@@ -469,22 +525,27 @@ function detail(r){
       </div>
       <p class="footnote"><sup>*</sup> above the 52-week low, and below
         the 52-week high</p>
-    </div>
+    </div>`;
 
-    <div class="card">
-      <h4>Why it is on the watchlist</h4>
+  const gatesCard = r.gt.length === 0 ? "" :
+   `<div class="card">
+      <h4>${H}</h4>
       ${gates}
-    </div>
+    </div>`;
 
-    <div class="card stale-card">
+  return `<div class="work">
+    ${scaleCard}
+    ${gatesCard}
+
+    ${r.pe ? `<div class="card stale-card">
       <h4>How current this is</h4>
       <p class="stale">These checks read the company's last annual report,
         covering the year to <b>${ended}</b>. Roughly <b>${months} months</b>
         of trading have happened since, and none of it is reflected above —
         that part is for you to catch up on.</p>
-    </div>
+    </div>` : ""}
 
-    <div class="card">
+    ${r.b == null ? "" : `<div class="card">
       <h4>How ${r.b.toFixed(1)}% was calculated</h4>
       <div class="calc">
         today <b>$${r.p.toFixed(2)}</b><span class="sep">·</span>average over
@@ -493,7 +554,7 @@ function detail(r){
         below normal = 0.60 × <b>${r.m2.toFixed(1)}%</b> + 0.40 ×
         <b>${r.m5.toFixed(1)}%</b> = <b>${r.b.toFixed(1)}%</b>
       </div>
-    </div>
+    </div>`}
   </div>`;
 }
 
@@ -545,6 +606,66 @@ function render(){
     });
   });
 }
+// ---------- the lookup row ----------
+(function(){
+  const input = document.getElementById("tk");
+  const row   = input.closest("tr");
+  const det   = row.nextElementSibling;
+  const cell  = c => row.querySelector(c);
+
+  const blank = () => {
+    for (const c of [".lk-b",".lk-c",".lk-m2",".lk-m5",".lk-sh",".lk-lk"])
+      cell(c).innerHTML = "—";
+    det.hidden = true; row.classList.remove("open");
+    det.firstElementChild.innerHTML = "";
+    row.dataset.found = "";
+  };
+
+  const message = txt => {
+    blank();
+    cell(".lk-b").innerHTML = `<span class="lk-msg">${txt}</span>`;
+    cell(".lk-b").setAttribute("colspan","0");
+  };
+
+  function show(r){
+    row.dataset.found = r.t;
+    // A looked-up company may not be on the list, so say which tier it is
+    cell(".lk-b").innerHTML = r.b == null
+      ? `<span class="lk-msg">no price data</span>`
+      : `${r.b.toFixed(1)}%`;
+    cell(".lk-c").textContent  = r.c == null ? "—" : "$" + fmtCap(r.c);
+    cell(".lk-m2").textContent = r.m2 == null ? "—" : r.m2.toFixed(1) + "%";
+    cell(".lk-m5").textContent = r.m5 == null ? "—" : r.m5.toFixed(1) + "%";
+    cell(".lk-sh").innerHTML   = r.sh
+      ? `<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`
+      : `<span class="tierbadge">${r.tier || "—"}</span>`;
+    cell(".lk-lk").innerHTML = r.y
+      ? `<span class="rowlinks">
+           <a href="${r.y}" target="_blank" rel="noopener">Yahoo</a>
+           ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google</a>`:""}
+         </span>` : "—";
+    cell(".lk-lk").querySelectorAll("a").forEach(a =>
+      a.addEventListener("click", e => e.stopPropagation()));
+    det.firstElementChild.innerHTML = detail(r);
+    det.hidden = false; row.classList.add("open");
+  }
+
+  const lookup = () => {
+    const q = input.value.trim().toUpperCase().replace(/\s+/g,"");
+    if (!q) return blank();
+    const r = BY_TICKER[q] || BY_TICKER[q.replace(".","-")];
+    r ? show(r) : message(`${q} is not in the S&P 500`);
+  };
+
+  input.addEventListener("input", lookup);
+  input.addEventListener("click", e => e.stopPropagation());
+  // clicking the row toggles the detail, as it does for every other row
+  row.addEventListener("click", () => {
+    if (!row.dataset.found) return input.focus();
+    det.hidden = !det.hidden; row.classList.toggle("open", !det.hidden);
+  });
+})();
+
 document.querySelectorAll("th.sortable").forEach(th=>{
   th.addEventListener("click",()=>{
     const k=th.dataset.k;
