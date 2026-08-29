@@ -78,12 +78,15 @@ def derive(frame: pd.DataFrame) -> dict:
         "price": float(close.iloc[-1]),
         "sma200": float(close.tail(SMA_LONG).mean()),
         "sma50": float(close.tail(SMA_SHORT).mean()),
-        # Not part of the score and never displayed — kept because the
-        # validation suite uses it as an INDEPENDENT sanity anchor ("a
-        # company at its 52-week high must not read as below normal"),
-        # which is what catches a sign inversion. TENETS.md 2 governs
-        # what reaches the reader, not internal values a test relies on.
+        # The 52-week range. Not part of the score — it was measured out
+        # of it (0.74 correlated with the 200-day, and contaminated by
+        # one-day spikes). It is shown as the endpoints of a scale, which
+        # is a different job: not a competing metric, but where today's
+        # price sits in its own recent range. The validation suite also
+        # uses the high as an INDEPENDENT sanity anchor against a sign
+        # inversion, which only works because the score never touches it.
         "high52": float(close.tail(WINDOW_52W).max()),
+        "low52": float(close.tail(WINDOW_52W).min()),
         "as_of": close.index[-1].date().isoformat(),
     }
 

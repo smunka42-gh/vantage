@@ -113,6 +113,8 @@ def score(p: dict) -> dict:
         "as_of": p["as_of"],
         "d_ma200": c["d_ma200"],
         "d_ma50": c["d_ma50"],
+        "high52": p["high52"],
+        "low52": p["low52"],
         "below_normal": below_normal,
         "far_below_normal": bool(below_normal >= BELOW_NORMAL_BAR),
         "shape": shape(c["d_ma200"], c["d_ma50"]),

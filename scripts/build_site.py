@@ -61,6 +61,7 @@ def build() -> int:
             "m2": round(r["d_ma200"] * 100, 1),
             "m5": round(r["d_ma50"] * 100, 1),
             "p": round(r["price"], 2), "sh": r["shape"],
+            "lo": round(r["low52"], 2), "hi": round(r["high52"], 2),
             "c": round(r["market_cap"] / 1e9, 1) if r.get("market_cap") else None,
             "fy": asof.get("fiscal_year"), "pe": asof.get("period_end"),
             "y": r.get("yahoo"), "g": r.get("google"), "ar": risk,
