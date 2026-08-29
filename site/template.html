@@ -222,7 +222,7 @@ tr.detail > td{
    separation is not decoration: three of one day's sixteen names sat
    EXACTLY at their 52-week low, so the price marker lands on the endpoint
    marker regularly. Labels on the same side would collide constantly. */
-.scale{position:relative; margin:6px 0 2px; padding:28px 0 26px}
+.scale{position:relative; margin:6px 0 2px; padding:44px 0 26px}
 .track{
   position:relative; height:3px; border-radius:2px;
   background:linear-gradient(to right,var(--rule-strong),var(--rule));
@@ -235,6 +235,11 @@ tr.detail > td{
   position:absolute; bottom:calc(100% + 9px); white-space:nowrap;
   font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--accent);
 }
+.nowlab small{
+  display:block; font-family:var(--sans); font-size:10.5px; font-weight:400;
+  color:var(--muted); margin-top:2px;
+}
+.nowlab .sep{color:var(--rule-strong); padding:0 6px}
 .endlab{
   position:absolute; top:calc(100% + 10px); font-family:var(--mono);
   font-size:12px; color:var(--ink); white-space:nowrap;
@@ -433,6 +438,13 @@ function detail(r){
   const pos  = span > 0 ? Math.max(0, Math.min(100, (r.p - r.lo) / span * 100)) : 0;
   // keep the floating label inside the track at either extreme
   const shift = pos <= 10 ? "0" : pos >= 90 ? "-100%" : "-50%";
+  // Each distance is measured against the endpoint it refers to, so the
+  // two are constructed the same way. Measuring both from today's price
+  // would give the same position two unrelated-looking numbers.
+  // Deliberately NOT called "upside": the 52-week high is the highest
+  // price in a year, not a target, and "upside" would claim it is one.
+  const upFromLow    = ((r.p - r.lo) / r.lo  * 100).toFixed(1);
+  const downFromHigh = ((r.hi - r.p) / r.hi * 100).toFixed(1);
 
   return `<div class="work">
     <div class="card">
@@ -442,7 +454,8 @@ function detail(r){
           <span class="tick lo"></span><span class="tick hi"></span>
           <span class="now" style="left:${pos}%"></span>
           <span class="nowlab" style="left:${pos}%;transform:translateX(${shift})"
-            >$${r.p.toFixed(2)}</span>
+            >$${r.p.toFixed(2)}<small>${upFromLow}% above the low<span
+            class="sep">·</span>${downFromHigh}% below the high</small></span>
           <span class="endlab lo">$${r.lo.toFixed(2)}</span>
           <span class="endlab hi">$${r.hi.toFixed(2)}</span>
         </div>
