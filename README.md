@@ -1,0 +1,71 @@
+# Vantage
+
+Finds durably high-quality companies that are **temporarily** marked down,
+and tries to tell the difference between "cheap" and "broken".
+
+Not a ranking of every stock by upside. The goal is a small,
+slow-changing watchlist of companies worth owning, plus a signal when one
+of them goes on sale for a reason that looks like sentiment rather than
+deterioration.
+
+## The funnel
+
+| Stage | Question | Cadence | Source |
+|---|---|---|---|
+| **1 · Quality** | Would I ever want to own this? | Quarterly, on filings | SEC EDGAR (audited) |
+| **2 · Dislocation** | Is it on sale right now? | Daily, on prices | Market data |
+| **3 · Corroboration** | Is the sale real, or is it broken? | Daily | Analyst revisions, volume, short interest, fundamentals |
+
+Stage 1 is a **hard gate** — quality is a precondition, not a factor to
+trade off. Stages 2 and 3 are scores.
+
+## Status
+
+- **Stage 1 — built.** Six gates across four sector tracks, running
+  against live SEC filings, with a 17-company regression test that
+  currently passes 17/17. Latest full run: 210 pass, 29 borderline,
+  202 rejected, 29 not assessable, 30 REITs not yet covered —
+  **239 of 500 eligible**.
+- **Stage 2 — not started.**
+- **Stage 3 — not started.**
+- **UI — not started, deliberately.** All three stages get built and
+  validated first; the interface is specified only once there are real
+  numbers to design around.
+
+## Running it
+
+The SEC requires a contact address on every request and will reject
+anonymous calls:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+export SEC_USER_AGENT="vantage you@example.com"
+
+.venv/bin/python tests/test_golden_set.py   # 17-company regression, ~20s
+.venv/bin/python scripts/run_stage1.py      # full S&P 500 run, ~9 min
+```
+
+## Layout
+
+```
+funnel/stage1.py     the six gates, grading and tiers — pure library
+funnel/universe.py   S&P 500 constituents, sectors, track assignment
+scripts/run_stage1.py  runs the whole index, writes stage1_results.json
+tests/               the golden-set regression
+docs/FUNNEL_SPEC.md  the specification
+```
+
+## Design
+
+[`docs/FUNNEL_SPEC.md`](docs/FUNNEL_SPEC.md) is the single source of
+truth: every gate, every threshold, and the measurement behind each one.
+Read it before changing anything in `funnel/`.
+
+## Not financial advice
+
+This encodes one person's screening rules in software. It is not
+investment advice, is not from a licensed advisor, and should be used at
+your own risk. Data comes from SEC filings and Yahoo Finance via the
+unofficial `yfinance` library — not guaranteed accurate or complete.

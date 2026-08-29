@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Scan + funnel outputs are regenerated, not source. Keeping them out
+# means the repo never carries stale data that disagrees with the code.
+output/
+scripts/*_results.json
+scripts/*.log
+
+# Private working notes — session history, decisions in progress.
+BUILD_LOG.md

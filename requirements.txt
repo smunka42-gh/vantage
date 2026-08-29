@@ -1,0 +1,5 @@
+# Stage 1 only. Deliberately minimal — no UI dependencies until there is
+# a UI, and no pinned versions yet while the shape of the project moves.
+requests
+pandas
+lxml
