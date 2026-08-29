@@ -29,7 +29,7 @@ STAGE2 = ROOT / "scripts/stage2_results.json"
 TEMPLATE = ROOT / "site/template.html"
 OUT = ROOT / "docs/index.html"
 
-ELIGIBLE_TIERS = {"PASS", "BORDERLINE", "EXCEPTION"}
+ELIGIBLE_TIERS = {"PASS", "BORDERLINE"}
 
 
 def build() -> int:

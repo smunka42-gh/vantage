@@ -163,11 +163,11 @@ def main() -> None:
 
     total = len(companies)
     print(f"\n{'='*60}\nSTAGE 1 — S&P 500  (n={total})\n{'='*60}")
-    for k in ["PASS", "BORDERLINE", "EXCEPTION", "REJECTED",
+    for k in ["PASS", "BORDERLINE", "REJECTED",
               "CANNOT ASSESS", "REIT (not assessed)", "NO CIK", "ERROR"]:
         if tiers.get(k):
             print(f"   {k:22s} {tiers[k]:4d}   {tiers[k]/total*100:5.1f}%")
-    elig = tiers["PASS"] + tiers["BORDERLINE"] + tiers["EXCEPTION"]
+    elig = tiers["PASS"] + tiers["BORDERLINE"]
     print(f"\n   -> {elig} companies ({elig/total*100:.0f}%) go through to Stage 2")
 
     print("\nWhich gate rejects the most?")
@@ -188,7 +188,7 @@ def main() -> None:
     for sec in sorted(by_sec, key=lambda s: -sum(by_sec[s].values())):
         c = by_sec[sec]
         n = sum(c.values())
-        p = c["PASS"] + c["BORDERLINE"] + c["EXCEPTION"]
+        p = c["PASS"] + c["BORDERLINE"]
         print(f"   {sec:26s} {p:3d}/{n:3d} eligible   "
               f"(pass {c['PASS']}, borderline {c['BORDERLINE']}, "
               f"rejected {c['REJECTED']}, n/a {c['CANNOT ASSESS']})")

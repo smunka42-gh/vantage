@@ -27,7 +27,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 STAGE1 = HERE / "stage1_results.json"
 OUT = HERE / "stage2_results.json"
 
-ELIGIBLE_TIERS = {"PASS", "BORDERLINE", "EXCEPTION"}
+ELIGIBLE_TIERS = {"PASS", "BORDERLINE"}
 
 # Yahoo's exchange codes, mapped to what Google Finance expects in a URL.
 # Anything unrecognised gets no Google link rather than a broken one.

@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.2 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.3 · 29 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,7 +45,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.2** | 29 Aug 2026 | **Published.** The page is generated from the scan by `scripts/build_site.py` and served by GitHub Pages from `docs/`, static by design so there is no process to sleep or wedge. A scheduled workflow rescans the full index through both stages each trading day an hour after the close, gating on **state rather than the clock** because GitHub delays scheduled runs — and refusing to publish a scan whose shape looks wrong. Adds §6 interface decisions taken during the build. |
+| **v2.3** | 29 Aug 2026 | **Exceptions removed.** The mechanism could only relabel a named near-fail as EXCEPTION instead of BORDERLINE — and nothing else, since both tiers were already eligible and treated identically everywhere downstream. It changed no outcome (tenet 4), and never covered the case that actually creates pressure to move a bar: a company you believe in that is REJECTED. An exception could only rescue a *near*-fail, and a single near-fail already yields BORDERLINE, which already passes through. Tenet 5 is now absolute: the company clears the bar or it does not. |
+| v2.2 | 29 Aug 2026 | **Published.** The page is generated from the scan by `scripts/build_site.py` and served by GitHub Pages from `docs/`, static by design so there is no process to sleep or wedge. A scheduled workflow rescans the full index through both stages each trading day an hour after the close, gating on **state rather than the clock** because GitHub delays scheduled runs — and refusing to publish a scan whose shape looks wrong. Adds §6 interface decisions taken during the build. |
 | v2.1 | 29 Aug 2026 | **"On sale" dropped as a phrase.** It claims a fall is a bargain, which this figure cannot know — the same objection that ruled out "discount". The flag now reads *more than 10% below its own normal*, and `ON_SALE` becomes `BELOW_NORMAL_BAR`. |
 | v2.0 | 29 Aug 2026 | **Stage 3 removed before being built.** Every candidate signal was either circular (analyst target, P/E vs own range), near-constant (volume character awarded +1 to 89% of the index), or lagged behind the event it was meant to judge (short interest 2-3 weeks, fundamentals up to 3 months). The decisive argument: Stages 1 and 2 already reduce 500 to ~16 **ranked** names, so the ranking is the triage and a third stage changes no outcome — [tenet 4](../TENETS.md) applied to a whole stage. Replaced by links out plus the two things external sites cannot provide: which gate a company is closest to failing, and how stale the filed data is. **"Dislocation" renamed "below normal"** — it measures price against its own price history, not against value, and "discount" would claim more than the number earns. **Market cap added as a sortable column**, deliberately not a grouping. Shape labels reworded to plain language. |
 | v1.0 | 29 Aug 2026 | **Tenets adopted** ([TENETS.md](../TENETS.md)) and applied. **Frame-filter defect fixed:** `_pick` was discarding EDGAR entries carrying a `frame` label, which for the newest fiscal year is often the only entry present — 99% of the index was scored on filings a full year older than available. **Gate 6 (liquidity) removed** (tenet 4: zero rejections across 500) and not demoted to a displayed fact (tenet 2). **52-week high removed entirely** rather than kept as displayed context (tenet 2). **TTM and 10-Q data rejected for Stage 1** (tenet 1: no reconstructed periods). A data-recency assertion added to the golden set, since an outcome test cannot detect a freshness defect. |
@@ -273,7 +274,6 @@ are now fixed.**
 |---|---|---|
 | **PASS** | Every gate cleared. A near-pass counts as a pass. | yes |
 | **BORDERLINE** | Exactly one near-fail, nothing worse. | yes |
-| **EXCEPTION** | A near-fail deliberately overridden — named, reasoned, dated. | yes |
 | **REJECTED** | Any outright fail, or two or more near-fails. | no |
 | **CANNOT ASSESS** | Fewer than 4 of the 5 gates evaluable. | no |
 
@@ -282,22 +282,23 @@ the interface can always show whether a name is on the list cleanly,
 barely, or by override — and Stage 2 still gets the definite list it
 needs to run on.
 
-#### Exceptions
+#### There is no exceptions mechanism
 
-A deliberate, auditable override for a single company. Two hard rules
-stop it becoming a backdoor:
+One existed until v2.3 and was removed. It could relabel a named
+near-fail as EXCEPTION instead of BORDERLINE, and did nothing else —
+both tiers were already eligible and treated identically everywhere
+downstream — so it changed no outcome, which
+[tenet 4](../TENETS.md) does not allow.
 
-1. An exception can only rescue a **near-fail**, never an outright fail.
-   Miss a bar badly and no override applies.
-2. It must name the **specific gate**. A blanket "let this company in" is
-   not permitted.
+It also never covered the case that creates pressure to move a bar: a
+company you believe in that is **REJECTED**. An exception could only
+rescue a *near*-fail, and a single near-fail already yields BORDERLINE,
+which already passes through. The mechanism was solving a problem
+BORDERLINE had solved already.
 
-Each carries a written reason and a review date, and the company is shown
-as "on watchlist by exception" — never as a clean pass. An exception
-changes the answer for one company; lowering a threshold changes it
-silently for five hundred.
-
-`EXCEPTIONS` is currently empty, and that is the intended default.
+So the rule is now absolute: **a company clears the bar or it does not.**
+The verdict does not depend on which company it is — `decide()` returns
+the same tier whatever ticker it is handed.
 
 #### CANNOT ASSESS exists because of a real near-miss
 

@@ -101,8 +101,8 @@ widen later" — fails this tenet. Build it when the universe widens.
 
 ## 5 · Thresholds never move to admit a company
 
-**If a company you believe in fails, it gets a named exception or it stays
-out. The bar does not move.**
+**If a company you believe in fails, it stays out. The bar does not
+move, and there is no escape hatch.**
 
 **Why.** The returns bar drifted 12% → 8% chasing Costco and Amazon; the
 solvency bar went 20% → 15% → 10% chasing Apple and Oracle. Each move
@@ -112,9 +112,16 @@ happened to be in the test set.
 
 The four-way grading — pass / near-pass / near-fail / fail — exists
 precisely so that a near-miss is *recorded* as a near-miss rather than
-prompting anyone to move a bar. Exceptions are the sanctioned escape
-hatch: they name a single company and a single gate, carry a written
-reason and a review date, and can only rescue a near-fail.
+prompting anyone to move a bar. A single near-fail already yields
+BORDERLINE, which is eligible, so a company that nearly clears is kept
+without anything being overridden.
+
+An exceptions mechanism existed until 29 Aug 2026 and was removed. It
+could relabel a named near-fail as EXCEPTION rather than BORDERLINE and
+did nothing else — both tiers were already eligible and treated
+identically downstream — so it changed no outcome, which tenet 4 does
+not allow. It also never covered the case that actually creates pressure
+to move a bar: a company you believe in that is REJECTED.
 
 ---
 

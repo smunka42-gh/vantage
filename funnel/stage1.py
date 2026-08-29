@@ -455,28 +455,16 @@ def run(ticker, d, is_financial=False, is_utility=False,
     return out
 
 
-# ---------------------------------------------------------------------
-# EXCEPTIONS — deliberate, named, auditable overrides.
+# EXCEPTIONS were removed. The mechanism let a named near-fail be
+# relabelled EXCEPTION instead of BORDERLINE — and nothing else, because
+# both tiers were already ELIGIBLE and treated identically everywhere
+# downstream. It changed no outcome, which TENETS.md 4 does not allow.
 #
-# The point of these is to STOP THRESHOLDS DRIFTING. Without an exception
-# mechanism, the only way to admit one company you believe in is to lower
-# a bar — which silently changes the answer for all 500 and quietly
-# overfits the thresholds to whichever names happen to be in the golden
-# set. An exception changes the answer for exactly one company, states
-# why in writing, and expires.
-#
-# Two hard rules keep this from becoming a backdoor:
-#   1. An exception can only rescue a NEAR-FAIL, never an outright fail.
-#      If a company misses a bar badly, no override applies.
-#   2. It must name the specific gate. A blanket "let this company in"
-#      is not permitted.
-#
-# Every exception carries a review date and is displayed in the UI as
-# "on watchlist by exception", never as a clean pass.
-EXCEPTIONS = {
-    # "JNJ": {"gate": "2", "reason": "...", "granted": "2026-08-29",
-    #          "review_by": "2027-02-01"},
-}
+# It also never covered the case that actually creates pressure to move a
+# bar: a company you believe in that is REJECTED. An exception could only
+# rescue a NEAR-fail, and a single near-fail already yields BORDERLINE,
+# which already passes through. There is now no escape hatch at all — the
+# company clears the bar or it does not.
 
 
 def decide(gates, ticker=None):
@@ -484,15 +472,17 @@ def decide(gates, ticker=None):
 
       PASS           every gate cleared (a near-pass IS a pass)
       BORDERLINE     exactly one near-fail, nothing worse
-      EXCEPTION      a near-fail deliberately overridden — see EXCEPTIONS
       REJECTED       any outright fail, or two or more near-fails
       CANNOT ASSESS  fewer than 4 of the 5 gates evaluable
 
-    PASS, BORDERLINE and EXCEPTION are all ELIGIBLE for Stages 2 and 3 —
-    the tier travels with the company rather than being collapsed away, so
-    the UI can always show whether a name is on the list cleanly, barely,
-    or by override. That keeps the thresholds fixed: a near-miss is
-    recorded as a near-miss instead of prompting someone to move the bar.
+    PASS and BORDERLINE are both ELIGIBLE for Stage 2 — the tier travels
+    with the company rather than being collapsed away, so the page can
+    show whether a name is on the list cleanly or barely. That is what
+    keeps the thresholds fixed: a near-miss is recorded as a near-miss
+    instead of prompting someone to move the bar.
+
+    `ticker` is retained for call-site compatibility and diagnostics; the
+    verdict no longer depends on which company it is, which is the point.
     """
     # Every gate is substantive. This used to slice off a trailing
     # always-passing liquidity gate; that gate is gone (TENETS.md 4), so
@@ -507,13 +497,10 @@ def decide(gates, ticker=None):
         return "PASS"
     if len(near) > 1:
         return "REJECTED"
-    exc = EXCEPTIONS.get(ticker)
-    if exc and near[0].split()[0] == str(exc["gate"]):
-        return "EXCEPTION"
     return "BORDERLINE"
 
 
-ELIGIBLE = {"PASS", "BORDERLINE", "EXCEPTION"}
+ELIGIBLE = {"PASS", "BORDERLINE"}
 
 
 def eligible(verdict):
