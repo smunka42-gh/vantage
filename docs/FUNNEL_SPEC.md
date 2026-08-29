@@ -1102,12 +1102,13 @@ part in the funnel.
 
 ### Still open
 
-- **Q1 · Are these the right six gates?** They test profitability,
-  returns on capital, cash generation, solvency, margin durability and
-  executability. Deliberately absent: *growth* (a great business can be
-  flat, and growth screens chase momentum) and *valuation* (cheapness is
-  Stage 2's job — a P/E limit here would fight the funnel by rejecting
-  the very below-normal figures you are hunting).
+- **Q1 · Are these the right five gates?** They test profitability,
+  returns on capital, cash generation, solvency and margin durability.
+  Deliberately absent: *growth* (a great business can be flat, and growth
+  screens chase momentum) and *valuation* (cheapness is Stage 2's job — a
+  P/E limit here would fight the funnel by rejecting the very falls you
+  are hunting). A sixth, liquidity, was removed in v1.0 for rejecting
+  nobody; §3.14 records it.
 - **Q2 · Does the "or improving" clause let too much through?** Gate 2
   passes a company on trajectory alone. That is what admits Amazon, and
   it correctly rejects Intel. But it will also admit a turnaround after
@@ -1117,7 +1118,7 @@ part in the funnel.
   borderline rather than rejected, and keeps Dollar General rejected.
   Worth revisiting now that the full-500 run shows the tier distribution.
 - **Q4 · Should J&J and Broadcom get exceptions?** Both land BORDERLINE.
-  They already flow to Stages 2 and 3 labelled as such, which may be
+  They already flow to Stage 2 labelled as such, which may be
   sufficient. Recommendation: neither, for now. Exceptions should be
   reserved for cases where the gate is measuring the wrong thing, not
   merely producing an answer we dislike.
