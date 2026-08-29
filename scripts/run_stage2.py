@@ -105,9 +105,10 @@ def main() -> int:
             short_history.append(t)
 
     # --- market cap and deep-dive links, every company ----------------
-    flagged_tickers = [t for t, r in scored.items()
-                       if r["far_below_normal"] and r["eligible"]]
-    extra = _links_and_caps(flagged_tickers)
+    # Every company, not just the flagged ones: the ticker lookup has to
+    # answer for any S&P 500 constituent, and especially for the ones that
+    # did not qualify.
+    extra = _links_and_caps(sorted(scored))
     for t, e in extra.items():
         scored[t].update(e)
 
