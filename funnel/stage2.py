@@ -23,11 +23,16 @@ from __future__ import annotations
 W_LONG = 0.60
 W_SHORT = 0.40
 
-# Measured across the 239 eligible on 29 Aug 2026: 16 companies clear
-# this, which is the right width for Stage 3 to narrow to a handful.
-# A tighter bar here would do Stage 3's job for it and collapse the
-# funnel into a single stage.
-ON_SALE = 0.10
+# The bar below which you are content not to look. Measured across the
+# eligible list on 29 Aug 2026, 16 companies clear it — a short enough
+# list to read properly, and it is ranked, so a reader works down from
+# the top and stops when they choose.
+#
+# Deliberately NOT called "on sale": that would claim the fall is a
+# bargain, and this figure has no idea whether it is. A business worth
+# 40% less, priced 40% lower, reads identically to an unchanged business
+# priced 40% lower. Same reason the metric is not called a discount.
+BELOW_NORMAL_BAR = 0.10
 
 # Shape of the decline, from the ratio of the two gaps. The 50-day
 # average catches up to a new price level in about two months while the
@@ -96,7 +101,7 @@ def score(p: dict) -> dict:
             "status": "insufficient history",
             "bars": p["bars"],
             "below_normal": None,
-            "on_sale": False,
+            "far_below_normal": False,
         }
 
     c = components(p)
@@ -109,7 +114,7 @@ def score(p: dict) -> dict:
         "d_ma200": c["d_ma200"],
         "d_ma50": c["d_ma50"],
         "below_normal": below_normal,
-        "on_sale": bool(below_normal >= ON_SALE),
+        "far_below_normal": bool(below_normal >= BELOW_NORMAL_BAR),
         "shape": shape(c["d_ma200"], c["d_ma50"]),
     }
 

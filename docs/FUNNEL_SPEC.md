@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.0 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.1 · 29 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -43,7 +43,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.0** | 29 Aug 2026 | **Stage 3 removed before being built.** Every candidate signal was either circular (analyst target, P/E vs own range), near-constant (volume character awarded +1 to 89% of the index), or lagged behind the event it was meant to judge (short interest 2-3 weeks, fundamentals up to 3 months). The decisive argument: Stages 1 and 2 already reduce 500 to ~16 **ranked** names, so the ranking is the triage and a third stage changes no outcome — [tenet 4](../TENETS.md) applied to a whole stage. Replaced by links out plus the two things external sites cannot provide: which gate a company is closest to failing, and how stale the filed data is. **"Dislocation" renamed "below normal"** — it measures price against its own price history, not against value, and "discount" would claim more than the number earns. **Market cap added as a sortable column**, deliberately not a grouping. Shape labels reworded to plain language. |
+| **v2.1** | 29 Aug 2026 | **"On sale" dropped as a phrase.** It claims a fall is a bargain, which this figure cannot know — the same objection that ruled out "discount". The flag now reads *more than 10% below its own normal*, and `ON_SALE` becomes `BELOW_NORMAL_BAR`. |
+| v2.0 | 29 Aug 2026 | **Stage 3 removed before being built.** Every candidate signal was either circular (analyst target, P/E vs own range), near-constant (volume character awarded +1 to 89% of the index), or lagged behind the event it was meant to judge (short interest 2-3 weeks, fundamentals up to 3 months). The decisive argument: Stages 1 and 2 already reduce 500 to ~16 **ranked** names, so the ranking is the triage and a third stage changes no outcome — [tenet 4](../TENETS.md) applied to a whole stage. Replaced by links out plus the two things external sites cannot provide: which gate a company is closest to failing, and how stale the filed data is. **"Dislocation" renamed "below normal"** — it measures price against its own price history, not against value, and "discount" would claim more than the number earns. **Market cap added as a sortable column**, deliberately not a grouping. Shape labels reworded to plain language. |
 | v1.0 | 29 Aug 2026 | **Tenets adopted** ([TENETS.md](../TENETS.md)) and applied. **Frame-filter defect fixed:** `_pick` was discarding EDGAR entries carrying a `frame` label, which for the newest fiscal year is often the only entry present — 99% of the index was scored on filings a full year older than available. **Gate 6 (liquidity) removed** (tenet 4: zero rejections across 500) and not demoted to a displayed fact (tenet 2). **52-week high removed entirely** rather than kept as displayed context (tenet 2). **TTM and 10-Q data rejected for Stage 1** (tenet 1: no reconstructed periods). A data-recency assertion added to the golden set, since an outcome test cannot detect a freshness defect. |
 | v0.9 | 29 Aug 2026 | **Stage 2 rebuilt from measurement.** Score is now two moving-average components blended as real percentages — `0.60*d_ma200 + 0.40*d_ma50` — with an absolute 10% "on sale" bar replacing the percentile rank. The 52-week high is dropped from the score (0.74 correlated with the 200-day, and contaminated by spikiness) and kept as displayed context; the analyst target moves to Stage 3, where its question actually belongs. Standardisation removed as unnecessary once the components are commensurate, with the residual ≈68/32 effective split disclosed rather than engineered away. Adds the fresh/stabilising/recovering shape label, the data-quality gates and the Stage 2 validation plan. |
 | v0.8 | 29 Aug 2026 | Shock-year rule tightened: a company counts only if it was **profitable the year before**, so a loss must be specific to that year. Stops chronic loss-makers standing in as evidence of an industry-wide event, which had made Industrials 2020 fire spuriously. Only Energy 2020 fires. |
@@ -64,7 +65,7 @@ none is planned — see section 5 for why.
 
 The goal is not to rank 500 stocks by an upside number. It is to maintain
 a small, slow-changing watchlist of companies worth owning, and to be
-told when one of them goes on sale for a reason that isn't deterioration.
+told when one of them moves a long way from where it usually trades.
 
 Quality is not a factor to be traded off against cheapness. It is a
 precondition. A mediocre company that has fallen a long way must never
@@ -645,7 +646,7 @@ d_ma200 = (SMA200 - price) / SMA200     # below its long-run normal
 d_ma50  = (SMA50  - price) / SMA50      # below its recent normal
 
 BelowNormal = 0.60 * d_ma200 + 0.40 * d_ma50        # a real percentage
-OnSale      = Below normal >= 0.10                   # absolute, cohort-free
+Flagged     = BelowNormal >= 0.10                    # absolute, cohort-free
 ```
 
 Two components, both measured the same way, both reported as real
@@ -745,8 +746,8 @@ a 1.41× ratio. So:
 69/31 on the 258-company list after the v1.0 data fixes. The trade is
 explicit: standardising would make the weights exact but would destroy
 the real-percentage units, and those units are what allow an absolute
-threshold — which is what allows the page to say *nothing is on sale
-today*. Honest units were judged worth more than exact weights, and the
+threshold — which is what allows the page to say *nothing is more than
+10% below normal today*. Honest units were judged worth more than exact weights, and the
 gap is stated here rather than hidden.
 
 For calibration: ranking on the 200-day alone changes only 2 of the top
@@ -909,7 +910,7 @@ and REJECTED.
 Components are computed for **all 500 constituents**, not just the 239
 eligible, because the ticker inspector (§6.7) must be able to answer for
 a rejected company too. Only the eligible list is ranked and only it can
-be "on sale".
+be flagged as more than 10% below normal.
 
 ### 4.10 How Stage 2 is validated
 
@@ -925,7 +926,7 @@ for "how below normal is this". Validation is therefore mechanical:
    confirm it matches the ≈68/32 stated in §4.3 (69/31 on the current
    list). This is the direct test
    for the bug that broke the predecessor.
-4. **Shape-label check.** Confirm the three labels partition the on-sale
+4. **Shape-label check.** Confirm the three labels partition the flagged
    list and that each example behaves as §4.5 describes.
 5. **Second-source spot check.** Verify three companies' prices against a
    source other than yfinance, so the data is known to be *right*, not
@@ -967,7 +968,7 @@ filings properly, plus the one thing they cannot provide — which Stage 1
 gate a company is closest to failing, and how stale the filed data behind
 that verdict is.
 
-**When to revisit.** If the on-sale list routinely runs long enough that
+**When to revisit.** If the flagged list routinely runs long enough that
 ranking stops being sufficient triage, or if a lagging signal can be
 replaced by a current one. Not before — building for a future that has
 not arrived is what removed Gate 6.
@@ -981,9 +982,13 @@ real numbers rather than a guess.
 
 1. **The page reads as the funnel, top to bottom.** It opens with an
    answer, not with filters. Filters are adjustment, not the product.
-2. **Most days the answer is "nothing is on sale."** That is a useful and
-   honest answer, and the design must make it tolerable rather than
-   treating it as an empty state to apologise for.
+2. **Most days the answer is "nothing is far below normal."** That is a
+   useful and honest answer, and the design must make it tolerable rather
+   than treating it as an empty state to apologise for.
+   The wording matters: **never "on sale"**, which claims the fall is a
+   bargain. The figure has no idea whether it is — same reason it is not
+   called a discount. Say what is measured: *more than 10% below its own
+   normal*.
 3. **The name furthest below normal is not automatically the best one.**
    The list is ranked by how far a price has moved, which is not the same
    as how good an opportunity is. The shape label and the at-risk gate
@@ -1015,7 +1020,7 @@ real numbers rather than a guess.
    record are different facts.
 7. **A ticker inspector is required.** Type any ticker, see exactly where
    it stands in the funnel and why — including, and especially, the
-   rejected ones. This is what makes weeks of "nothing on sale"
+   rejected ones. This is what makes weeks of "nothing far below normal"
    tolerable: the screen may be silent, but the tool never is.
 8. **The tier is always visible.** A BORDERLINE name is never shown as a
    clean pass, and an EXCEPTION never as either.
@@ -1061,7 +1066,7 @@ part in the funnel.
   old depending on the fiscal calendar. Every result therefore states
   which filing it rests on and how many months of business the gates have
   not seen. The recency layer is the reader, on the linked sites.
-- **Weeks with nothing on sale** — correct behaviour, made tolerable by
+- **Weeks with nothing flagged** — correct behaviour, made tolerable by
   the ticker inspector.
 - **ACT / WATCH / AVOID** — adopted as the shared vocabulary.
 - **Institutional ownership %** — tested and rejected.
@@ -1075,7 +1080,7 @@ part in the funnel.
   dropped as circular. See §4.2.
 - **Ordering versus triggering** — settled. One absolute number does both
   jobs. A percentile rank was specified through v0.8 and removed because
-  it can never return "nothing is on sale". See §4.4.
+  it can never return "nothing is far below normal". See §4.4.
 - **Standardisation** — settled. Necessary for incommensurate components,
   unnecessary once every component is a percentage below a moving
   average. The residual gap between stated and effective weights is

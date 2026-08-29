@@ -1,4 +1,4 @@
-"""Run Stage 2 across the index and report what is below normal.
+"""Run Stage 2 across the index and report what is far below normal.
 
 Reads the Stage 1 verdicts, fetches prices, scores everything, and
 refuses to write anything if the price data does not pass its checks.
@@ -8,7 +8,7 @@ refuses to write anything if the price data does not pass its checks.
 
 Components are computed for ALL constituents, not just the eligible
 ones, because the ticker inspector has to answer for rejected companies
-too. Only the eligible list is ranked and only it can be "on sale".
+too. Only the eligible list is ranked and flagged below normal.
 """
 from __future__ import annotations
 
@@ -101,9 +101,9 @@ def main() -> int:
             short_history.append(t)
 
     # --- market cap and deep-dive links, on-sale names only -----------
-    on_sale_tickers = [t for t, r in scored.items()
-                       if r["on_sale"] and r["eligible"]]
-    extra = _links_and_caps(on_sale_tickers)
+    flagged_tickers = [t for t, r in scored.items()
+                       if r["far_below_normal"] and r["eligible"]]
+    extra = _links_and_caps(flagged_tickers)
     for t, e in extra.items():
         scored[t].update(e)
 
@@ -112,24 +112,26 @@ def main() -> int:
     # --- report ---------------------------------------------------------
     elig_scored = {t: s for t, s in scored.items()
                    if s["eligible"] and s["status"] == "scored"}
-    on_sale = {t: s for t, s in elig_scored.items() if s["on_sale"]}
+    flagged = {t: s for t, s in elig_scored.items()
+               if s["far_below_normal"]}
 
     print("=" * 68)
     print(f"STAGE 2 — BELOW NORMAL   ({len(elig_scored)} eligible companies scored)")
     print("=" * 68)
 
-    if not on_sale:
-        print("\n   Nothing is on sale today.\n")
+    if not flagged:
+        print(f"\n   Nothing is more than "
+              f"{stage2.BELOW_NORMAL_BAR:.0%} below normal today.\n")
         print("   That is a real answer, not a failure — the bar is absolute,")
         print("   so on a day when no quality company has been marked down,")
         print("   the correct output is an empty list.")
     else:
-        print(f"\n{len(on_sale)} of {len(elig_scored)} companies are on sale "
-              f"(>= {stage2.ON_SALE:.0%} below their own normal)\n")
+        print(f"\n{len(flagged)} of {len(elig_scored)} companies are more than "
+              f"{stage2.BELOW_NORMAL_BAR:.0%} below their own normal\n")
         print(f"  {'tkr':6s} {'below normal':>13s} {'mkt cap':>9s} "
               f"{'200d':>7s} {'50d':>7s}  {'shape':16s} tier")
         print("  " + "-" * 76)
-        for t, s in sorted(on_sale.items(),
+        for t, s in sorted(flagged.items(),
                            key=lambda kv: -kv[1]["below_normal"]):
             cap = s.get("market_cap")
             cap_s = f"{cap/1e9:8.1f}B" if cap else "       —"
@@ -141,7 +143,7 @@ def main() -> int:
         # depend on OUR gates: which bar this company is closest to
         # failing, and how much recent history those gates have not seen.
         print("\n  worth knowing before you read:")
-        for t in sorted(on_sale, key=lambda t: -on_sale[t]["below_normal"]):
+        for t in sorted(flagged, key=lambda t: -flagged[t]["below_normal"]):
             r1 = s1.get(t, {})
             risk = r1.get("at_risk") or []
             asof = r1.get("asof") or {}
@@ -159,7 +161,7 @@ def main() -> int:
             print(f"    {t:6s} " + ("\n           ".join(bits) if bits else "—"))
 
         print("\n  deep-dive links:")
-        for t in sorted(on_sale, key=lambda t: -on_sale[t]["below_normal"]):
+        for t in sorted(flagged, key=lambda t: -flagged[t]["below_normal"]):
             e = extra.get(t, {})
             print(f"    {t:6s} {e.get('yahoo', '')}"
                   + (f"   {e['google']}" if e.get("google") else ""))
@@ -177,9 +179,9 @@ def main() -> int:
         print(f"   (the median eligible company is trading ABOVE its own "
               f"normal — the market is in an uptrend)")
 
-    shapes = collections.Counter(s["shape"] for s in on_sale.values())
+    shapes = collections.Counter(s["shape"] for s in flagged.values())
     if shapes:
-        print(f"\nshape of the decline, among the on-sale names:")
+        print(f"\nshape of the decline, among the flagged names:")
         for k, n in shapes.most_common():
             print(f"   {k or 'n/a':16s} {n}")
 

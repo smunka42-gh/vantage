@@ -87,7 +87,7 @@ def main() -> int:
         return (h - derived[t]["price"]) / h
     at_high = [t for t in scored if dist_from_high(t) < 0.02]
     check("a company near its 52-week high does not read as below normal",
-          all(scored[t]["below_normal"] < stage2.ON_SALE for t in at_high),
+          all(scored[t]["below_normal"] < stage2.BELOW_NORMAL_BAR for t in at_high),
           f"{len(at_high)} within 2% of their high: "
           f"{[f'{t} {scored[t]['below_normal']*100:+.1f}%' for t in at_high[:4]]}"
           if at_high else "no anchor is near its high right now — check skipped")
@@ -95,7 +95,7 @@ def main() -> int:
     below_both = [t for t, s in scored.items()
                   if s["d_ma200"] > 0.15 and s["d_ma50"] > 0.10]
     check("a company well below BOTH averages reads as below normal",
-          all(scored[t]["below_normal"] >= stage2.ON_SALE for t in below_both),
+          all(scored[t]["below_normal"] >= stage2.BELOW_NORMAL_BAR for t in below_both),
           f"{[f'{t} {scored[t]['below_normal']*100:+.1f}%' for t in below_both[:4]]}"
           if below_both else "no anchor is far below both right now — check skipped")
 
@@ -106,10 +106,10 @@ def main() -> int:
               for t in above_normal),
           f"{len(above_normal)} companies above their 200-day average")
 
-    check("nothing is on sale below the bar",
-          all(s["below_normal"] >= stage2.ON_SALE
-              for s in scored.values() if s["on_sale"]),
-          "every on-sale name clears the bar")
+    check("nothing is flagged below the bar",
+          all(s["below_normal"] >= stage2.BELOW_NORMAL_BAR
+              for s in scored.values() if s["far_below_normal"]),
+          "every flagged name clears the bar")
 
     # --- 3. effective weights -------------------------------------------
     print("\n3. EFFECTIVE WEIGHTS — is the disclosed split real?")
