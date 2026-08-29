@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.3 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.4 · 29 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,7 +45,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.3** | 29 Aug 2026 | **Exceptions removed.** The mechanism could only relabel a named near-fail as EXCEPTION instead of BORDERLINE — and nothing else, since both tiers were already eligible and treated identically everywhere downstream. It changed no outcome (tenet 4), and never covered the case that actually creates pressure to move a bar: a company you believe in that is REJECTED. An exception could only rescue a *near*-fail, and a single near-fail already yields BORDERLINE, which already passes through. Tenet 5 is now absolute: the company clears the bar or it does not. |
+| **v2.4** | 29 Aug 2026 | **52-week scale added to the expanded row** — low, today, high, with today's distance from each end. Shown, never scored: distance above the low correlates −0.77 with the below-normal figure, so it would cancel itself out as an input, but the residual separates names the score rates identically. §6.1 records the collision and wording decisions. Also clears two passages that still assumed EXCEPTION existed. |
+| v2.3 | 29 Aug 2026 | **Exceptions removed.** The mechanism could only relabel a named near-fail as EXCEPTION instead of BORDERLINE — and nothing else, since both tiers were already eligible and treated identically everywhere downstream. It changed no outcome (tenet 4), and never covered the case that actually creates pressure to move a bar: a company you believe in that is REJECTED. An exception could only rescue a *near*-fail, and a single near-fail already yields BORDERLINE, which already passes through. Tenet 5 is now absolute: the company clears the bar or it does not. |
 | v2.2 | 29 Aug 2026 | **Published.** The page is generated from the scan by `scripts/build_site.py` and served by GitHub Pages from `docs/`, static by design so there is no process to sleep or wedge. A scheduled workflow rescans the full index through both stages each trading day an hour after the close, gating on **state rather than the clock** because GitHub delays scheduled runs — and refusing to publish a scan whose shape looks wrong. Adds §6 interface decisions taken during the build. |
 | v2.1 | 29 Aug 2026 | **"On sale" dropped as a phrase.** It claims a fall is a bargain, which this figure cannot know — the same objection that ruled out "discount". The flag now reads *more than 10% below its own normal*, and `ON_SALE` becomes `BELOW_NORMAL_BAR`. |
 | v2.0 | 29 Aug 2026 | **Stage 3 removed before being built.** Every candidate signal was either circular (analyst target, P/E vs own range), near-constant (volume character awarded +1 to 89% of the index), or lagged behind the event it was meant to judge (short interest 2-3 weeks, fundamentals up to 3 months). The decisive argument: Stages 1 and 2 already reduce 500 to ~16 **ranked** names, so the ranking is the triage and a third stage changes no outcome — [tenet 4](../TENETS.md) applied to a whole stage. Replaced by links out plus the two things external sites cannot provide: which gate a company is closest to failing, and how stale the filed data is. **"Dislocation" renamed "below normal"** — it measures price against its own price history, not against value, and "discount" would claim more than the number earns. **Market cap added as a sortable column**, deliberately not a grouping. Shape labels reworded to plain language. |
@@ -634,8 +635,8 @@ scored a different five-year window.
 
 *Specified, not yet built.*
 
-Applies to every Stage 1 PASS, BORDERLINE and EXCEPTION — the tier
-carries through so the interface can show it, but all three are scored.
+Applies to every Stage 1 PASS and BORDERLINE — the tier carries through
+so the interface can show it, but both are scored.
 Answers: **how far below its own normal is this today?**
 
 "Its own normal" means the company's own trading history, not a
@@ -1027,7 +1028,7 @@ real numbers rather than a guess.
    rejected ones. This is what makes weeks of "nothing far below normal"
    tolerable: the screen may be silent, but the tool never is.
 8. **The tier is always visible.** A BORDERLINE name is never shown as a
-   clean pass, and an EXCEPTION never as either.
+   clean pass.
 
 ---
 
@@ -1040,6 +1041,9 @@ real numbers rather than a guess.
 | **Market cap sortable, never grouping** | It changes what a reader does, so [tenet 2](../TENETS.md) makes it a driver. But grouping by size would bury the unfamiliar names the screen exists to surface. Measured on one day's list: $6.4B to $820B, median $25B — and the name a reader was least likely to recognise was the 4th largest. |
 | **Plain English, numbers unchanged** | Gate results are re-worded for a reader without finance vocabulary, carrying every figure through untouched. Where a string does not match its expected shape the raw version is shown rather than a guess, so the page can never invent or mislabel a number. |
 | **The empty state replaces the table** | It is behaviour, not an illustration. Showing both at once contradicts the headline. |
+| **A 52-week scale, shown not scored** | Three points — low, today, high — at the top of each expanded row, with today's distance from each end. Measured across the 258 eligible, distance above the 52-week low correlates **−0.77** with the below-normal figure and −0.80 with the 200-day component, so as a scoring input it would largely cancel itself out (tenet 4). The residual is real though: TJX and NKE sit *at* their 52-week low while CHRW and TPR have already bounced 23–26% off theirs, on near-identical scores — and the shape label misses it, since both of the latter are *falling now*. Shape dates the current move; distance from the low says how much has already been recovered. Netting the two into one number would lose both. |
+| **Endpoint labels below the track, today's price above** | Not decoration. Measured on one day's list, three of sixteen sat *exactly* at their 52-week low, so the price marker lands on the endpoint marker regularly. Same-side labels would collide constantly. The floating price label re-anchors at the extremes so it cannot overflow the track. |
+| **Not "upside"** | The gap to the 52-week high is never called upside. The high is the highest price in a year, not a target, and that word would claim it is one — the same objection that removed *discount* and *on sale*. Each distance is measured against the endpoint it names, so the pair is built consistently. |
 | **Single theme** | Paper: off-white ground, ink text, hairline rules. A research document, not a trading terminal. |
 
 ## 7. Build order
