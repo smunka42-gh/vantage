@@ -87,12 +87,16 @@ a:hover{text-decoration:underline}
    make the spacing a decision rather than an accident. */
 table{border-collapse:collapse; width:100%; min-width:720px;
       table-layout:fixed}
-col.c-name{width:24%}
-col.c-main{width:14%}
-col.c-cap {width:14%}
-col.c-ma  {width:12%}
-col.c-shape{width:16%}
-col.c-links{width:8%}
+/* The four numeric columns are DELIBERATELY EQUAL. Uneven widths there
+   read as sloppy; equal widths make the block of figures scan as one
+   unit. The name column takes what is left, and the single wider gap
+   after it separates "which company" from "the numbers" on purpose. */
+col.c-name {width:18%}
+col.c-main {width:13%}
+col.c-cap  {width:13%}
+col.c-ma   {width:12%}
+col.c-shape{width:17%}
+col.c-links{width:15%}
 thead th{
   font-family:var(--mono); font-size:10px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--muted); font-weight:500;
@@ -288,7 +292,7 @@ tr.detail > td{
             <th>200-day</th>
             <th>50-day</th>
             <th>Shape</th>
-            <th>Open</th>
+            <th>External links</th>
           </tr>
         </thead>
         <tbody id="body"></tbody>
