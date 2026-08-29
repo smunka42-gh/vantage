@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.6 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.7 · 29 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,6 +45,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.7** | 29 Aug 2026 | **Part-year figures rejected.** A 10-K carries the quarters inside it as well as the year, and some filers tag those `fp=FY` too. `_pick` grouped facts by the year in their end-date and kept the newest-*filed* entry, so where a quarter and the year were filed the same day the tie broke on JSON ordering and the **quarter could win** — Accenture's return on assets read 2.7% instead of 12.4%, one quarter's profit over a full year's balance sheet. Duration facts must now span **350-380 days**. The error was one-directional (a part-year profit against a full-year balance sheet always understates), so it could only wrongly reject: D, SO, TKO and URI move up, none move down, eligible 258 to 262. The golden set could not guard this — not one of its seventeen anchors was affected — so `partial_years()` asserts on the data across the whole index (§3.16). **Interest as % of profit removed** from the five-year record: it was coverage inverted (share = 1/coverage), the only row where lower was better, and it carried no bar; the record's `bar` column now reads **`at least`**, which states the direction for every remaining row without per-row markers (§6.1). **Gate 4's label now follows the test that ran** — "Can cover its interest" where coverage was used, "Not overloaded with debt" where the equity/assets fallback was (§3.12). |
 | **v2.6** | 29 Aug 2026 | **REIT exclusion stated plainly.** The page said "all 500 constituents are tested", which was untrue — the gates never run on the 30 REITs, so the scan covers **470**. Both the page and §3.15 now say so, and a looked-up REIT explains why it was skipped. The spec had also described REITs as "a second watchlist, not an exclusion", which described an intention rather than the code; that track does not exist. Page footer trimmed of a hardcoded spec version that had already gone stale, plus gate and stage counts that mean nothing to a reader. |
 | v2.5 | 29 Aug 2026 | **All open questions settled.** Five gates confirmed; the improvement clause left as written; the borderline band stays at 15% (no evidence favours a change, and moving a threshold without evidence is what tenet 3 forbids); exceptions removed entirely in v2.3. §8 now records what would settle a future question rather than listing opinions. |
 | v2.4 | 29 Aug 2026 | **52-week scale added to the expanded row** — low, today, high, with today's distance from each end. Shown, never scored: distance above the low correlates −0.77 with the below-normal figure, so it would cancel itself out as an input, but the residual separates names the score rates identically. §6.1 records the collision and wording decisions. Also clears two passages that still assumed EXCEPTION existed. |
@@ -486,6 +487,13 @@ alone failed Apple (15.6%) and GE (16.2%) for buybacks and restructuring,
 not for any quality problem. Leverage is not a defect if earnings
 comfortably service it.
 
+**The displayed label follows whichever test ran.** Because gate 4 is
+two different tests, one name cannot honestly describe both: the page
+says *"Can cover its interest"* where coverage was used and *"Not
+overloaded with debt"* where the equity/assets fallback was. The earlier
+single label, *"Debt under control"*, claimed a leverage check for
+companies whose debt levels were never examined.
+
 **Why the fallback is deliberately loose.** It is a crude proxy used only
 when the real test is unavailable, so it should catch the obviously
 over-levered without second-guessing companies it cannot properly
@@ -553,7 +561,7 @@ described an intention rather than the code.
 > were excluded for lack of a valid test, separately from those that
 > failed one. Those are different facts and must not be merged.
 
-### 3.16 Data plumbing — four bugs that would have silently corrupted results
+### 3.16 Data plumbing — five bugs that would have silently corrupted results
 
 None of these are visible from reading a spec. All were found by running
 the gates against real filings, and each would have produced confident,
@@ -564,6 +572,7 @@ wrong answers.
 | **No operating-income line** | JPMorgan, Berkshire, Lilly and J&J all went unassessable at once — four sectors, one cause. Banks and insurers have no meaningful "revenue minus operating costs" subtotal, because interest *is* the business; much of pharma goes straight to pre-tax income. | Fall back to pre-tax income. Imperfect (it includes non-operating items) but far better than not assessing them. |
 | **Figures split across tags** | J&J reports pre-tax income as Domestic and Foreign — 13 years each — and never files a usable combined figure. | Sum the component tags when the total is missing (`SUM_PARTS`). |
 | **Stale series** | Mastercard's `NetIncomeLoss` stops at 2013; modern years use another tag. The code was about to score it on decade-old figures and call the answer current. | A chain entry only qualifies if it is long enough **and** reaches the present (`min_recent_year`). |
+| **A quarter posing as a year** | A 10-K carries the quarters inside it as well as the year, and some filers tag those `fp=FY`. Accenture's fiscal-2025 filing holds both `2024-09-01..2025-08-31` ($10.23B, 364 days) and `2024-12-01..2025-02-28` ($2.24B, 89 days), filed the same day — the tie broke on JSON ordering and the quarter won. Its return on assets read 2.7% instead of 12.4%. | Duration facts must span **350-380 days**, wide enough for 52- and 53-week fiscal calendars. Instant facts carry no start date and are exempt. `partial_years()` then asserts across the whole index that no company's revenue collapses like a part-year figure — the golden set cannot do this job, since none of its anchors was affected. |
 | **Orphaned history** | A 2025 reorganisation moved Exxon to a new filer ID with 94 tags and zero annual history; its real 19-year record sits under the predecessor CIK. The successor's record lists no former names, so nothing links them. | An explicit predecessor map (`PREDECESSOR_CIK`). Named rather than fuzzy-matched, so it can never attach the wrong company's accounts. |
 
 ### 3.17 The regression test
@@ -589,50 +598,54 @@ certain about, or it stops being a reliable alarm.**
 ### 3.18 Full-index result
 
 Measured across all 500 from this repository on 29 Aug 2026, with the
-frame-filter and freshest-tag defects fixed:
+frame-filter, freshest-tag and part-year defects fixed:
 
 | Tier | Count | Share |
 |---|---|---|
-| PASS | 222 | 44.4% |
-| BORDERLINE | 36 | 7.2% |
-| REJECTED | 193 | 38.6% |
-| CANNOT ASSESS | 19 | 3.8% |
+| PASS | 224 | 44.8% |
+| BORDERLINE | 38 | 7.6% |
+| REJECTED | 190 | 38.0% |
+| CANNOT ASSESS | 18 | 3.6% |
 | REIT (not assessed) | 30 | 6.0% |
-| **Eligible for Stages 2/3** | **258** | **52%** |
+| **Eligible for Stage 2** | **262** | **52%** |
 
 Which gate does the rejecting:
 
 | Gate | Outright fails | Near-fails |
 |---|---|---|
-| 1 · Sustained profit | 71 | 0 |
-| 2 · Return on capital | 128 | 23 |
+| 1 · Sustained profit | 70 | 0 |
+| 2 · Return on capital | 126 | 23 |
 | 3 · Cumulative 5y FCF | 24 | 0 |
-| 4 · Debt serviceable | 73 | 25 |
-| 5 · Op margin durable | 70 | 13 |
+| 4 · Debt serviceable | 68 | 27 |
+| 5 · Op margin durable | 68 | 13 |
 
 By sector:
 
 | Sector | Eligible | of | Pass | Borderline | Rejected | Cannot assess |
 |---|---|---|---|---|---|---|
 | Financials | 52 | 76 | 45 | 7 | 23 | 1 |
-| Industrials | 51 | 83 | 46 | 5 | 28 | 4 |
+| Industrials | 52 | 83 | 47 | 5 | 27 | 4 |
 | Information Technology | 35 | 73 | 32 | 3 | 36 | 2 |
 | Health Care | 31 | 59 | 26 | 5 | 27 | 1 |
 | Consumer Discretionary | 26 | 47 | 26 | 0 | 19 | 2 |
-| Utilities | 17 | 31 | 9 | 8 | 12 | 2 |
+| Utilities | 19 | 31 | 9 | 10 | 11 | 1 |
 | Consumer Staples | 15 | 34 | 13 | 2 | 17 | 2 |
 | Energy | 11 | 21 | 5 | 6 | 9 | 1 |
+| Communication Services | 11 | 21 | 11 | 0 | 7 | 3 |
 | Materials | 10 | 25 | 10 | 0 | 14 | 1 |
-| Communication Services | 10 | 21 | 10 | 0 | 8 | 3 |
 | Real Estate | — | 30 | — | — | — | — |
 
-**What the data fixes moved.** Eligible went 239 to 258, and CANNOT
-ASSESS 29 to 19. Both follow from the gates finally reading the newest
-filed year: companies previously short of the four-evaluable-gate floor
-now have enough data, and a year of more recent performance shifted
-verdicts in both directions. Gate 4 fails rose 57 to 73 and Gate 1 fails
-68 to 71, so the fresher data is not uniformly generous — it is simply
-*current*.
+**What the data fixes moved.** The frame-filter and freshest-tag fixes
+took eligible from 239 to 258 and CANNOT ASSESS from 29 to 19, because
+the gates finally read the newest filed year. The part-year fix then
+moved four more: D and SO to BORDERLINE, TKO and URI to PASS, for 262
+eligible and 18 unassessable. That last correction could only ever run
+one way — a part-year profit measured against a full-year balance sheet
+always understates — so no company lost its place.
+
+None of this is uniformly generous. Gate 4 fails went 57 to 73 before
+settling at 68, and Gate 1 fails 68 to 71 and back to 70: the data is
+not kinder, it is simply *current* and whole.
 
 Comparisons against runs made before v1.0 are not meaningful: those
 scored a different five-year window.
