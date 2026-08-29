@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.4 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.5 · 29 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,7 +45,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.4** | 29 Aug 2026 | **52-week scale added to the expanded row** — low, today, high, with today's distance from each end. Shown, never scored: distance above the low correlates −0.77 with the below-normal figure, so it would cancel itself out as an input, but the residual separates names the score rates identically. §6.1 records the collision and wording decisions. Also clears two passages that still assumed EXCEPTION existed. |
+| **v2.5** | 29 Aug 2026 | **All open questions settled.** Five gates confirmed; the improvement clause left as written; the borderline band stays at 15% (no evidence favours a change, and moving a threshold without evidence is what tenet 3 forbids); exceptions removed entirely in v2.3. §8 now records what would settle a future question rather than listing opinions. |
+| v2.4 | 29 Aug 2026 | **52-week scale added to the expanded row** — low, today, high, with today's distance from each end. Shown, never scored: distance above the low correlates −0.77 with the below-normal figure, so it would cancel itself out as an input, but the residual separates names the score rates identically. §6.1 records the collision and wording decisions. Also clears two passages that still assumed EXCEPTION existed. |
 | v2.3 | 29 Aug 2026 | **Exceptions removed.** The mechanism could only relabel a named near-fail as EXCEPTION instead of BORDERLINE — and nothing else, since both tiers were already eligible and treated identically everywhere downstream. It changed no outcome (tenet 4), and never covered the case that actually creates pressure to move a bar: a company you believe in that is REJECTED. An exception could only rescue a *near*-fail, and a single near-fail already yields BORDERLINE, which already passes through. Tenet 5 is now absolute: the company clears the bar or it does not. |
 | v2.2 | 29 Aug 2026 | **Published.** The page is generated from the scan by `scripts/build_site.py` and served by GitHub Pages from `docs/`, static by design so there is no process to sleep or wedge. A scheduled workflow rescans the full index through both stages each trading day an hour after the close, gating on **state rather than the clock** because GitHub delays scheduled runs — and refusing to publish a scan whose shape looks wrong. Adds §6 interface decisions taken during the build. |
 | v2.1 | 29 Aug 2026 | **"On sale" dropped as a phrase.** It claims a fall is a bargain, which this figure cannot know — the same objection that ruled out "discount". The flag now reads *more than 10% below its own normal*, and `ON_SALE` becomes `BELOW_NORMAL_BAR`. |
@@ -1105,28 +1106,32 @@ part in the funnel.
   average. The residual gap between stated and effective weights is
   disclosed instead. See §4.3.
 
-### Still open
+### Also settled, 29 Aug 2026
 
-- **Q1 · Are these the right five gates?** They test profitability,
-  returns on capital, cash generation, solvency and margin durability.
-  Deliberately absent: *growth* (a great business can be flat, and growth
-  screens chase momentum) and *valuation* (cheapness is Stage 2's job — a
-  P/E limit here would fight the funnel by rejecting the very falls you
-  are hunting). A sixth, liquidity, was removed in v1.0 for rejecting
-  nobody; §3.14 records it.
-- **Q2 · Does the "or improving" clause let too much through?** Gate 2
-  passes a company on trajectory alone. That is what admits Amazon, and
-  it correctly rejects Intel. But it will also admit a turnaround after
-  one good year. The alternative is requiring two consecutive improving
-  years: stricter, but slower to recognise a real inflection.
-- **Q3 · Is 15% the right borderline band?** It currently makes J&J
-  borderline rather than rejected, and keeps Dollar General rejected.
-  Worth revisiting now that the full-500 run shows the tier distribution.
-- **Q4 · Should J&J and Broadcom get exceptions?** Both land BORDERLINE.
-  They already flow to Stage 2 labelled as such, which may be
-  sufficient. Recommendation: neither, for now. Exceptions should be
-  reserved for cases where the gate is measuring the wrong thing, not
-  merely producing an answer we dislike.
+All four questions that stood open through v2.2 have been answered.
+
+- **The five gates are right.** They test profitability, returns on
+  capital, cash generation, solvency and margin durability. Deliberately
+  absent: *growth* (a great business can be flat, and growth screens
+  chase momentum) and *valuation* (cheapness is Stage 2's job — a P/E
+  limit here would fight the funnel by rejecting the very falls it exists
+  to find). A sixth, liquidity, was removed in v1.0 for rejecting nobody.
+- **The "or improving" clause stays as written.** It passes a company on
+  trajectory alone, which is what admits Amazon while still rejecting
+  Intel decisively. Requiring two consecutive improving years would be
+  stricter but slower to recognise a real inflection, and there is no
+  evidence the current form lets anything through it shouldn't.
+- **The borderline band stays at 15%.** No evidence favours 10% or 20%,
+  and moving a threshold without evidence is precisely what
+  [tenet 3](../TENETS.md) forbids — it is how the returns bar drifted
+  12% → 8% before the grading system existed. If it is ever worth
+  settling empirically, the measurement is: how many companies move
+  between BORDERLINE and REJECTED at 10 / 15 / 20, and which.
+- **No exceptions, for anyone.** The mechanism itself was removed in
+  v2.3 — see §3.5. A company clears the bar or it does not.
+
+**There are no open questions.** New ones should be added here with the
+measurement that would settle them, not as opinions.
 
 ---
 
