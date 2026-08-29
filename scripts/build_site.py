@@ -63,8 +63,6 @@ def build() -> int:
             rows.append(["operating margin", sr["margin"], "70% of 3y avg"])
         if sr.get("coverage") and "interest coverage" in gate.get("4", ""):
             rows.append(["interest coverage", sr["coverage"], "4.0x"])
-            if sr.get("interest_share"):
-                rows.append(["interest as % of profit", sr["interest_share"], ""])
         return {"years": sr["years"], "rows": rows} if rows else None
 
     def pack(t, r, a):

@@ -585,12 +585,17 @@ def yearly(d, is_financial=False, is_utility=False, is_capital_intensive=False):
     The underlying years are already loaded, so keeping them costs one
     pass and turns a verdict into something a reader can reason about.
 
-    Interest coverage carries `interest_share` alongside it — interest as
-    a percentage of operating profit. Measured across the index, a
-    coverage ratio swings between 4,000x and 78x on rounding-level moves
-    when a company barely borrows (Expeditors' interest is 0.5% of its
-    profit), so the ratio alone can look like a collapse where there is
-    no debt to service. The share says whether the ratio means anything.
+    Interest coverage USED to carry `interest_share` beside it — interest
+    as a percentage of operating profit — because a coverage ratio swings
+    between 4,000x and 78x on rounding-level moves when a company barely
+    borrows, so the ratio alone can look like a collapse where there is
+    no debt to service.
+
+    That row is gone. It was the same number inverted (share = 1/coverage,
+    so 44.7x IS 2.2% of profit), it was the only row where lower was
+    better, and it carried no bar of its own. Displaying the gate's bar
+    beside the series does the same job honestly: 44.7x against a stated
+    4.0x bar cannot be misread as a collapse.
     """
     use_equity = is_financial or is_utility or is_capital_intensive
     base = d.get("equity") if use_equity else d.get("assets")
@@ -613,9 +618,6 @@ def yearly(d, is_financial=False, is_utility=False, is_capital_intensive=False):
                          d.get("op_income"), d.get("revenue")),
         "coverage": series(lambda p, i: round(p / abs(i), 1) if i else None,
                            d.get("op_income"), d.get("interest")),
-        "interest_share": series(
-            lambda p, i: round(abs(i) / p * 100, 1) if p and p > 0 else None,
-            d.get("op_income"), d.get("interest")),
         "return_label": "return on equity" if use_equity else "return on assets",
     }
     # Drop anything with no usable figures rather than render empty rows

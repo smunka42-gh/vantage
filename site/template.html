@@ -206,6 +206,14 @@ tr.detail > td{
   margin:0 0 14px;
 }
 
+/* Names the five pillars in the order the gates appear, so the structure
+   reads as deliberate rather than as five unrelated checks. */
+.pillars{
+  margin:-6px 0 15px; max-width:80ch;
+  color:var(--faint); font-size:12px; line-height:1.6;
+}
+.pillars b{color:var(--muted); font-weight:600}
+
 .gate{
   display:grid; grid-template-columns:minmax(120px,168px) minmax(0,1fr) 62px;
   gap:18px; align-items:baseline; padding:9px 0;
@@ -306,12 +314,6 @@ table.rec-t td.bar{
 }
 table.rec-t thead th.bar{border-left:1px solid var(--rule)}
 table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
-/* the interest-share row explains the row above it, so it hangs off it */
-table.rec-t tr.sub td{
-  color:var(--faint); font-size:11px; padding-top:2px; padding-bottom:9px;
-}
-table.rec-t tr.sub td{border-top:0}
-table.rec-t tr.sub td.lbl{padding-left:14px; font-size:11.5px}
 
 /* ---------- quiet day ---------- */
 /* Shown INSTEAD of the table when nothing clears the bar — see render().
@@ -461,7 +463,7 @@ const GATE_LABEL={
   "Sustained profit":"Profitable every year",
   "Return on capital":"Earns well on its assets",
   "Cumulative 5y FCF":"Generates spare cash",
-  "Debt serviceable":"Debt under control",
+  "Debt serviceable":"Can cover its interest",
   "Op margin durable":"Margins holding up",
 };
 
@@ -511,8 +513,15 @@ function detail(r){
   const gates=r.gt.map(g=>{
     const risk = r.ar && r.ar.startsWith(g[0]);
     const raw  = g[0].replace(/^\d+\s+/, "");
+    // Gate 4 is TWO tests. Where interest expense is reported it checks
+    // whether profit covers the interest; where it is not, it falls back
+    // to how much of the balance sheet the company owns outright, which
+    // is a leverage test. One label cannot honestly describe both.
+    const label = raw !== "Debt serviceable" ? (GATE_LABEL[raw] || raw)
+      : /interest coverage/.test(g[2]) ? "Can cover its interest"
+      : "Not overloaded with debt";
     return `<div class="gate${risk?" risk":""}">
-      <div class="g">${GATE_LABEL[raw]||raw}</div>
+      <div class="g">${label}</div>
       <div class="d">${plain(raw, g[2])}</div>
       <div class="v">${risk?"closest":(g[1]||"n/a")}</div>
     </div>`;}).join("");
@@ -576,20 +585,20 @@ function detail(r){
       <div class="rec"><table class="rec-t">
         <thead><tr><th class="lbl"></th>
           ${r.sr.years.map(y => `<th>${y}</th>`).join("")}
-          <th class="bar">bar</th></tr></thead>
-        <tbody>${r.sr.rows.map(([label, vals, bar]) => {
-          const sub = bar === "";      // the interest-share explainer
-          return `<tr class="${sub ? "sub" : ""}">
+          <th class="bar">at least</th></tr></thead>
+        <tbody>${r.sr.rows.map(([label, vals, bar]) => `<tr>
             <td class="lbl">${label}</td>
             ${vals.map(v => `<td>${v === null ? "—" : v.toFixed(1)}</td>`).join("")}
-            <td class="bar">${bar || ""}</td></tr>`;
-        }).join("")}</tbody>
+            <td class="bar">${bar}</td></tr>`).join("")}</tbody>
       </table></div>
     </div>`;
 
   const gatesCard = r.gt.length === 0 ? "" :
    `<div class="card">
       <h4>${H}</h4>
+      <p class="pillars">Five gates, one per pillar, in this order:
+        <b>profit</b>, <b>returns</b>, <b>cash</b>, <b>debt</b>,
+        <b>margins</b>.</p>
       ${gates}
     </div>`;
 
