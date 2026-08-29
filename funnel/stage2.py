@@ -1,10 +1,14 @@
-"""Stage 2 — the dislocation score.
+"""Stage 2 — how far below its own normal.
 
 Answers one question about a company that already cleared Stage 1: how
 far below its OWN normal is it trading today? Not cheap versus other
 companies, and not cheap on a valuation multiple — a P/E screen here
-would fight the funnel by rejecting the very dislocations it exists to
-find.
+would fight the funnel by rejecting the very falls it exists to find.
+
+"Below normal" measures price against its OWN price history — how far
+this has moved from where it usually trades. It is NOT a claim about
+value: a business worth 40% less, priced 40% lower, reads the same as an
+unchanged business priced 40% lower. Never call it a discount.
 
 Pure library — importing it does nothing. See docs/FUNNEL_SPEC.md §4.
 """
@@ -15,7 +19,7 @@ from __future__ import annotations
 # score in real percentage terms, which is what makes an ABSOLUTE "on
 # sale" bar possible — and an absolute bar is the only kind that can
 # return "nothing today". A percentile always has a 99th percentile and
-# would nominate a most-dislocated company every single day.
+# would nominate a furthest-below-normal company every single day.
 W_LONG = 0.60
 W_SHORT = 0.40
 
@@ -28,8 +32,14 @@ ON_SALE = 0.10
 # Shape of the decline, from the ratio of the two gaps. The 50-day
 # average catches up to a new price level in about two months while the
 # 200-day takes a year, so the gap BETWEEN them dates the fall.
-STILL_FALLING = 0.70
-RECOVERING = 0.20
+#
+# The labels describe PRICE BEHAVIOUR ONLY and deliberately imply no
+# judgement. Wording like "high confidence dip" was rejected: Stage 2 has
+# no idea whether a dip is good — that is Stage 3's entire job — and a
+# card reading "high confidence dip / not worth buying" would contradict
+# itself.
+FALLING_NOW = 0.70          # as far below its 50-day as its 200-day
+NOW_RISING = 0.20           # back at its recent normal
 
 # Gate 6 (liquidity) used to be enforced here, being the one Stage 1 gate
 # that needed prices rather than filings. It is GONE: it rejected zero of
@@ -66,13 +76,13 @@ def shape(d_ma200: float, d_ma50: float) -> str | None:
     if d_ma200 <= 0:
         return None
     ratio = d_ma50 / d_ma200
-    if ratio >= STILL_FALLING:
+    if ratio >= FALLING_NOW:
         # Includes ratio > 1, where the recent gap exceeds the long-run
         # one — a decline that is accelerating.
-        return "still falling"
-    if ratio >= RECOVERING:
-        return "stabilising"
-    return "recovering"
+        return "falling now"
+    if ratio >= NOW_RISING:
+        return "fell, now flat"
+    return "fell, now rising"
 
 
 def score(p: dict) -> dict:
@@ -85,12 +95,12 @@ def score(p: dict) -> dict:
         return {
             "status": "insufficient history",
             "bars": p["bars"],
-            "dislocation": None,
+            "below_normal": None,
             "on_sale": False,
         }
 
     c = components(p)
-    dislocation = W_LONG * c["d_ma200"] + W_SHORT * c["d_ma50"]
+    below_normal = W_LONG * c["d_ma200"] + W_SHORT * c["d_ma50"]
 
     return {
         "status": "scored",
@@ -98,8 +108,8 @@ def score(p: dict) -> dict:
         "as_of": p["as_of"],
         "d_ma200": c["d_ma200"],
         "d_ma50": c["d_ma50"],
-        "dislocation": dislocation,
-        "on_sale": bool(dislocation >= ON_SALE),
+        "below_normal": below_normal,
+        "on_sale": bool(below_normal >= ON_SALE),
         "shape": shape(c["d_ma200"], c["d_ma50"]),
     }
 

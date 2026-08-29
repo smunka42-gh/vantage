@@ -1,4 +1,4 @@
-"""Run Stage 2 across the index and report what is on sale.
+"""Run Stage 2 across the index and report what is below normal.
 
 Reads the Stage 1 verdicts, fetches prices, scores everything, and
 refuses to write anything if the price data does not pass its checks.
@@ -13,9 +13,11 @@ too. Only the eligible list is ranked and only it can be "on sale".
 from __future__ import annotations
 
 import collections
+import datetime as dt
 import json
 import pathlib
 import sys
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from funnel import prices, stage2                        # noqa: E402
@@ -26,6 +28,39 @@ STAGE1 = HERE / "stage1_results.json"
 OUT = HERE / "stage2_results.json"
 
 ELIGIBLE_TIERS = {"PASS", "BORDERLINE", "EXCEPTION"}
+
+# Yahoo's exchange codes, mapped to what Google Finance expects in a URL.
+# Anything unrecognised gets no Google link rather than a broken one.
+GOOGLE_EXCHANGE = {"NMS": "NASDAQ", "NGM": "NASDAQ", "NCM": "NASDAQ",
+                   "NYQ": "NYSE", "ASE": "NYSEAMERICAN", "PCX": "NYSEARCA"}
+
+
+def _links_and_caps(tickers: list[str]) -> dict[str, dict]:
+    """Market cap and deep-dive links, fetched only for the on-sale names.
+
+    Market cap plays NO part in the funnel — it neither gates nor ranks.
+    It is here because it changes what a reader would do, which under
+    TENETS.md 2 makes it a driver rather than decoration. It is a column
+    to sort by, deliberately not a grouping: grouping by size would bury
+    exactly the unfamiliar names the screen exists to surface.
+    """
+    import yfinance as yf
+    out = {}
+    for t in tickers:
+        cap, exch = None, None
+        try:
+            info = yf.Ticker(t).info
+            cap, exch = info.get("marketCap"), info.get("exchange")
+        except Exception:                                    # noqa: BLE001
+            pass
+        g = GOOGLE_EXCHANGE.get(exch or "")
+        out[t] = {
+            "market_cap": cap,
+            "yahoo": f"https://finance.yahoo.com/quote/{t}",
+            "google": f"https://www.google.com/finance/quote/{t}:{g}" if g else None,
+        }
+        time.sleep(0.05)
+    return out
 
 
 def main() -> int:
@@ -65,6 +100,13 @@ def main() -> int:
         if s["status"] == "insufficient history":
             short_history.append(t)
 
+    # --- market cap and deep-dive links, on-sale names only -----------
+    on_sale_tickers = [t for t, r in scored.items()
+                       if r["on_sale"] and r["eligible"]]
+    extra = _links_and_caps(on_sale_tickers)
+    for t, e in extra.items():
+        scored[t].update(e)
+
     OUT.write_text(json.dumps(scored, indent=1))
 
     # --- report ---------------------------------------------------------
@@ -73,7 +115,7 @@ def main() -> int:
     on_sale = {t: s for t, s in elig_scored.items() if s["on_sale"]}
 
     print("=" * 68)
-    print(f"STAGE 2 — DISLOCATION   ({len(elig_scored)} eligible companies scored)")
+    print(f"STAGE 2 — BELOW NORMAL   ({len(elig_scored)} eligible companies scored)")
     print("=" * 68)
 
     if not on_sale:
@@ -84,18 +126,47 @@ def main() -> int:
     else:
         print(f"\n{len(on_sale)} of {len(elig_scored)} companies are on sale "
               f"(>= {stage2.ON_SALE:.0%} below their own normal)\n")
-        print(f"  {'tkr':6s} {'below own':>10s} {'200d':>8s} {'50d':>8s}  "
-              f"{'shape':14s} tier")
-        print("  " + "-" * 64)
+        print(f"  {'tkr':6s} {'below normal':>13s} {'mkt cap':>9s} "
+              f"{'200d':>7s} {'50d':>7s}  {'shape':16s} tier")
+        print("  " + "-" * 76)
         for t, s in sorted(on_sale.items(),
-                           key=lambda kv: -kv[1]["dislocation"]):
-            print(f"  {t:6s} {s['dislocation']*100:9.1f}% "
-                  f"{s['d_ma200']*100:7.1f}% {s['d_ma50']*100:7.1f}%  "
-                  f"{s['shape'] or '—':14s} {s['tier']}")
+                           key=lambda kv: -kv[1]["below_normal"]):
+            cap = s.get("market_cap")
+            cap_s = f"{cap/1e9:8.1f}B" if cap else "       —"
+            print(f"  {t:6s} {s['below_normal']*100:12.1f}% {cap_s} "
+                  f"{s['d_ma200']*100:6.1f}% {s['d_ma50']*100:6.1f}%  "
+                  f"{s['shape'] or '—':16s} {s['tier']}")
+
+        # The two things a finance site cannot tell you, because both
+        # depend on OUR gates: which bar this company is closest to
+        # failing, and how much recent history those gates have not seen.
+        print("\n  worth knowing before you read:")
+        for t in sorted(on_sale, key=lambda t: -on_sale[t]["below_normal"]):
+            r1 = s1.get(t, {})
+            risk = r1.get("at_risk") or []
+            asof = r1.get("asof") or {}
+            bits = []
+            if risk:
+                for g in r1.get("gates", []):
+                    if g["gate"] in risk:
+                        bits.append(f"closest to failing -> {g['gate']}: {g['detail']}")
+            if asof.get("period_end"):
+                months = (dt.date.today()
+                          - dt.date.fromisoformat(asof["period_end"])).days / 30.44
+                bits.append(f"quality gate reads FY{asof.get('fiscal_year')} "
+                            f"(ended {asof['period_end']}) — {months:.0f} months "
+                            f"of business it has not seen")
+            print(f"    {t:6s} " + ("\n           ".join(bits) if bits else "—"))
+
+        print("\n  deep-dive links:")
+        for t in sorted(on_sale, key=lambda t: -on_sale[t]["below_normal"]):
+            e = extra.get(t, {})
+            print(f"    {t:6s} {e.get('yahoo', '')}"
+                  + (f"   {e['google']}" if e.get("google") else ""))
 
     # Distribution, so the bar can be judged against reality rather than
     # taken on faith.
-    vals = sorted(s["dislocation"] for s in elig_scored.values())
+    vals = sorted(s["below_normal"] for s in elig_scored.values())
     def pct(q: float) -> float:
         return vals[min(int(q * len(vals)), len(vals) - 1)] * 100
     print(f"\ndistribution across the eligible list:")
@@ -116,7 +187,7 @@ def main() -> int:
     print(f"\nweights: stated {stage2.W_LONG:.0%}/{stage2.W_SHORT:.0%}  ->  "
           f"effective {lo:.0%}/{sh:.0%} (200d/50d)")
     print("   they differ because a component only moves a ranking as far")
-    print("   as it varies; this is disclosed, not corrected — see spec 4.3")
+    print("   as it varies; this is disclosed, not corrected — see spec §4.3")
 
     if short_history:
         print(f"insufficient history ({len(short_history)}): "

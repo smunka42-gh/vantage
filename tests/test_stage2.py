@@ -1,7 +1,7 @@
 """The Stage 2 validation suite (spec §4.9).
 
 Stage 2 has no golden set. There is no independently known right answer
-for "how dislocated is this company", the way there is for "is Boeing a
+for "how far below its normal is this", the way there is for "is Boeing a
 quality business" — so validation here is mechanical rather than
 judgemental. Five checks:
 
@@ -69,9 +69,9 @@ def main() -> int:
     s = scored[t]
     blended = stage2.W_LONG * s["d_ma200"] + stage2.W_SHORT * s["d_ma50"]
     check("the blend is exactly its stated formula",
-          abs(blended - s["dislocation"]) < 1e-12,
+          abs(blended - s["below_normal"]) < 1e-12,
           f"0.60x{s['d_ma200']:.6f} + 0.40x{s['d_ma50']:.6f} "
-          f"= {s['dislocation']:.6f}")
+          f"= {s['below_normal']:.6f}")
 
     # --- 2. sanity anchors ----------------------------------------------
     print("\n2. SANITY ANCHORS — does the score point the right way?")
@@ -86,28 +86,28 @@ def main() -> int:
         h = derived[t]["high52"]
         return (h - derived[t]["price"]) / h
     at_high = [t for t in scored if dist_from_high(t) < 0.02]
-    check("a company near its 52-week high does not read as dislocated",
-          all(scored[t]["dislocation"] < stage2.ON_SALE for t in at_high),
+    check("a company near its 52-week high does not read as below normal",
+          all(scored[t]["below_normal"] < stage2.ON_SALE for t in at_high),
           f"{len(at_high)} within 2% of their high: "
-          f"{[f'{t} {scored[t]['dislocation']*100:+.1f}%' for t in at_high[:4]]}"
+          f"{[f'{t} {scored[t]['below_normal']*100:+.1f}%' for t in at_high[:4]]}"
           if at_high else "no anchor is near its high right now — check skipped")
 
     below_both = [t for t, s in scored.items()
                   if s["d_ma200"] > 0.15 and s["d_ma50"] > 0.10]
-    check("a company well below BOTH averages reads as dislocated",
-          all(scored[t]["dislocation"] >= stage2.ON_SALE for t in below_both),
-          f"{[f'{t} {scored[t]['dislocation']*100:+.1f}%' for t in below_both[:4]]}"
+    check("a company well below BOTH averages reads as below normal",
+          all(scored[t]["below_normal"] >= stage2.ON_SALE for t in below_both),
+          f"{[f'{t} {scored[t]['below_normal']*100:+.1f}%' for t in below_both[:4]]}"
           if below_both else "no anchor is far below both right now — check skipped")
 
     above_normal = [t for t, s in scored.items() if s["price"] > s["d_ma200"]
                     and s["d_ma200"] < 0]
     check("trading above its own normal yields a NEGATIVE score",
-          all(scored[t]["dislocation"] < 0 or scored[t]["d_ma50"] > 0
+          all(scored[t]["below_normal"] < 0 or scored[t]["d_ma50"] > 0
               for t in above_normal),
           f"{len(above_normal)} companies above their 200-day average")
 
-    check("nothing is on sale on negative dislocation",
-          all(s["dislocation"] >= stage2.ON_SALE
+    check("nothing is on sale below the bar",
+          all(s["below_normal"] >= stage2.ON_SALE
               for s in scored.values() if s["on_sale"]),
           "every on-sale name clears the bar")
 
@@ -125,7 +125,7 @@ def main() -> int:
     declining = {t: s for t, s in scored.items() if s["d_ma200"] > 0}
     labels = {s["shape"] for s in declining.values()}
     check("every declining company gets exactly one known label",
-          labels <= {"still falling", "stabilising", "recovering"}
+          labels <= {"falling now", "fell, now flat", "fell, now rising"}
           and None not in labels,
           f"{len(declining)} declining, labels seen: {sorted(labels)}")
 
@@ -137,8 +137,9 @@ def main() -> int:
     ok = True
     for t, s in declining.items():
         r = s["d_ma50"] / s["d_ma200"]
-        want = ("still falling" if r >= stage2.STILL_FALLING else
-                "stabilising" if r >= stage2.RECOVERING else "recovering")
+        want = ("falling now" if r >= stage2.FALLING_NOW else
+                "fell, now flat" if r >= stage2.NOW_RISING else
+                "fell, now rising")
         if s["shape"] != want:
             ok = False
             print(f"        {t}: ratio {r:.2f} labelled {s['shape']}, "

@@ -1,23 +1,30 @@
 # Vantage
 
-Finds durably high-quality companies that are **temporarily** marked down,
-and tries to tell the difference between "cheap" and "broken".
+Finds durably high-quality companies that are trading well below where
+they usually trade, and hands you the short list plus links to go read
+about them.
 
-Not a ranking of every stock by upside. The goal is a small,
-slow-changing watchlist of companies worth owning, plus a signal when one
-of them goes on sale for a reason that looks like sentiment rather than
-deterioration.
+Not a ranking of every stock by upside, and not a buy signal. The goal is
+a small, slow-changing watchlist of companies worth owning, and a short
+daily answer to *"has any of them moved a long way from its own normal?"*
+Most days the answer is none, and that is the correct answer.
 
 ## The funnel
 
 | Stage | Question | Cadence | Source |
 |---|---|---|---|
 | **1 · Quality** | Would I ever want to own this? | Quarterly, on filings | SEC EDGAR (audited) |
-| **2 · Dislocation** | Is it on sale right now? | Daily, on prices | Market data |
-| **3 · Corroboration** | Is the sale real, or is it broken? | Daily | Analyst revisions, volume, short interest, fundamentals |
+| **2 · Below normal** | Has it moved a long way from where it usually trades? | Daily, on prices | Yahoo Finance |
+| **You** | Is it worth buying? | — | The links the tool hands you |
 
 Stage 1 is a **hard gate** — quality is a precondition, not a factor to
-trade off. Stages 2 and 3 are scores.
+trade off. Stage 2 is a percentage, not a verdict.
+
+**There is no Stage 3.** One was specified and removed before being
+built: every candidate signal turned out to be circular, near-constant,
+or lagging the event it was meant to judge — and two stages already
+reduce 500 companies to about 16, ranked, which is a short enough list to
+read yourself. See §5 of the spec.
 
 ## Status
 
@@ -27,10 +34,10 @@ trade off. Stages 2 and 3 are scores.
   borderline, 193 rejected, 19 not assessable, 30 REITs not yet
   covered — **258 of 500 eligible**.
 - **Stage 2 — built.** Two moving-average components blended as real
-  percentages, with an absolute 10% "on sale" bar so the honest answer
-  on a calm day is an empty list. 13-check validation suite passing.
-  Latest run: **16 of 258 on sale**.
-- **Stage 3 — not started.**
+  percentages, with an absolute 10% bar so the honest answer on a calm
+  day is an empty list. 13-check validation suite passing. Latest run:
+  **16 of 258 below normal**.
+- **Stage 3 — does not exist, deliberately.** See spec §5.
 - **UI — not started, deliberately.** All three stages get built and
   validated first; the interface is specified only once there are real
   numbers to design around.
@@ -58,9 +65,9 @@ export SEC_USER_AGENT="vantage you@example.com"
 funnel/stage1.py     the six quality gates, grading and tiers
 funnel/universe.py   S&P 500 constituents, sectors, track assignment
 funnel/prices.py     price history and the checks that gate publishing
-funnel/stage2.py     the dislocation score and shape labels
+funnel/stage2.py     the below-normal figure and shape labels
 scripts/run_stage1.py  quality gate over the whole index
-scripts/run_stage2.py  dislocation over the whole index
+scripts/run_stage2.py  below-normal over the whole index
 tests/               golden-set regression + Stage 2 validation suite
 docs/FUNNEL_SPEC.md  the specification
 ```

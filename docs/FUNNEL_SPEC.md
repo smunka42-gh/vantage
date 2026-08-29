@@ -1,10 +1,10 @@
-# The Quality Dislocation Funnel
+# The Quality and Price Funnel
 
-**Vantage · Funnel Spec v1.0 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.0 · 29 Aug 2026**
 
-Find durably excellent companies, wait for one of them to be temporarily
-marked down, and check that the markdown is sentiment rather than damage.
-Three stages, every calculation stated in full.
+Find durably excellent companies, then watch for one of them to trade
+well below where it usually trades. Two stages, every calculation stated
+in full — and then you go and read about the company yourself.
 
 > **This document is the single source of truth for Vantage.** Anything
 > that disagrees with it — code comment, README, chat history — is wrong
@@ -25,10 +25,11 @@ doesn't. Full text and the evidence behind each is in
 
 ## What this version is
 
-Stages 1 and 2 are built and running — Stage 1 against live SEC EDGAR
+Both stages are built and running — Stage 1 against live SEC EDGAR
 filings with a 17-company regression test plus a data-recency assertion,
-Stage 2 against daily prices with a 13-check validation suite. Stage 3 is
-specified here but not implemented. Nothing is deployed.
+Stage 2 against daily prices with a 13-check validation suite. There is
+no Stage 3; section 5 records what it would have been and why it was
+removed. Nothing is deployed.
 
 Corrections forced by real data: the original returns bar excluded Amazon
 and Costco; the margin test was unrunnable on 13 of the 20 largest
@@ -42,7 +43,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v1.0** | 29 Aug 2026 | **Tenets adopted** ([TENETS.md](../TENETS.md)) and applied. **Frame-filter defect fixed:** `_pick` was discarding EDGAR entries carrying a `frame` label, which for the newest fiscal year is often the only entry present — 99% of the index was scored on filings a full year older than available. **Gate 6 (liquidity) removed** (tenet 4: zero rejections across 500) and not demoted to a displayed fact (tenet 2). **52-week high removed entirely** rather than kept as displayed context (tenet 2). **TTM and 10-Q data rejected for Stage 1** (tenet 1: no reconstructed periods). A data-recency assertion added to the golden set, since an outcome test cannot detect a freshness defect. |
+| **v2.0** | 29 Aug 2026 | **Stage 3 removed before being built.** Every candidate signal was either circular (analyst target, P/E vs own range), near-constant (volume character awarded +1 to 89% of the index), or lagged behind the event it was meant to judge (short interest 2-3 weeks, fundamentals up to 3 months). The decisive argument: Stages 1 and 2 already reduce 500 to ~16 **ranked** names, so the ranking is the triage and a third stage changes no outcome — [tenet 4](../TENETS.md) applied to a whole stage. Replaced by links out plus the two things external sites cannot provide: which gate a company is closest to failing, and how stale the filed data is. **"Dislocation" renamed "below normal"** — it measures price against its own price history, not against value, and "discount" would claim more than the number earns. **Market cap added as a sortable column**, deliberately not a grouping. Shape labels reworded to plain language. |
+| v1.0 | 29 Aug 2026 | **Tenets adopted** ([TENETS.md](../TENETS.md)) and applied. **Frame-filter defect fixed:** `_pick` was discarding EDGAR entries carrying a `frame` label, which for the newest fiscal year is often the only entry present — 99% of the index was scored on filings a full year older than available. **Gate 6 (liquidity) removed** (tenet 4: zero rejections across 500) and not demoted to a displayed fact (tenet 2). **52-week high removed entirely** rather than kept as displayed context (tenet 2). **TTM and 10-Q data rejected for Stage 1** (tenet 1: no reconstructed periods). A data-recency assertion added to the golden set, since an outcome test cannot detect a freshness defect. |
 | v0.9 | 29 Aug 2026 | **Stage 2 rebuilt from measurement.** Score is now two moving-average components blended as real percentages — `0.60*d_ma200 + 0.40*d_ma50` — with an absolute 10% "on sale" bar replacing the percentile rank. The 52-week high is dropped from the score (0.74 correlated with the 200-day, and contaminated by spikiness) and kept as displayed context; the analyst target moves to Stage 3, where its question actually belongs. Standardisation removed as unnecessary once the components are commensurate, with the residual ≈68/32 effective split disclosed rather than engineered away. Adds the fresh/stabilising/recovering shape label, the data-quality gates and the Stage 2 validation plan. |
 | v0.8 | 29 Aug 2026 | Shock-year rule tightened: a company counts only if it was **profitable the year before**, so a loss must be specific to that year. Stops chronic loss-makers standing in as evidence of an industry-wide event, which had made Industrials 2020 fire spuriously. Only Energy 2020 fires. |
 | v0.7 | 29 Aug 2026 | Health insurers routed to the financials track. Financials' Gate 1 falls back to net income where no operating-income series is filed. Unassessable companies 36 → 29; eligible 238 of 500 (48%). **Ported into the Vantage repository as its source of truth; section 6 reduced to UI principles only — the detailed interface spec is now a separate document, written after Stage 3.** |
@@ -53,8 +55,8 @@ Each is documented below with the measurement that caught it.
 | v0.2 | 28 Aug 2026 | Scoped to S&P 500. Tag-coverage audit across all 500. Institutional ownership tested and rejected; volume and short interest adopted. |
 | v0.1 | 28 Aug 2026 | Initial three-stage funnel concept, thresholds proposed from sampled distributions. |
 
-v1.0 marks Stage 1 and Stage 2 as built, validated and governed by the
-tenets. Stage 3 remains specified but not implemented.
+v2.0 marks the funnel as complete at two stages. There is no Stage 3 and
+none is planned — see section 5 for why.
 
 ---
 
@@ -71,22 +73,22 @@ outrank an excellent one that has fallen a little.
 ```
 STAGE 1 — QUALITY GATE          hard pass/fail
 500 S&P constituents  ->  258 that clear every bar
-Recomputed quarterly, on filings.
+Recomputed quarterly, on audited filings.
         |
         v
-STAGE 2 — DISLOCATION           % below its own normal
-How far below its own normal trading range is each one today?
-Recomputed daily, on prices.
+STAGE 2 — BELOW NORMAL          % below where it usually trades
+Of those, which are trading well below their own normal today?
+Recomputed daily, on prices.       ->  ~16, ranked
         |
         v
-STAGE 3 — CHEAP OR BROKEN       verdict + score
-For the dislocated ones only: does the evidence say sentiment, or damage?
-Daily.
+YOU                              read the company
+Links out to the sites that do news, earnings and filings properly.
 ```
 
-Stage 1 answers *"would I ever own this?"* Stage 2 answers *"is it on
-sale?"* Stage 3 answers *"is the sale real?"* Only a company passing all
-three is worth attention, and the interface must say so in that order.
+Stage 1 answers *"would I ever own this?"* Stage 2 answers *"has it moved
+far from where it usually trades?"* Neither answers *"should I buy it"* —
+that is a judgement made by a person reading about the business, and the
+funnel's job is to get them to the right sixteen companies.
 
 This is buy-and-hold accumulation, not dip trading.
 
@@ -115,20 +117,17 @@ API calls, less work than a single 500-ticker price scan. A live test of
 Gate 1 alone cut 6,051 filers to 1,386 — a 77% reduction before any other
 gate.
 
-So the constraint is not Stage 1. It is that Stage 3's strongest signal —
-analyst conviction trend — thins out below large caps, where a company
-may have two analysts or none. Starting with the S&P 500 keeps every
-stage fully powered while the funnel is proven. Widening later is a
-configuration change plus a liquidity gate and an "insufficient coverage"
-state in Stage 3, not a rewrite.
+So the constraint is not Stage 1. It is that the S&P 500's membership
+rules do quality work that filings alone cannot reproduce, and that a
+wider universe would surface names too illiquid to accumulate. Widening
+later is a configuration change plus a liquidity gate, not a rewrite.
 
 ### Sources
 
 | Source | Used for | Cost | Why this one |
 |---|---|---|---|
-| SEC EDGAR XBRL API | Stage 1 fundamentals; Stage 3 trend checks | Free, no key | Audited, as-filed, multi-year. The primary source every aggregator derives from. Verified: returns 6+ years of annual figures per concept. |
-| yfinance | Prices, 52-week range, analyst targets and ratings | Free | Fine for prices; not trusted for fundamentals where EDGAR exists. |
-| Finnhub | Stage 3: estimate revisions | Free, 60/min | Only if EDGAR plus analyst trend prove insufficient. Transcripts are paid — out of scope for v1. |
+| SEC EDGAR XBRL API | Stage 1 fundamentals | Free, no key | Audited, as-filed, multi-year. The primary source every aggregator derives from. Verified: returns 6+ years of annual figures per concept. |
+| yfinance | Prices, market cap | Free | Fine for prices; not trusted for fundamentals where EDGAR exists. |
 
 Rate limits matter: FMP's 250/day and Alpha Vantage's 25/day cannot cover
 500 tickers. EDGAR and Finnhub can.
@@ -266,7 +265,7 @@ are now fixed.**
 
 ### 3.5 The watchlist tiers
 
-| Tier | Meaning | Goes to Stage 2/3? |
+| Tier | Meaning | Goes to Stage 2? |
 |---|---|---|
 | **PASS** | Every gate cleared. A near-pass counts as a pass. | yes |
 | **BORDERLINE** | Exactly one near-fail, nothing worse. | yes |
@@ -276,8 +275,8 @@ are now fixed.**
 
 The tier travels with the company rather than being collapsed away, so
 the interface can always show whether a name is on the list cleanly,
-barely, or by override — and Stages 2 and 3 still get the definite list
-they need to run on.
+barely, or by override — and Stage 2 still gets the definite list it
+needs to run on.
 
 #### Exceptions
 
@@ -626,7 +625,7 @@ scored a different five-year window.
 
 ---
 
-## 4. Stage 2 — the dislocation score
+## 4. Stage 2 — how far below its own normal
 
 *Specified, not yet built.*
 
@@ -636,7 +635,7 @@ Answers: **how far below its own normal is this today?**
 
 "Its own normal" means the company's own trading history, not a
 valuation multiple and not a comparison to other companies. A P/E screen
-here would fight the funnel by rejecting the very dislocations it exists
+here would fight the funnel by rejecting the very below-normal figures it exists
 to find.
 
 ### 4.1 The calculation
@@ -645,16 +644,16 @@ to find.
 d_ma200 = (SMA200 - price) / SMA200     # below its long-run normal
 d_ma50  = (SMA50  - price) / SMA50      # below its recent normal
 
-Dislocation = 0.60 * d_ma200 + 0.40 * d_ma50        # a real percentage
-OnSale      = Dislocation >= 0.10                   # absolute, cohort-free
+BelowNormal = 0.60 * d_ma200 + 0.40 * d_ma50        # a real percentage
+OnSale      = Below normal >= 0.10                   # absolute, cohort-free
 ```
 
 Two components, both measured the same way, both reported as real
-percentages. A company at `Dislocation = 0.187` is *18.7% below its own
+percentages. A company at `BelowNormal = 0.187` is *18.7% below its own
 normal* — a figure that means the same thing today, next quarter, and
 against any watchlist.
 
-Names are ordered by `Dislocation`. There is no percentile and no
+Names are ordered by `BelowNormal`. There is no percentile and no
 standardisation; §4.3 explains why both were removed.
 
 ### 4.2 Why these two, and not the 52-week high or the analyst target
@@ -681,7 +680,7 @@ contaminated: distance from a 52-week high is heavily determined by
 whether the stock had a *spike* in the last year. A company that popped
 on a takeover rumour ten months ago and drifted back reads as "40% below
 its 52-week high" while trading exactly at its own normal. That is a
-volatile stock, not a dislocated one.
+volatile stock, not one trading below its normal.
 
 v0.9 dropped it from the score but kept it as displayed context. v1.0
 removes it altogether, under [tenet 2](../TENETS.md): showing "44% below
@@ -691,15 +690,17 @@ weight it themselves, inconsistently, and to reach for the larger figure.
 
 It survives in exactly one place — the Stage 2 validation suite uses it
 as an *independent* sanity anchor ("a company at its 52-week high must
-not read as dislocated"), which is what catches a sign inversion. Tenet 2
+not read as below normal"), which is what catches a sign inversion. Tenet 2
 governs what reaches the reader, not internal values a test relies on.
 
-**The analyst target moves to Stage 3.** It is not a measure of "cheap
-versus its own normal" at all; it is an outside opinion on whether a fall
-is *justified* — which is precisely the Stage 3 question. It also
-correlates most strongly with the 50-day (0.57), consistent with targets
-being anchored to price and lagging it, so as a dislocation input it is
-partly a slow echo of a move already captured.
+**The analyst target is dropped entirely.** It is not a measure of
+"cheap versus its own normal" at all; it is an outside opinion on whether
+a fall is justified. v0.9 moved it to Stage 3; v2.0 removed it with that
+stage, on the grounds that it is **circular** — targets lag price, so a
+fall mechanically widens the gap, and the fall itself creates the
+evidence that the fall was an overreaction. It also correlates most
+strongly with the 50-day (0.57), consistent with being a slow echo of a
+move already captured.
 
 Measured, both excluded components are one-directional:
 
@@ -755,7 +756,7 @@ tuned further.
 ### 4.4 Why an absolute threshold, not a percentile rank
 
 A percentile always has a 99th percentile. A percentile-ranked score
-would nominate a most-dislocated company every single day, including days
+would nominate a most-below normal company every single day, including days
 when all 239 sit at their highs — manufacturing a daily recommendation
 out of nothing. That directly contradicts §6 principle 2.
 
@@ -795,9 +796,10 @@ Eight stabilising, six still falling, two recovering. Two companies
 (FDXF, HONA — recent spinoffs) are reported as **insufficient history**
 rather than scored.
 
-**10% is adopted.** Sixteen candidates is the right width for Stage 3 to
-narrow to a handful of ACT verdicts. A 20% bar here would do Stage 3's
-filtering job for it and collapse the funnel into a single stage.
+**10% is adopted.** Sixteen names is a short enough list to read
+properly, and the list is ranked, so a reader works down from the top and
+stops when they choose. The bar's job is not to pick winners — it is the
+point below which you are content not to look.
 
 ### 4.5 The shape of the decline
 
@@ -821,9 +823,20 @@ shape_ratio = d_ma50 / d_ma200          # only when d_ma200 > 0
 
 | ratio | label | meaning |
 |---|---|---|
-| ≥ 0.70 | **still falling** | as far below its short average as its long one — recent or ongoing |
-| 0.20 – 0.70 | **stabilising** | fell some time ago, price has found a floor |
-| < 0.20 | **recovering** | back near or above its 50-day |
+| ≥ 0.70 | **falling now** | as far below its short average as its long one — the drop is recent or ongoing |
+| 0.20 – 0.70 | **fell, now flat** | fell some time ago, price has settled |
+| < 0.20 | **fell, now rising** | back at or above its 50-day, climbing |
+
+The labels describe **price behaviour only** and deliberately imply no
+judgement. Wording like "high confidence dip" was rejected: Stage 2 has
+no idea whether a fall is justified, and a card reading *"high confidence
+dip / not worth buying"* would contradict itself.
+
+Their real function is telling you **how much of the story the evidence
+has caught up with**. A company that fell three weeks ago has filings,
+analyst views and short-interest figures that all predate the fall. One
+that fell six months ago does not. That is why the label survives
+[tenet 4](../TENETS.md) — it changes what a reader trusts.
 
 This is a **label, not a score adjustment** — it annotates the ranking
 without altering it. It matters because the thesis is temporary shocks:
@@ -838,13 +851,22 @@ been flat for months. A single number cannot distinguish those.
 A ratio above 1.0 (the 50-day gap exceeding the 200-day gap) means the
 decline is accelerating, and falls inside "still falling".
 
-### 4.6 Liquidity — removed
+### 4.6 What is shown alongside the score
+
+| Field | Why it is there |
+|---|---|
+| **Below normal %** | The ranking variable |
+| **Shape label** | Whether the evidence has caught up with the fall |
+| **Market cap** | Plays no part in gating or ranking, but changes what a reader would do, so [tenet 2](../TENETS.md) makes it a driver. A **sortable column, never a grouping** — grouping by size would systematically bury the unfamiliar names the screen exists to surface. Measured on the current sixteen: $6.4B to $820B, median $25B. |
+| **Yahoo and Google Finance links** | Where the actual research happens. The funnel's job ends at getting you to the right sixteen companies. |
+
+### 4.7 Liquidity — removed
 
 Stage 2 previously enforced Gate 6, being the one Stage 1 gate that
 needed prices rather than filings. That gate is gone (§3.14), and median
 dollar volume is no longer computed or displayed.
 
-### 4.7 Data source and its known weaknesses
+### 4.8 Data source and its known weaknesses
 
 Prices come from Yahoo Finance via the unofficial `yfinance` library. It
 is free and adequate for prices, and it is **not** trusted for
@@ -854,7 +876,7 @@ empty frames.
 **Prices must be split- and dividend-adjusted.** This is a correctness
 requirement, not a preference. On raw prices a 2-for-1 stock split makes
 a company appear to have fallen 50% overnight, and every ex-dividend date
-produces a small false dislocation. Both would be scored as opportunities.
+produces a small false below-normal figure. Both would be scored as opportunities.
 Averages are computed from adjusted closing prices throughout, and the
 52-week high likewise, so that a price and its own history are always on
 the same basis.
@@ -882,17 +904,17 @@ Companies with under 200 trading days of history are marked
 trading flat — the same distinction Stage 1 draws between CANNOT ASSESS
 and REJECTED.
 
-### 4.8 Scope of computation
+### 4.9 Scope of computation
 
 Components are computed for **all 500 constituents**, not just the 239
 eligible, because the ticker inspector (§6.7) must be able to answer for
 a rejected company too. Only the eligible list is ranked and only it can
 be "on sale".
 
-### 4.9 How Stage 2 will be validated
+### 4.10 How Stage 2 is validated
 
 Stage 2 has no golden set — there is no independently known right answer
-for "how dislocated is this". Validation is therefore mechanical:
+for "how below normal is this". Validation is therefore mechanical:
 
 1. **Arithmetic check.** Recompute one company's 200-day average by hand
    from raw closes and confirm it matches to the cent.
@@ -911,94 +933,49 @@ for "how dislocated is this". Validation is therefore mechanical:
 
 ---
 
-## 5. Stage 3 — cheap, or broken?
+## 5. What Stage 3 was, and why there isn't one
 
-*Specified, not yet built.*
+A third stage was specified through v1.0: six signals — analyst
+conviction, fundamental trajectory, sector context, distance from failing
+a gate, volume character, short interest — each scored −1/0/+1 and summed
+to a −6…+6 corroboration score mapped to ACT / WATCH / AVOID.
 
-The decisive stage. A quality company that has fallen sharply is either
-mispriced or genuinely impaired, and price alone cannot tell you which.
+**It was removed before being built.** The record matters more than the
+design, because every signal failed a test:
 
-Six independent checks, each scored −1, 0 or +1, then summed to a
-−6…+6 **Corroboration score**.
+| Signal | What measurement showed |
+|---|---|
+| Volume character | Awarded +1 to **89%** of the index and −1 to nobody. The thresholds came from an eight-name sample. |
+| Analyst price target | **Circular.** Targets lag price, so a fall mechanically widens the gap — the fall creates the evidence that the fall was an overreaction. |
+| P/E versus its own range | **Circular in the same way.** New price over old earnings always looks cheap immediately after a fall. |
+| Sector context | Real but not decisive; the sign was arguable in both directions. |
+| Short interest | Real, but reported twice monthly with a 2–3 week lag and contaminated by arbitrage positioning. |
+| Fundamental trajectory | Real, but quarterly filings lag by up to three months. |
 
-| Signal | Source | +1 (cheap) | −1 (broken) |
-|---|---|---|---|
-| **Analyst conviction trend** | recommendation breakdown, 4 months | Buy/strong-buy share flat or rising | Downgrades accumulating as price falls |
-| **Fundamental trajectory** | EDGAR, last 4 quarters | Revenue and margin holding or improving | Both deteriorating sequentially |
-| **Idiosyncratic or sector-wide** | computed from peers in the scan | Sector is flat/up — the fall is company-specific and possibly overdone | Falling much harder than a falling sector |
-| **Distance from failing Stage 1** | Stage 1 outputs | Comfortably clears every gate | Within 10% of failing any gate |
-| **Volume character** | 10-day vs average volume | Ratio ≤ 1.0 — the fall happened on ordinary volume: drift, not stampede | Ratio ≥ 1.5 — heavy volume on the way down: institutions distributing |
-| **Short interest** | short % of float | Below ~3% — no organised bear thesis | Above ~6% — informed money positioned for further decline |
+Two survived, and both **lag the event they are meant to judge**. That is
+the fatal problem: a reader on a finance site looking at yesterday's news
+has strictly better information than any lagged proxy we could compute.
 
-**Received from Stage 2, not yet placed.** The analyst price target moved
-here in v0.9 (see §4.2): it is an outside opinion on whether a fall is
-justified, which is this stage's question rather than Stage 2's. It is
-*parked, not adopted* — the open question is whether the target **level**
-adds anything beyond the conviction **trend** already listed above, given
-that targets are anchored to price and lag it (rank correlation 0.57 with
-the 50-day move). Measured: the target sits above the current price for
-90.7% of the index at a median premium of +13.0%, so any use of it must
-be relative to that floor rather than treating "target above price" as
-information. To be settled when Stage 3 is specified.
+The decisive argument was simpler still. **Stages 1 and 2 already reduce
+500 companies to roughly 16, ranked.** A reader deep-dives the top few
+and ignores the rest — so the ranking is the triage, and a third stage
+changes no outcome. [Tenet 4](../TENETS.md) applies to an entire stage as
+readily as to a single check.
 
-**The fourth signal is the one that matters most and is unique to this
-design:** it asks whether the company is on the verge of ceasing to be
-quality. A stock that still passes Stage 1 but is one bad quarter from
-failing it is precisely the falling knife the funnel exists to avoid.
+What replaced it: **links out** to the sites that do news, earnings and
+filings properly, plus the one thing they cannot provide — which Stage 1
+gate a company is closest to failing, and how stale the filed data behind
+that verdict is.
 
-**Why the two market-behaviour signals earn a place.** Live check across
-eight names: volume ratios clustered at 0.57–0.85× for quiet stocks,
-while NKE — the most dislocated name — showed 1.24×. Short interest was
-sharper still: 0.8–2.8% for the calm names versus 7.2% for NKE. Both
-independently flagged the one stock whose fall looks contested rather
-than incidental, which is exactly the discrimination Stage 3 exists to
-make.
-
-### Rejected after testing — institutional ownership %
-
-The intuition is sound: wouldn't BlackRock and Vanguard want to own
-quality? It was tested as a floor across 70 index members:
-
-```
-min 42.5%   p5 58.0%   p10 69.7%   median 89.9%   max 113.2%
-```
-
-Two findings kill it. First, the eight names below a 70% floor are AMZN,
-CTAS, KO, BEN, KKR, LVS, OXY, TSLA — that list contains Coca-Cola (68.4%)
-and Amazon (68.7%). Any floor strict enough to flag anything flags
-Coca-Cola. Second, a maximum of 113.2% — ownership above 100% of float —
-shows the underlying data is itself unreliable, inflated by share lending
-and stale float figures.
-
-The mechanism explains why: Vanguard and BlackRock hold every S&P 500
-constituent mechanically, in index proportion, with no opinion whatsoever.
-Within this universe the figure measures index membership, not conviction.
-
-Worth revisiting only if the universe ever widens beyond the S&P 500,
-where passive ownership isn't automatic.
-
-### Verdict mapping
-
-```
-score >= +3   -> ACT     "Dislocated, evidence intact"
-score  0..+2  -> WATCH   "Mixed evidence"
-score <= -1   -> AVOID   "Deterioration signs"
-```
-
-**ACT / WATCH / AVOID** is the vocabulary carried through every surface,
-so the same three words mean the same three things everywhere.
-
-Three verdicts, not a percentage. A number implies a precision this
-evidence does not have — six coarse signals cannot justify "73%
-confident". A verdict says what it knows, and the underlying six checks
-are always shown so the reader can disagree.
-
----
+**When to revisit.** If the on-sale list routinely runs long enough that
+ranking stops being sufficient triage, or if a lagging signal can be
+replaced by a current one. Not before — building for a future that has
+not arrived is what removed Gate 6.
 
 ## 6. Interface principles
 
 **The detailed UI specification is a separate document, written after
-Stage 3 is built and validated.** This section records only the
+both stages are built and validated.** This section records only the
 principles that constrain it, so that the interface is designed around
 real numbers rather than a guess.
 
@@ -1007,10 +984,11 @@ real numbers rather than a guess.
 2. **Most days the answer is "nothing is on sale."** That is a useful and
    honest answer, and the design must make it tolerable rather than
    treating it as an empty state to apologise for.
-3. **The most dislocated name is not automatically the recommendation.**
-   If its Stage 3 evidence is mixed, it ranks below a less-dislocated
-   name whose evidence is intact. That inversion is the entire point of
-   Stage 3 and the interface must show it.
+3. **The name furthest below normal is not automatically the best one.**
+   The list is ranked by how far a price has moved, which is not the same
+   as how good an opportunity is. The shape label and the at-risk gate
+   say so on the card; the rest of that judgement happens off this page,
+   which is what the links are for.
 4. **Nothing is a black box.** Every threshold shows the company's actual
    value beside the bar it had to clear, so a rejection is a fact the
    reader can disagree with.
@@ -1026,8 +1004,13 @@ real numbers rather than a guess.
    Stage 1 grading design exists to prevent. The predecessor shipped a
    weights slider *and* a methodology page describing the opposite of what
    the weights did; both halves of that were mistakes.
-5. **"Closest to its limit" is shown per company** — which gate to watch.
-   That is what turns a screen into a monitoring tool.
+5. **"Closest to failing" is shown per company** — which gate to watch,
+   read straight off the grade Stage 1 already assigned. No new
+   computation. It is the one fact a finance site cannot provide, because
+   it depends on our own bars. Alongside it, **how stale the filed data
+   is**: a verdict resting on a year ending in December is blind to
+   everything since, and a reader needs to know where our knowledge stops
+   and theirs starts.
 6. **CANNOT ASSESS is never merged into REJECTED.** No record and a bad
    record are different facts.
 7. **A ticker inspector is required.** Type any ticker, see exactly where
@@ -1046,17 +1029,24 @@ Agreed and not to be reordered:
 1. **Stage 1 as a research script — done.** Built, running against live
    EDGAR, 17-company regression test passing.
 2. **Run all 500 through Stage 1 — done.** 238 of 500 eligible.
-3. **Stage 2** — the dislocation score.
-4. **Stage 3** — starting with the analyst-trend signal.
+3. **Stage 2** — the below-normal figure.
+4. **Stage 3 — cancelled**, see §5.
 5. **Write the UI specification and mockups.**
 6. **Build the interface last**, once all three stages produce real
    numbers.
 
-**Why the full run comes before any UI.** Every layout decision assumes a
+**Why the full runs come before any UI.** Every layout decision assumes a
 watchlist size. If the real number is 40, the watchlist is a single list
 and sector filters are pointless. If it's 300, the gate isn't gating.
 Designing the page first means designing around a guess — which is
 exactly what went wrong in the predecessor project.
+
+Measured: **258 eligible, of which ~16 are below normal on a given day.**
+At that size a sorted table beats any chart. A sector treemap was
+considered and rejected: the sixteen span 6 of 11 sectors with two
+singletons, so most of it would be empty, and area — a treemap's dominant
+visual variable — would encode market cap, the one thing that plays no
+part in the funnel.
 
 ---
 
@@ -1066,11 +1056,11 @@ exactly what went wrong in the predecessor project.
 
 - **REITs** — a second watchlist with their own FFO-based gate, not an
   exclusion.
-- **Stale watchlist between filings** — the concern was misplaced. If a
-  company deteriorates, Stage 3 catches it before Stage 1 needs to:
-  falling analyst conviction, worsening quarterly trajectory, heavy
-  down-volume and rising short interest all fire within days. Stage 1
-  sets who is *eligible*; Stage 3 is the recency layer.
+- **Stale watchlist between filings** — real, and now surfaced rather
+  than solved. Stage 1 reads annual 10-Ks, so a verdict is 2–12 months
+  old depending on the fiscal calendar. Every result therefore states
+  which filing it rests on and how many months of business the gates have
+  not seen. The recency layer is the reader, on the linked sites.
 - **Weeks with nothing on sale** — correct behaviour, made tolerable by
   the ticker inspector.
 - **ACT / WATCH / AVOID** — adopted as the shared vocabulary.
@@ -1082,7 +1072,7 @@ exactly what went wrong in the predecessor project.
   six signals prove insufficient.
 - **Stage 2's components** — settled by measurement in v0.9. Two moving
   averages; the 52-week high removed entirely; the analyst target
-  relocated to Stage 3. See §4.2.
+  dropped as circular. See §4.2.
 - **Ordering versus triggering** — settled. One absolute number does both
   jobs. A percentile rank was specified through v0.8 and removed because
   it can never return "nothing is on sale". See §4.4.
@@ -1098,7 +1088,7 @@ exactly what went wrong in the predecessor project.
   executability. Deliberately absent: *growth* (a great business can be
   flat, and growth screens chase momentum) and *valuation* (cheapness is
   Stage 2's job — a P/E limit here would fight the funnel by rejecting
-  the very dislocations you are hunting).
+  the very below-normal figures you are hunting).
 - **Q2 · Does the "or improving" clause let too much through?** Gate 2
   passes a company on trajectory alone. That is what admits Amazon, and
   it correctly rejects Intel. But it will also admit a turnaround after

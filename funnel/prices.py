@@ -5,7 +5,7 @@ Pure library — importing it does nothing.
 The one rule worth stating twice: every figure here comes from
 SPLIT- AND DIVIDEND-ADJUSTED closes. On raw prices a 2-for-1 split looks
 like a company falling 50% overnight and every ex-dividend date is a
-small false dislocation — and this project's whole job is to notice
+small false fall — and this project's whole job is to notice
 companies that have fallen. Unadjusted prices would manufacture exactly
 the signal we are hunting for. See docs/FUNNEL_SPEC.md §4.7.
 """
@@ -80,7 +80,7 @@ def derive(frame: pd.DataFrame) -> dict:
         "sma50": float(close.tail(SMA_SHORT).mean()),
         # Not part of the score and never displayed — kept because the
         # validation suite uses it as an INDEPENDENT sanity anchor ("a
-        # company at its 52-week high must not read as dislocated"),
+        # company at its 52-week high must not read as below normal"),
         # which is what catches a sign inversion. TENETS.md 2 governs
         # what reaches the reader, not internal values a test relies on.
         "high52": float(close.tail(WINDOW_52W).max()),

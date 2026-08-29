@@ -191,6 +191,34 @@ def _resolve_cik(ticker, cik, facts):
     return cik, facts, None
 
 
+def filing_asof(facts):
+    """Which filing the gates are actually reading, and when it landed.
+
+    Stage 1 judges annual 10-Ks, so its newest figure can be anywhere from
+    two to twelve months old depending on a company's fiscal calendar.
+    Reporting that is not decoration: a PASS based on a year ending in
+    December is blind to everything that happened since, and a reader
+    going off to read the news needs to know where our knowledge stops
+    and theirs starts.
+    """
+    best = None
+    for tag in CHAINS["net_income"] + CHAINS["op_income"]:
+        node = facts.get("us-gaap", {}).get(tag)
+        if not node:
+            continue
+        for u in node["units"].get("USD", []):
+            if u.get("form") != "10-K" or u.get("fp") != "FY":
+                continue
+            if best is None or u["end"] > best["end"]:
+                best = u
+        if best:
+            break
+    if not best:
+        return None
+    return {"fiscal_year": best.get("fy"), "period_end": best["end"],
+            "filed": best["filed"]}
+
+
 def load(ticker, cik):
     f = _facts(cik)
     cik, f, note = _resolve_cik(ticker, cik, f)
@@ -208,6 +236,7 @@ def load(ticker, cik):
                     d[key] = {y: sum(s[y] for s in series) for y in yrs}
                     break
     d["_note"] = note
+    d["_asof"] = filing_asof(f)
     return d
 
 

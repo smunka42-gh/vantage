@@ -152,6 +152,11 @@ def main() -> None:
             "name": c["name"],
             "gates": [{"gate": n, "grade": g, "detail": d} for n, g, d in gates],
             "at_risk": at_risk(gates),
+            # Which filing this verdict rests on. Stage 1 reads annual
+            # 10-Ks, so this is 2-12 months old depending on the company's
+            # fiscal calendar — the reader needs to know how much recent
+            # history the gates have not seen.
+            "asof": data[t].get("_asof"),
         }
 
     OUT.write_text(json.dumps(out, indent=1))
@@ -163,7 +168,7 @@ def main() -> None:
         if tiers.get(k):
             print(f"   {k:22s} {tiers[k]:4d}   {tiers[k]/total*100:5.1f}%")
     elig = tiers["PASS"] + tiers["BORDERLINE"] + tiers["EXCEPTION"]
-    print(f"\n   -> {elig} companies ({elig/total*100:.0f}%) go through to Stages 2 and 3")
+    print(f"\n   -> {elig} companies ({elig/total*100:.0f}%) go through to Stage 2")
 
     print("\nWhich gate rejects the most?")
     fails, nears = collections.Counter(), collections.Counter()
