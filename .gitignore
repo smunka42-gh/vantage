@@ -9,13 +9,14 @@ output/
 scripts/*_results.json
 scripts/*.log
 
-# Working files: logs from background scans, before/after copies kept for
-# diffing, draft commit messages. Never source, never published. Kept in
-# the project rather than a system temp folder so they can be opened and
-# read, and ignored here so `git add` can never sweep them into a public
-# repo.
+# Both of these now live in ../vantage-private/, which has no .git and so
+# is invisible to this repo entirely — a wall rather than a rule. These
+# lines are kept as belt-and-braces: if a file of either name ever
+# reappears inside the repo, it is still ignored.
+#
+#   scratch/       background scan logs, before/after copies for diffing,
+#                  draft commit messages
+#   BUILD_LOG.md   private session history and decisions in progress
 scratch/
-
-# Private working notes — session history, decisions in progress.
 BUILD_LOG.md
 .preview/
