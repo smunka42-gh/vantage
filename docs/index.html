@@ -510,6 +510,14 @@ function detail(r){
     "CANNOT ASSESS":"Not enough filing history to judge",
   }[r.tier] || "Not assessed";
 
+  // A REIT otherwise shows a bare tier with no hint as to why
+  const reitNote = (r.tier || "").startsWith("REIT")
+    ? `<div class="card stale-card"><h4>Why this one is not assessed</h4>
+         <p class="stale">Real estate investment trusts are judged on funds
+         from operations and must pay out most of their income, so the cash
+         and margin gates misread them. A separate track would be needed;
+         there is not one yet.</p></div>` : "";
+
   const scaleCard = (r.lo == null || r.hi == null || r.hi <= r.lo) ? "" :
    `<div class="card">
       <h4>Where today's price sits in its 52-week range</h4>
@@ -535,6 +543,7 @@ function detail(r){
 
   return `<div class="work">
     ${scaleCard}
+    ${reitNote}
     ${gatesCard}
 
     ${r.pe ? `<div class="card stale-card">

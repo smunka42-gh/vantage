@@ -91,6 +91,9 @@ def build() -> int:
         key=lambda x: x["t"])
 
     eligible = sum(1 for r in s1.values() if r["tier"] in ELIGIBLE_TIERS)
+    # The gates never run on REITs, so "all 500 are tested" was untrue
+    reits = sum(1 for r in s1.values()
+                if str(r.get("tier", "")).startswith("REIT"))
     n = len(rows)
     n_risk = sum(1 for r in rows if r["ar"])
     as_of = next((r.get("as_of") for r in s2.values() if r.get("as_of")), None)
@@ -108,6 +111,8 @@ def build() -> int:
         "BAR": f"{stage2.BELOW_NORMAL_BAR:.0%}".rstrip("%"),
         "ELIGIBLE": str(eligible),
         "UNIVERSE": str(len(s1)),
+        "REITS": str(reits),
+        "TESTED": str(len(s1) - reits),
         "ATRISK": {0: "None", 1: "One"}.get(n_risk, str(n_risk)),
         "ATRISK_VERB": "is" if n_risk == 1 else "are",
         "ASOF": as_of_txt,

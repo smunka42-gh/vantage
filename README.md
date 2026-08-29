@@ -32,9 +32,10 @@ read yourself. See §5 of the spec.
 
 - **Stage 1 — built.** Five gates across four sector tracks, running
   against live SEC filings, with a 17-company regression test (17/17)
-  and a data-recency assertion. Latest full run: 222 pass, 36
-  borderline, 193 rejected, 19 not assessable, 30 REITs not yet
-  covered — **258 of 500 eligible**.
+  and a data-recency assertion. The gates do not run on REITs, so the
+  scan covers **470 of the 500** constituents. Latest full run: 222 pass,
+  36 borderline, 193 rejected, 19 without enough filing history —
+  **258 eligible**.
 - **Stage 2 — built.** Two moving-average components blended as real
   percentages, with an absolute 10% bar so the honest answer on a calm
   day is an empty list. 13-check validation suite passing. Latest run:

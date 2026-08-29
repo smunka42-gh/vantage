@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.5 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.6 · 29 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,7 +45,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.5** | 29 Aug 2026 | **All open questions settled.** Five gates confirmed; the improvement clause left as written; the borderline band stays at 15% (no evidence favours a change, and moving a threshold without evidence is what tenet 3 forbids); exceptions removed entirely in v2.3. §8 now records what would settle a future question rather than listing opinions. |
+| **v2.6** | 29 Aug 2026 | **REIT exclusion stated plainly.** The page said "all 500 constituents are tested", which was untrue — the gates never run on the 30 REITs, so the scan covers **470**. Both the page and §3.15 now say so, and a looked-up REIT explains why it was skipped. The spec had also described REITs as "a second watchlist, not an exclusion", which described an intention rather than the code; that track does not exist. Page footer trimmed of a hardcoded spec version that had already gone stale, plus gate and stage counts that mean nothing to a reader. |
+| v2.5 | 29 Aug 2026 | **All open questions settled.** Five gates confirmed; the improvement clause left as written; the borderline band stays at 15% (no evidence favours a change, and moving a threshold without evidence is what tenet 3 forbids); exceptions removed entirely in v2.3. §8 now records what would settle a future question rather than listing opinions. |
 | v2.4 | 29 Aug 2026 | **52-week scale added to the expanded row** — low, today, high, with today's distance from each end. Shown, never scored: distance above the low correlates −0.77 with the below-normal figure, so it would cancel itself out as an input, but the residual separates names the score rates identically. §6.1 records the collision and wording decisions. Also clears two passages that still assumed EXCEPTION existed. |
 | v2.3 | 29 Aug 2026 | **Exceptions removed.** The mechanism could only relabel a named near-fail as EXCEPTION instead of BORDERLINE — and nothing else, since both tiers were already eligible and treated identically everywhere downstream. It changed no outcome (tenet 4), and never covered the case that actually creates pressure to move a bar: a company you believe in that is REJECTED. An exception could only rescue a *near*-fail, and a single near-fail already yields BORDERLINE, which already passes through. Tenet 5 is now absolute: the company clears the bar or it does not. |
 | v2.2 | 29 Aug 2026 | **Published.** The page is generated from the scan by `scripts/build_site.py` and served by GitHub Pages from `docs/`, static by design so there is no process to sleep or wedge. A scheduled workflow rescans the full index through both stages each trading day an hour after the close, gating on **state rather than the clock** because GitHub delays scheduled runs — and refusing to publish a scan whose shape looks wrong. Adds §6 interface decisions taken during the build. |
@@ -535,12 +536,18 @@ every constituent clears the bar comfortably by construction.
 | Utilities | 31 | Gate 2 → ROE ≥ 8% (regulator-allowed ROE runs 9–10.5%); Gate 3 → operating cash flow, since utility free cash flow is negative by design; Gate 4 → coverage ≥ 2.5×. |
 | REITs | 30 | Not assessed by these gates — see below. |
 
-**REITs become a second watchlist, not an exclusion.** Rather than
-dropping 30 companies, REITs get their own funds-from-operations-based
-Stage 1 (FFO growth, debt/EBITDA, occupancy trend) and their own
-watchlist. Until that track is built they are labelled "REITs — not yet
-assessed" rather than quietly vanishing. This makes the gap visible and
-addressable instead of invisible.
+**REITs are excluded, and the page says so.** The gates never run on
+them: a REIT is judged on funds from operations and must pay out roughly
+90% of its income, so the cash-generation and margin tests misread it
+structurally. **The scan therefore covers 470 companies, not 500** — a
+sentence the page states outright, because "all 500 are tested" was on it
+for a while and was untrue.
+
+The intended fix is a second, FFO-based track (FFO growth, debt/EBITDA,
+occupancy trend) with its own watchlist. **It has not been built**, and
+until it is, "excluded" is the honest word. Earlier versions of this
+document called it "a second watchlist, not an exclusion" — which
+described an intention rather than the code.
 
 > **Honesty requirement:** the interface must state how many companies
 > were excluded for lack of a valid test, separately from those that
