@@ -511,3 +511,50 @@ def eligible(verdict):
 def at_risk(gates):
     """Gates a watchlist member is closest to failing — Stage 3 input."""
     return [n for n, g, _ in gates if g == "near-pass"]
+
+
+def yearly(d, is_financial=False, is_utility=False, is_capital_intensive=False):
+    """The per-year figures the gates reduce to a single statistic.
+
+    Gate 2 reports a median, gate 4 the latest year, gate 5 a ratio to an
+    average. Each is defensible on its own and each hides the shape: a
+    steady 5% and a 6.2% collapsing to 4.0% reduce to the same median.
+    The underlying years are already loaded, so keeping them costs one
+    pass and turns a verdict into something a reader can reason about.
+
+    Interest coverage carries `interest_share` alongside it — interest as
+    a percentage of operating profit. Measured across the index, a
+    coverage ratio swings between 4,000x and 78x on rounding-level moves
+    when a company barely borrows (Expeditors' interest is 0.5% of its
+    profit), so the ratio alone can look like a collapse where there is
+    no debt to service. The share says whether the ratio means anything.
+    """
+    use_equity = is_financial or is_utility or is_capital_intensive
+    base = d.get("equity") if use_equity else d.get("assets")
+    profit = d.get("net_income") if use_equity else d.get("op_income")
+    yrs = sorted(set(profit or {}) & set(base or {}))[-5:]
+
+    def series(fn, *sources):
+        out = []
+        for y in yrs:
+            vals = [(s or {}).get(y) for s in sources]
+            out.append(None if any(v is None for v in vals) else fn(*vals))
+        return out
+
+    tax = 1.0 if use_equity else 0.79      # ROE is after tax already
+    rows = {
+        "years": yrs,
+        "return": series(lambda p, b: round(p * tax / b * 100, 1) if b else None,
+                         profit, base),
+        "margin": series(lambda p, r: round(p / r * 100, 1) if r else None,
+                         d.get("op_income"), d.get("revenue")),
+        "coverage": series(lambda p, i: round(p / abs(i), 1) if i else None,
+                           d.get("op_income"), d.get("interest")),
+        "interest_share": series(
+            lambda p, i: round(abs(i) / p * 100, 1) if p and p > 0 else None,
+            d.get("op_income"), d.get("interest")),
+        "return_label": "return on equity" if use_equity else "return on assets",
+    }
+    # Drop anything with no usable figures rather than render empty rows
+    return {k: v for k, v in rows.items()
+            if not isinstance(v, list) or any(x is not None for x in v)}

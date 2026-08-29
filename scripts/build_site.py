@@ -42,6 +42,31 @@ def build() -> int:
     s2 = json.loads(STAGE2.read_text())
     sectors = {c["ticker"]: c["sector"] for c in load_sp500()}
 
+    def _series_for(a):
+        """The five-year rows, with the bar each was judged against.
+
+        Coverage is included ONLY when gate 4 actually used it. A bank's
+        interest expense IS its business — JPMorgan's coverage reads 0.8x
+        with interest at 132% of profit — so the ratio is meaningless
+        wherever the gate fell back to equity/assets, and showing it would
+        invite a conclusion the gate never drew.
+        """
+        sr = a.get("series") or {}
+        if not sr.get("years"):
+            return None
+        gate = {g["gate"][:1]: g["detail"] for g in a.get("gates", [])}
+        rows = []
+        if sr.get("return"):
+            bar = "10%" if "equity" in sr.get("return_label", "") else "8%"
+            rows.append([sr["return_label"], sr["return"], bar])
+        if sr.get("margin"):
+            rows.append(["operating margin", sr["margin"], "70% of 3y avg"])
+        if sr.get("coverage") and "interest coverage" in gate.get("4", ""):
+            rows.append(["interest coverage", sr["coverage"], "4.0x"])
+            if sr.get("interest_share"):
+                rows.append(["interest as % of profit", sr["interest_share"], ""])
+        return {"years": sr["years"], "rows": rows} if rows else None
+
     def pack(t, r, a):
         """One company, in the shape the page reads."""
         asof = a.get("asof") or {}
@@ -76,6 +101,7 @@ def build() -> int:
             "fy": asof.get("fiscal_year"), "pe": asof.get("period_end"),
             "y": r.get("yahoo"), "g": r.get("google"), "ar": risk,
             "gt": [[g["gate"], g["grade"], g["detail"]] for g in a.get("gates", [])],
+            "sr": _series_for(a),
         }
 
     # The ranked list: only what clears the bar.

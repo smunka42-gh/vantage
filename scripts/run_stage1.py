@@ -16,7 +16,7 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-from funnel.stage1 import load, run, decide, at_risk, S      # noqa: E402
+from funnel.stage1 import load, run, decide, at_risk, yearly, S  # noqa: E402
 from funnel.universe import load_sp500, track_for            # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -157,6 +157,13 @@ def main() -> None:
             # fiscal calendar — the reader needs to know how much recent
             # history the gates have not seen.
             "asof": data[t].get("_asof"),
+            # The years each gate reduces to one statistic. A steady 5%
+            # and a 6.2% collapsing to 4.0% share a median; only the
+            # series tells them apart.
+            "series": yearly(data[t],
+                             is_financial=track == "financial",
+                             is_utility=track == "utility",
+                             is_capital_intensive=track == "capital_intensive"),
         }
 
     OUT.write_text(json.dumps(out, indent=1))
