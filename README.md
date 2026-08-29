@@ -1,5 +1,7 @@
 # Vantage
 
+**[smunka42-gh.github.io/vantage](https://smunka42-gh.github.io/vantage/)**
+
 Finds durably high-quality companies that are trading well below where
 they usually trade, and hands you the short list plus links to go read
 about them.
@@ -56,7 +58,8 @@ export SEC_USER_AGENT="vantage you@example.com"
 .venv/bin/python tests/test_golden_set.py   # Stage 1 regression, ~20s
 .venv/bin/python tests/test_stage2.py       # Stage 2 validation, ~30s
 .venv/bin/python scripts/run_stage1.py      # quality gate, ~9 min
-.venv/bin/python scripts/run_stage2.py      # dislocation, ~1 min
+.venv/bin/python scripts/run_stage2.py      # below-normal, ~1 min
+.venv/bin/python scripts/build_site.py      # rebuild docs/index.html
 ```
 
 ## Layout
@@ -68,6 +71,9 @@ funnel/prices.py     price history and the checks that gate publishing
 funnel/stage2.py     the below-normal figure and shape labels
 scripts/run_stage1.py  quality gate over the whole index
 scripts/run_stage2.py  below-normal over the whole index
+scripts/build_site.py  renders docs/index.html from the two result files
+site/template.html   the page layout, with placeholders
+docs/                what GitHub Pages serves
 tests/               golden-set regression + Stage 2 validation suite
 docs/FUNNEL_SPEC.md  the specification
 ```

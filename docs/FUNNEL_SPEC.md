@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.1 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.2 · 29 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -43,7 +43,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.1** | 29 Aug 2026 | **"On sale" dropped as a phrase.** It claims a fall is a bargain, which this figure cannot know — the same objection that ruled out "discount". The flag now reads *more than 10% below its own normal*, and `ON_SALE` becomes `BELOW_NORMAL_BAR`. |
+| **v2.2** | 29 Aug 2026 | **Published.** The page is generated from the scan by `scripts/build_site.py` and served by GitHub Pages from `docs/`, static by design so there is no process to sleep or wedge. A scheduled workflow rescans the full index through both stages each trading day an hour after the close, gating on **state rather than the clock** because GitHub delays scheduled runs — and refusing to publish a scan whose shape looks wrong. Adds §6 interface decisions taken during the build. |
+| v2.1 | 29 Aug 2026 | **"On sale" dropped as a phrase.** It claims a fall is a bargain, which this figure cannot know — the same objection that ruled out "discount". The flag now reads *more than 10% below its own normal*, and `ON_SALE` becomes `BELOW_NORMAL_BAR`. |
 | v2.0 | 29 Aug 2026 | **Stage 3 removed before being built.** Every candidate signal was either circular (analyst target, P/E vs own range), near-constant (volume character awarded +1 to 89% of the index), or lagged behind the event it was meant to judge (short interest 2-3 weeks, fundamentals up to 3 months). The decisive argument: Stages 1 and 2 already reduce 500 to ~16 **ranked** names, so the ranking is the triage and a third stage changes no outcome — [tenet 4](../TENETS.md) applied to a whole stage. Replaced by links out plus the two things external sites cannot provide: which gate a company is closest to failing, and how stale the filed data is. **"Dislocation" renamed "below normal"** — it measures price against its own price history, not against value, and "discount" would claim more than the number earns. **Market cap added as a sortable column**, deliberately not a grouping. Shape labels reworded to plain language. |
 | v1.0 | 29 Aug 2026 | **Tenets adopted** ([TENETS.md](../TENETS.md)) and applied. **Frame-filter defect fixed:** `_pick` was discarding EDGAR entries carrying a `frame` label, which for the newest fiscal year is often the only entry present — 99% of the index was scored on filings a full year older than available. **Gate 6 (liquidity) removed** (tenet 4: zero rejections across 500) and not demoted to a displayed fact (tenet 2). **52-week high removed entirely** rather than kept as displayed context (tenet 2). **TTM and 10-Q data rejected for Stage 1** (tenet 1: no reconstructed periods). A data-recency assertion added to the golden set, since an outcome test cannot detect a freshness defect. |
 | v0.9 | 29 Aug 2026 | **Stage 2 rebuilt from measurement.** Score is now two moving-average components blended as real percentages — `0.60*d_ma200 + 0.40*d_ma50` — with an absolute 10% "on sale" bar replacing the percentile rank. The 52-week high is dropped from the score (0.74 correlated with the 200-day, and contaminated by spikiness) and kept as displayed context; the analyst target moves to Stage 3, where its question actually belongs. Standardisation removed as unnecessary once the components are commensurate, with the residual ≈68/32 effective split disclosed rather than engineered away. Adds the fresh/stabilising/recovering shape label, the data-quality gates and the Stage 2 validation plan. |
@@ -1026,6 +1027,17 @@ real numbers rather than a guess.
    clean pass, and an EXCEPTION never as either.
 
 ---
+
+### 6.1 Decisions taken while building the page
+
+| Decision | Why |
+|---|---|
+| **No red or green anywhere** | The funnel deliberately refuses to say whether a fall is good or bad. A screener that colours a 40% fall red has made that judgement in CSS. The shape labels use a filled / hollow / outlined dot — a difference in form, not in moral weight. |
+| **A sorted table, not a chart** | At ~16 rows a treemap is a decorated list. A sector treemap was rejected outright: the sixteen span 6 of 11 sectors with two singletons, so most of it would be empty, and *area* — a treemap's dominant visual — would encode market cap, the one variable playing no part in the funnel. |
+| **Market cap sortable, never grouping** | It changes what a reader does, so [tenet 2](../TENETS.md) makes it a driver. But grouping by size would bury the unfamiliar names the screen exists to surface. Measured on one day's list: $6.4B to $820B, median $25B — and the name a reader was least likely to recognise was the 4th largest. |
+| **Plain English, numbers unchanged** | Gate results are re-worded for a reader without finance vocabulary, carrying every figure through untouched. Where a string does not match its expected shape the raw version is shown rather than a guess, so the page can never invent or mislabel a number. |
+| **The empty state replaces the table** | It is behaviour, not an illustration. Showing both at once contradicts the headline. |
+| **Single theme** | Paper: off-white ground, ink text, hairline rules. A research document, not a trading terminal. |
 
 ## 7. Build order
 
