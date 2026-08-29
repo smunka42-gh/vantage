@@ -15,6 +15,7 @@ Exits non-zero on failure, so it can gate a commit or a CI step.
 """
 from __future__ import annotations
 
+import datetime as dt
 import pathlib
 import sys
 import time
@@ -41,14 +42,42 @@ EXPECTED = {
 FINANCIALS = {"BRK-B", "V", "MA"}
 
 
+def recency(loaded: dict[str, dict]) -> list[str]:
+    """Are we scoring companies on the newest filings that exist?
+
+    This exists because of a defect the outcome test could not catch. A
+    filter in `_pick` discarded EDGAR entries carrying a `frame` label,
+    which for the most recent fiscal year is frequently the ONLY entry
+    present. The gates silently scored 2020-2024 while 2021-2025 sat in
+    the data, for 99% of the index.
+
+    The golden set passed throughout: Boeing was bad in both windows and
+    Microsoft good in both, so no anchor moved. A regression test on
+    OUTCOMES cannot detect a defect in FRESHNESS when the outcomes are
+    robust to it — hence a separate assertion on the data itself.
+
+    Two years back is the floor, which tolerates unusual fiscal calendars
+    and the early months of a year before annual reports land.
+    """
+    floor = dt.date.today().year - 2
+    stale = []
+    for t, d in sorted(loaded.items()):
+        years = [int(y) for y in d.get("net_income", {})]
+        newest = max(years) if years else None
+        if newest is None or newest < floor:
+            stale.append(f"{t} (newest FY{newest or '—'}, floor FY{floor})")
+    return stale
+
+
 def main() -> int:
     m = S.get("https://www.sec.gov/files/company_tickers.json", timeout=30).json()
     cik = {v["ticker"].replace(".", "-"): str(v["cik_str"]).zfill(10)
            for v in m.values()}
 
-    results, verdict = {}, {}
+    results, verdict, loaded = {}, {}, {}
     for t in EXPECTED:
-        results[t] = run(t, load(t, cik[t]), is_financial=t in FINANCIALS)
+        loaded[t] = load(t, cik[t])
+        results[t] = run(t, loaded[t], is_financial=t in FINANCIALS)
         verdict[t] = eligible(decide(results[t], t))
         time.sleep(0.2)                          # SEC fair-use pacing
 
@@ -68,12 +97,31 @@ def main() -> int:
     block("POSITIVES — must pass", [t for t in EXPECTED if EXPECTED[t]])
     block("NEGATIVES — must fail", [t for t in EXPECTED if not EXPECTED[t]])
 
+    stale = recency(loaded)
+    newest = {t: max(int(y) for y in d["net_income"])
+              for t, d in loaded.items() if d.get("net_income")}
+    print(f"\nDATA RECENCY — newest fiscal year in use")
+    print(f"  {len(newest)} anchors, newest year ranges "
+          f"FY{min(newest.values())}-FY{max(newest.values())}")
+    if stale:
+        print(f"  STALE: {', '.join(stale)}")
+    else:
+        print(f"  ok — every anchor is scored on filings from "
+              f"FY{dt.date.today().year - 2} or later")
+
     wrong = [t for t in EXPECTED if verdict[t] != EXPECTED[t]]
     print("\n" + "=" * 66)
-    if not wrong:
+    if not wrong and not stale:
         print(f"REGRESSION TEST: PASS — all {len(EXPECTED)} anchors "
-              f"behaved as specified")
+              f"behaved as specified, on current filings")
         return 0
+
+    if stale:
+        print(f"REGRESSION TEST: FAIL — {len(stale)} anchor(s) scored on "
+              f"stale filings. The verdicts below may be correct and still "
+              f"be answers about the wrong years.")
+    if not wrong:
+        return 1
 
     print(f"REGRESSION TEST: FAIL — {len(wrong)} anchor(s) moved: "
           f"{', '.join(wrong)}")

@@ -21,15 +21,15 @@ trade off. Stages 2 and 3 are scores.
 
 ## Status
 
-- **Stage 1 — built.** Six gates across four sector tracks, running
-  against live SEC filings, with a 17-company regression test that
-  currently passes 17/17. Latest full run: 210 pass, 29 borderline,
-  202 rejected, 29 not assessable, 30 REITs not yet covered —
-  **239 of 500 eligible**.
+- **Stage 1 — built.** Five gates across four sector tracks, running
+  against live SEC filings, with a 17-company regression test (17/17)
+  and a data-recency assertion. Latest full run: 222 pass, 36
+  borderline, 193 rejected, 19 not assessable, 30 REITs not yet
+  covered — **258 of 500 eligible**.
 - **Stage 2 — built.** Two moving-average components blended as real
   percentages, with an absolute 10% "on sale" bar so the honest answer
   on a calm day is an empty list. 13-check validation suite passing.
-  Latest run: **16 of 239 on sale**.
+  Latest run: **16 of 258 on sale**.
 - **Stage 3 — not started.**
 - **UI — not started, deliberately.** All three stages get built and
   validated first; the interface is specified only once there are real

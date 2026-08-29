@@ -85,15 +85,24 @@ INSTANT = {  # balance-sheet items: a point in time, not a period
 
 
 def _pick(facts, tags, instant, min_recent_year=2023):
-    """Latest annual value per fiscal year, for the first tag with RECENT data.
+    """Latest annual value per fiscal year, for the FRESHEST qualifying tag.
 
     Recency matters as much as length. Mastercard still carries a
     `NetIncomeLoss` series, but it stops in 2013 — modern years are filed
     under a different tag. Accepting the first chain entry with enough
     years would silently score the company on decade-old figures, so a
     series only qualifies if it also reaches the present.
+
+    Among the entries that qualify, take the one reaching the LATEST year
+    rather than the first one encountered. Returning on first match meant
+    a chain with two live tags settled for whichever happened to be listed
+    first: Ford's net income stopped at FY2024 while its operating income,
+    revenue and assets all reached FY2025, so Gate 1 judged a different
+    five-year window than Gates 2 to 5 for the same company. Chains are
+    ordered by PREFERENCE, not by freshness, and the two are unrelated.
     """
     best = {}
+    freshest, freshest_year = None, -1
     for tag in tags:
         node = facts.get("us-gaap", {}).get(tag)
         if not node:
@@ -103,20 +112,37 @@ def _pick(facts, tags, instant, min_recent_year=2023):
             continue
         by_year = {}
         for u in units:
-            if u.get("form") != "10-K" or u.get("frame") is not None:
+            if u.get("form") != "10-K":
                 continue
             if not instant and u.get("fp") != "FY":
                 continue
+            # Entries carrying a `frame` key are deliberately NOT skipped.
+            # EDGAR marks one entry per calendar period as canonical by
+            # attaching a frame label, and for the MOST RECENT fiscal year
+            # that is frequently the ONLY entry present — Intuitive
+            # Surgical's FY2025 10-K appears exactly once, as frame=CY2025.
+            # An earlier version skipped framed entries to deduplicate,
+            # which discarded the newest year for 99% of the index: the
+            # gates scored 2020-2024 while 2021-2025 sat in the data.
+            # Deduplication is handled two lines below by keeping the
+            # newest-filed entry per year, so a frame filter is both
+            # redundant and destructive. See TENETS.md — reading more of
+            # what is filed is the opposite of reconstruction.
             yr = u["end"][:4]
             # a year can be restated in a later filing; keep the newest
             if yr not in by_year or u["filed"] > by_year[yr]["filed"]:
                 by_year[yr] = u
         if len(by_year) >= 4:
             series = {y: by_year[y]["val"] for y in by_year}
-            if max(int(y) for y in series) >= min_recent_year:
-                return series          # long enough AND current — take it
-            best = best or series      # stale; keep only as a last resort
-    return best
+            newest = max(int(y) for y in series)
+            if newest >= min_recent_year:
+                # Long enough AND current. Keep looking: a later tag in
+                # the chain may reach a later year still.
+                if newest > freshest_year:
+                    freshest, freshest_year = series, newest
+            else:
+                best = best or series  # stale; keep only as a last resort
+    return freshest if freshest is not None else best
 
 
 # Some filers split a figure across tags and never report the total.
@@ -193,6 +219,13 @@ def last5(series, years):
 # the bar itself. Proportional rather than absolute so it means the same
 # thing whether the bar is 8% (returns) or 4x (interest coverage).
 BORDERLINE = 0.15
+
+# How many gates must be EVALUABLE before a verdict means anything.
+# Exists because an early version let a company pass by failing nothing:
+# Exxon was admitted having been measured on ZERO gates, because none of
+# its data was reachable. That silently admits exactly the companies you
+# know least about.
+CANNOT_ASSESS_FLOOR = 4
 
 
 def grade(value, bar, higher_is_better=True):
@@ -384,8 +417,12 @@ def run(ticker, d, is_financial=False, is_utility=False,
     else:
         out.append(("5 Op margin durable", None, "no revenue tag match"))
 
-    # --- Test 6: liquidity (price data, checked separately) ----------
-    out.append(("6 Liquidity", "pass", "all S&P 500 clear $25M/day"))
+    # Gate 6 (liquidity, >= $25M median daily dollar volume) was REMOVED.
+    # It rejected zero of 500 companies and was kept only "so the universe
+    # can widen later" — a check earning its place from a future that has
+    # not arrived. TENETS.md 4: a check must change outcomes or be cut;
+    # TENETS.md 2 rules out keeping it as a displayed fact instead.
+    # Rebuild it when the universe actually widens beyond the S&P 500.
     return out
 
 
@@ -414,13 +451,13 @@ EXCEPTIONS = {
 
 
 def decide(gates, ticker=None):
-    """Resolve six graded gates into a watchlist tier.
+    """Resolve the five graded gates into a watchlist tier.
 
       PASS           every gate cleared (a near-pass IS a pass)
       BORDERLINE     exactly one near-fail, nothing worse
       EXCEPTION      a near-fail deliberately overridden — see EXCEPTIONS
       REJECTED       any outright fail, or two or more near-fails
-      CANNOT ASSESS  fewer than 4 of 5 substantive gates evaluable
+      CANNOT ASSESS  fewer than 4 of the 5 gates evaluable
 
     PASS, BORDERLINE and EXCEPTION are all ELIGIBLE for Stages 2 and 3 —
     the tier travels with the company rather than being collapsed away, so
@@ -428,9 +465,11 @@ def decide(gates, ticker=None):
     or by override. That keeps the thresholds fixed: a near-miss is
     recorded as a near-miss instead of prompting someone to move the bar.
     """
-    substantive = gates[:5]
-    grades = [(n, g) for n, g, _ in substantive if g is not None]
-    if len(grades) < 4:
+    # Every gate is substantive. This used to slice off a trailing
+    # always-passing liquidity gate; that gate is gone (TENETS.md 4), so
+    # the count below must never be hard-coded again — it is derived.
+    grades = [(n, g) for n, g, _ in gates if g is not None]
+    if len(grades) < CANNOT_ASSESS_FLOOR:
         return "CANNOT ASSESS"
     if any(g == "fail" for _, g in grades):
         return "REJECTED"

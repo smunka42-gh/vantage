@@ -84,14 +84,14 @@ def main() -> int:
     else:
         print(f"\n{len(on_sale)} of {len(elig_scored)} companies are on sale "
               f"(>= {stage2.ON_SALE:.0%} below their own normal)\n")
-        print(f"  {'tkr':6s} {'below own':>10s} {'200d':>8s} {'50d':>8s} "
-              f"{'52w high':>9s}  {'shape':14s} tier")
-        print("  " + "-" * 74)
+        print(f"  {'tkr':6s} {'below own':>10s} {'200d':>8s} {'50d':>8s}  "
+              f"{'shape':14s} tier")
+        print("  " + "-" * 64)
         for t, s in sorted(on_sale.items(),
                            key=lambda kv: -kv[1]["dislocation"]):
             print(f"  {t:6s} {s['dislocation']*100:9.1f}% "
-                  f"{s['d_ma200']*100:7.1f}% {s['d_ma50']*100:7.1f}% "
-                  f"{s['d_high']*100:8.1f}%  {s['shape'] or '—':14s} {s['tier']}")
+                  f"{s['d_ma200']*100:7.1f}% {s['d_ma50']*100:7.1f}%  "
+                  f"{s['shape'] or '—':14s} {s['tier']}")
 
     # Distribution, so the bar can be judged against reality rather than
     # taken on faith.
@@ -118,10 +118,6 @@ def main() -> int:
     print("   they differ because a component only moves a ranking as far")
     print("   as it varies; this is disclosed, not corrected — see spec 4.3")
 
-    failed_liquidity = [t for t, s in elig_scored.items()
-                        if s["gate6_liquidity"] == "fail"]
-    print(f"\nGate 6 liquidity: "
-          f"{'all eligible companies clear $25M/day' if not failed_liquidity else f'FAILED by {failed_liquidity}'}")
     if short_history:
         print(f"insufficient history ({len(short_history)}): "
               f"{short_history[:8]}")

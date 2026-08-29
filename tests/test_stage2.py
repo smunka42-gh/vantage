@@ -63,7 +63,8 @@ def main() -> int:
           f"{t}: hand ${hand_50:.4f} vs module ${d['sma50']:.4f}")
     check("52-week high matches a hand recomputation",
           abs(hand_high - d["high52"]) < 0.01,
-          f"{t}: hand ${hand_high:.4f} vs module ${d['high52']:.4f}")
+          f"{t}: hand ${hand_high:.4f} vs module ${d['high52']:.4f}"
+          " (used only as a validation anchor, never scored or shown)")
 
     s = scored[t]
     blended = stage2.W_LONG * s["d_ma200"] + stage2.W_SHORT * s["d_ma50"]
@@ -77,7 +78,14 @@ def main() -> int:
     # A sign inversion is the likeliest silent bug here, and it would
     # invert the entire product: the page would recommend the stocks that
     # had risen the most.
-    at_high = [t for t, s in scored.items() if s["d_high"] < 0.02]
+    # Computed here from raw closes, not read from the score: this anchor
+    # is only meaningful if it comes from a quantity the score does not
+    # use. Distance from the 52-week high was cut from the product
+    # (TENETS.md 2/4), which makes it a BETTER independent check.
+    def dist_from_high(t):
+        h = derived[t]["high52"]
+        return (h - derived[t]["price"]) / h
+    at_high = [t for t in scored if dist_from_high(t) < 0.02]
     check("a company near its 52-week high does not read as dislocated",
           all(scored[t]["dislocation"] < stage2.ON_SALE for t in at_high),
           f"{len(at_high)} within 2% of their high: "

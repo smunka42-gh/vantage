@@ -31,22 +31,28 @@ ON_SALE = 0.10
 STILL_FALLING = 0.70
 RECOVERING = 0.20
 
-# Gate 6 (spec §3.14) — a Stage 1 gate, executed here because it is the
-# only one needing prices rather than filings.
-MIN_DOLLAR_VOLUME = 25_000_000
+# Gate 6 (liquidity) used to be enforced here, being the one Stage 1 gate
+# that needed prices rather than filings. It is GONE: it rejected zero of
+# 500 companies, and TENETS.md 4 requires a check to change outcomes or be
+# cut. Median dollar volume is no longer computed or displayed either —
+# TENETS.md 2 rules out keeping an unused number on screen.
 
 
 def components(p: dict) -> dict:
-    """The two raw measures, plus the context figures shown but not scored."""
+    """The two raw measures the score is built from.
+
+    Distance from the 52-week high was here as "displayed context" and is
+    now gone entirely. It is 0.74-correlated with d_ma200, and its
+    distinctive part measures whether a stock SPIKED in the past year
+    rather than whether it is cheap now. TENETS.md 4 cut it from the
+    score; TENETS.md 2 cut it from the display, because showing "44%
+    below its 52-week high" beside "18.7% below its own normal" invites a
+    reader to weight it themselves.
+    """
     price = p["price"]
     return {
         "d_ma200": (p["sma200"] - price) / p["sma200"],
         "d_ma50": (p["sma50"] - price) / p["sma50"],
-        # Displayed as context only. Dropped from the score in v0.9: it
-        # is 0.74-correlated with d_ma200, and its distinctive part
-        # measures whether the stock SPIKED in the last year rather than
-        # whether it is cheap now.
-        "d_high": (p["high52"] - price) / p["high52"],
     }
 
 
@@ -85,7 +91,6 @@ def score(p: dict) -> dict:
 
     c = components(p)
     dislocation = W_LONG * c["d_ma200"] + W_SHORT * c["d_ma50"]
-    liquid = p["median_dollar_volume"] >= MIN_DOLLAR_VOLUME
 
     return {
         "status": "scored",
@@ -93,15 +98,9 @@ def score(p: dict) -> dict:
         "as_of": p["as_of"],
         "d_ma200": c["d_ma200"],
         "d_ma50": c["d_ma50"],
-        "d_high": c["d_high"],
         "dislocation": dislocation,
-        # Liquidity is a Stage 1 gate, so a company failing it is not on
-        # sale no matter how far it has fallen — you could not accumulate
-        # it without moving the price against yourself.
-        "on_sale": bool(dislocation >= ON_SALE and liquid),
+        "on_sale": bool(dislocation >= ON_SALE),
         "shape": shape(c["d_ma200"], c["d_ma50"]),
-        "median_dollar_volume": p["median_dollar_volume"],
-        "gate6_liquidity": "pass" if liquid else "fail",
     }
 
 

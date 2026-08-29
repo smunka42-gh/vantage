@@ -21,7 +21,6 @@ import yfinance as yf
 SMA_LONG = 200
 SMA_SHORT = 50
 WINDOW_52W = 252
-WINDOW_LIQUIDITY = 63
 
 # A company needs at least a full long window before it can be compared
 # to its own long-run normal. Below this it is reported as insufficient
@@ -68,23 +67,23 @@ def derive(frame: pd.DataFrame) -> dict:
     Returns `insufficient_history` rather than a score when the series is
     too short to compare a company to its own long-run normal.
     """
-    close, volume = frame["Close"], frame["Volume"]
+    close = frame["Close"]
     bars = len(close)
     if bars < MIN_BARS:
         return {"bars": bars, "insufficient_history": True}
 
-    price = float(close.iloc[-1])
-    dollar_volume = (close * volume).tail(WINDOW_LIQUIDITY)
-
     return {
         "bars": bars,
         "insufficient_history": False,
-        "price": price,
+        "price": float(close.iloc[-1]),
         "sma200": float(close.tail(SMA_LONG).mean()),
         "sma50": float(close.tail(SMA_SHORT).mean()),
+        # Not part of the score and never displayed — kept because the
+        # validation suite uses it as an INDEPENDENT sanity anchor ("a
+        # company at its 52-week high must not read as dislocated"),
+        # which is what catches a sign inversion. TENETS.md 2 governs
+        # what reaches the reader, not internal values a test relies on.
         "high52": float(close.tail(WINDOW_52W).max()),
-        "low52": float(close.tail(WINDOW_52W).min()),
-        "median_dollar_volume": float(dollar_volume.median()),
         "as_of": close.index[-1].date().isoformat(),
     }
 

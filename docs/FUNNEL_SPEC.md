@@ -1,6 +1,6 @@
 # The Quality Dislocation Funnel
 
-**Vantage · Funnel Spec v0.9 · 29 Aug 2026**
+**Vantage · Funnel Spec v1.0 · 29 Aug 2026**
 
 Find durably excellent companies, wait for one of them to be temporarily
 marked down, and check that the markdown is sentiment rather than damage.
@@ -25,9 +25,10 @@ doesn't. Full text and the evidence behind each is in
 
 ## What this version is
 
-Stage 1 is built and running against live SEC EDGAR filings, with a
-17-company regression test that currently passes. Stages 2 and 3 are
-specified here but not yet implemented. Nothing is deployed.
+Stages 1 and 2 are built and running — Stage 1 against live SEC EDGAR
+filings with a 17-company regression test plus a data-recency assertion,
+Stage 2 against daily prices with a 13-check validation suite. Stage 3 is
+specified here but not implemented. Nothing is deployed.
 
 Corrections forced by real data: the original returns bar excluded Amazon
 and Costco; the margin test was unrunnable on 13 of the 20 largest
@@ -41,7 +42,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v0.9** | 29 Aug 2026 | **Stage 2 rebuilt from measurement.** Score is now two moving-average components blended as real percentages — `0.60*d_ma200 + 0.40*d_ma50` — with an absolute 10% "on sale" bar replacing the percentile rank. The 52-week high is dropped from the score (0.74 correlated with the 200-day, and contaminated by spikiness) and kept as displayed context; the analyst target moves to Stage 3, where its question actually belongs. Standardisation removed as unnecessary once the components are commensurate, with the residual ≈68/32 effective split disclosed rather than engineered away. Adds the fresh/stabilising/recovering shape label, the data-quality gates and the Stage 2 validation plan. |
+| **v1.0** | 29 Aug 2026 | **Tenets adopted** ([TENETS.md](../TENETS.md)) and applied. **Frame-filter defect fixed:** `_pick` was discarding EDGAR entries carrying a `frame` label, which for the newest fiscal year is often the only entry present — 99% of the index was scored on filings a full year older than available. **Gate 6 (liquidity) removed** (tenet 4: zero rejections across 500) and not demoted to a displayed fact (tenet 2). **52-week high removed entirely** rather than kept as displayed context (tenet 2). **TTM and 10-Q data rejected for Stage 1** (tenet 1: no reconstructed periods). A data-recency assertion added to the golden set, since an outcome test cannot detect a freshness defect. |
+| v0.9 | 29 Aug 2026 | **Stage 2 rebuilt from measurement.** Score is now two moving-average components blended as real percentages — `0.60*d_ma200 + 0.40*d_ma50` — with an absolute 10% "on sale" bar replacing the percentile rank. The 52-week high is dropped from the score (0.74 correlated with the 200-day, and contaminated by spikiness) and kept as displayed context; the analyst target moves to Stage 3, where its question actually belongs. Standardisation removed as unnecessary once the components are commensurate, with the residual ≈68/32 effective split disclosed rather than engineered away. Adds the fresh/stabilising/recovering shape label, the data-quality gates and the Stage 2 validation plan. |
 | v0.8 | 29 Aug 2026 | Shock-year rule tightened: a company counts only if it was **profitable the year before**, so a loss must be specific to that year. Stops chronic loss-makers standing in as evidence of an industry-wide event, which had made Industrials 2020 fire spuriously. Only Energy 2020 fires. |
 | v0.7 | 29 Aug 2026 | Health insurers routed to the financials track. Financials' Gate 1 falls back to net income where no operating-income series is filed. Unassessable companies 36 → 29; eligible 238 of 500 (48%). **Ported into the Vantage repository as its source of truth; section 6 reduced to UI principles only — the detailed interface spec is now a separate document, written after Stage 3.** |
 | v0.6 | 29 Aug 2026 | Capital-intensive track (telecom/cable/media, ROE 10%) and the sector shock-year rule. Energy 5→10 and Comm Services 4→10 eligible. Full-500: 230 of 500 (46%) eligible. |
@@ -51,7 +53,8 @@ Each is documented below with the measurement that caught it.
 | v0.2 | 28 Aug 2026 | Scoped to S&P 500. Tag-coverage audit across all 500. Institutional ownership tested and rejected; volume and short interest adopted. |
 | v0.1 | 28 Aug 2026 | Initial three-stage funnel concept, thresholds proposed from sampled distributions. |
 
-Versions stay below 1.0 until Stages 2 and 3 are implemented.
+v1.0 marks Stage 1 and Stage 2 as built, validated and governed by the
+tenets. Stage 3 remains specified but not implemented.
 
 ---
 
@@ -67,7 +70,7 @@ outrank an excellent one that has fallen a little.
 
 ```
 STAGE 1 — QUALITY GATE          hard pass/fail
-500 S&P constituents  ->  238 that clear every bar
+500 S&P constituents  ->  258 that clear every bar
 Recomputed quarterly, on filings.
         |
         v
@@ -153,7 +156,6 @@ read the code, not a summary of it.
 | **3 · Cash generation** | Sum of (operating cash flow − capex) over 5 years > 0 | Same as standard | Operating cash flow positive every year — capex excluded entirely | Same as standard |
 | **4 · Debt serviceable** | Coverage ≥ 4×, fallback equity/assets ≥ 10% | Coverage ≥ 4×, fallback ≥ 8% | Coverage ≥ 2.5×, fallback ≥ 10% | Same as standard |
 | **5 · Margin durable** | Latest operating margin ≥ 70% of its trailing 3-year average | Same | Same | Same |
-| **6 · Liquidity** | Median daily dollar volume ≥ $25M | Same | Same | Same |
 
 Sector-wide shock years are excluded from Gate 1 on **every** track.
 
@@ -270,7 +272,7 @@ are now fixed.**
 | **BORDERLINE** | Exactly one near-fail, nothing worse. | yes |
 | **EXCEPTION** | A near-fail deliberately overridden — named, reasoned, dated. | yes |
 | **REJECTED** | Any outright fail, or two or more near-fails. | no |
-| **CANNOT ASSESS** | Fewer than 4 of the 5 substantive gates evaluable. | no |
+| **CANNOT ASSESS** | Fewer than 4 of the 5 gates evaluable. | no |
 
 The tier travels with the company rather than being collapsed away, so
 the interface can always show whether a name is on the list cleanly,
@@ -297,11 +299,11 @@ silently for five hundred.
 #### CANNOT ASSESS exists because of a real near-miss
 
 An early version let a company pass by *failing nothing* — which meant
-Exxon passed having been evaluated on zero substantive gates, because
+Exxon passed having been evaluated on zero gates, because
 none of its data was reachable. That is the worst failure mode
 available: it silently admits exactly the companies you know least about.
 Eligibility now requires being measurable on at least 4 of the 5
-substantive gates.
+gates.
 
 It currently holds 29 companies, and the composition matters: almost all
 are recent spinoffs and IPOs with genuinely less than four years of
@@ -503,21 +505,19 @@ retailer. Measured — Dollar General's operating margin roughly halved
 (8.2% → 4.2%) and still passed a 6pp band. The 70% rule fails DG at 51%
 of its average while passing Texas Instruments at 74%.
 
-### 3.14 Gate 6 — Liquidity
+### 3.14 Gate 6 — Liquidity (removed in v1.0)
 
-```python
-PASS if median(close * volume, 63 trading days) >= 25_000_000
-```
+A sixth gate required median daily dollar volume ≥ $25M. It was **removed**.
 
-**Why this exists.** Accumulating a position means buying without moving
-the price against yourself. This gate is about executability, not
-quality — it is listed separately for that reason. Every S&P 500 name
-clears $25M comfortably, so it does nothing today; it is here so the
-universe can widen later without silently surfacing names you cannot
-actually buy.
+Measured across the full index, it rejected **zero of 500 companies**. It
+was retained only "so the universe can widen later without surfacing
+names you cannot actually buy" — a check earning its place from a future
+that has not arrived. [Tenet 4](../TENETS.md) requires a check to change
+outcomes or be cut, and [tenet 2](../TENETS.md) rules out the fallback of
+keeping it as a displayed fact.
 
-*Requires price data, so it is the one gate not computed from EDGAR. It
-runs with Stage 2 — see §4.6.*
+Rebuild it if and when the universe widens beyond the S&P 500, where
+every constituent clears the bar comfortably by construction.
 
 ### 3.15 Sector handling
 
@@ -575,54 +575,54 @@ certain about, or it stops being a reliable alarm.**
 
 ### 3.18 Full-index result
 
-Measured across all 500 from this repository, 29 Aug 2026:
+Measured across all 500 from this repository on 29 Aug 2026, with the
+frame-filter and freshest-tag defects fixed:
 
 | Tier | Count | Share |
 |---|---|---|
-| PASS | 210 | 42.0% |
-| BORDERLINE | 29 | 5.8% |
-| REJECTED | 202 | 40.4% |
-| CANNOT ASSESS | 29 | 5.8% |
+| PASS | 222 | 44.4% |
+| BORDERLINE | 36 | 7.2% |
+| REJECTED | 193 | 38.6% |
+| CANNOT ASSESS | 19 | 3.8% |
 | REIT (not assessed) | 30 | 6.0% |
-| **Eligible for Stages 2/3** | **239** | **48%** |
+| **Eligible for Stages 2/3** | **258** | **52%** |
 
 Which gate does the rejecting:
 
 | Gate | Outright fails | Near-fails |
 |---|---|---|
-| 1 · Sustained profit | 68 | 0 |
-| 2 · Return on capital | 129 | 26 |
-| 3 · Cumulative 5y FCF | 29 | 0 |
-| 4 · Debt serviceable | 57 | 13 |
-| 5 · Op margin durable | 76 | 14 |
+| 1 · Sustained profit | 71 | 0 |
+| 2 · Return on capital | 128 | 23 |
+| 3 · Cumulative 5y FCF | 24 | 0 |
+| 4 · Debt serviceable | 73 | 25 |
+| 5 · Op margin durable | 70 | 13 |
 
 By sector:
 
 | Sector | Eligible | of | Pass | Borderline | Rejected | Cannot assess |
 |---|---|---|---|---|---|---|
-| Industrials | 47 | 83 | 44 | 3 | 30 | 6 |
-| Financials | 47 | 76 | 42 | 5 | 28 | 1 |
-| Information Technology | 36 | 73 | 32 | 4 | 34 | 3 |
-| Health Care | 26 | 59 | 21 | 5 | 30 | 3 |
-| Consumer Discretionary | 23 | 47 | 21 | 2 | 21 | 3 |
-| Consumer Staples | 15 | 34 | 11 | 4 | 16 | 3 |
-| Utilities | 17 | 31 | 13 | 4 | 12 | 2 |
-| Materials | 8 | 25 | 7 | 1 | 14 | 3 |
-| Energy | 10 | 21 | 9 | 1 | 9 | 2 |
+| Financials | 52 | 76 | 45 | 7 | 23 | 1 |
+| Industrials | 51 | 83 | 46 | 5 | 28 | 4 |
+| Information Technology | 35 | 73 | 32 | 3 | 36 | 2 |
+| Health Care | 31 | 59 | 26 | 5 | 27 | 1 |
+| Consumer Discretionary | 26 | 47 | 26 | 0 | 19 | 2 |
+| Utilities | 17 | 31 | 9 | 8 | 12 | 2 |
+| Consumer Staples | 15 | 34 | 13 | 2 | 17 | 2 |
+| Energy | 11 | 21 | 5 | 6 | 9 | 1 |
+| Materials | 10 | 25 | 10 | 0 | 14 | 1 |
 | Communication Services | 10 | 21 | 10 | 0 | 8 | 3 |
 | Real Estate | — | 30 | — | — | — | — |
 
-Tightening the shock rule moved Gate 1's outright fails from 66 to 68 —
-two Industrials companies no longer have 2020 excused — but changed no
-tier, because both were already rejected on other gates. The eligible
-count is unaffected by the fix.
+**What the data fixes moved.** Eligible went 239 to 258, and CANNOT
+ASSESS 29 to 19. Both follow from the gates finally reading the newest
+filed year: companies previously short of the four-evaluable-gate floor
+now have enough data, and a year of more recent performance shifted
+verdicts in both directions. Gate 4 fails rose 57 to 73 and Gate 1 fails
+68 to 71, so the fresher data is not uniformly generous — it is simply
+*current*.
 
-An earlier measurement gave 238 eligible (208 PASS / 30 BORDERLINE / 203
-REJECTED). That difference is **not** the shock rule: it is the
-constituent list. This repository fetches the index live rather than
-reading a static ticker file, so membership drifts with the real index
-(~20–25 names a year). Comparisons across runs are only meaningful when
-the universe is pinned.
+Comparisons against runs made before v1.0 are not meaningful: those
+scored a different five-year window.
 
 ---
 
@@ -660,7 +660,9 @@ standardisation; §4.3 explains why both were removed.
 ### 4.2 Why these two, and not the 52-week high or the analyst target
 
 Four candidate components were measured across all 500 constituents on
-29 Aug 2026. Rank correlation, on the 239 eligible:
+29 Aug 2026. Rank correlation, measured on the then-eligible 239 (the
+list is 258 after the v1.0 data fixes; the correlations were not
+re-measured, and the design conclusion does not turn on the difference):
 
 | | d_ma200 | d_ma50 | d_high | d_tgt |
 |---|---|---|---|---|
@@ -673,15 +675,24 @@ Four candidate components were measured across all 500 constituents on
 0.53 they carry substantially different information — a prediction that
 they would correlate above 0.8 was made before measuring and was wrong.
 
-**The 52-week high is dropped from the score.** It is the most redundant
+**The 52-week high is removed entirely.** It is the most redundant
 component in the set (0.74 with the 200-day), and its distinctive part is
 contaminated: distance from a 52-week high is heavily determined by
 whether the stock had a *spike* in the last year. A company that popped
 on a takeover rumour ten months ago and drifted back reads as "40% below
 its 52-week high" while trading exactly at its own normal. That is a
-volatile stock, not a dislocated one. It remains **displayed** on the
-company view as context, because it is meaningful to a human reader — it
-simply does not drive the ranking.
+volatile stock, not a dislocated one.
+
+v0.9 dropped it from the score but kept it as displayed context. v1.0
+removes it altogether, under [tenet 2](../TENETS.md): showing "44% below
+its 52-week high" beside "18.7% below its own normal" invites a reader to
+weight it themselves, inconsistently, and to reach for the larger figure.
+"Keep it as context" was a way of avoiding the decision.
+
+It survives in exactly one place — the Stage 2 validation suite uses it
+as an *independent* sanity anchor ("a company at its 52-week high must
+not read as dislocated"), which is what catches a sign inversion. Tenet 2
+governs what reaches the reader, not internal values a test relies on.
 
 **The analyst target moves to Stage 3.** It is not a measure of "cheap
 versus its own normal" at all; it is an outside opinion on whether a fall
@@ -729,7 +740,8 @@ a 1.41× ratio. So:
 | **60/40** | **68 / 32** |
 | 70/30 | 77 / 23 |
 
-**60/40 is adopted, and its real influence is ≈68/32.** The trade is
+**60/40 is adopted, and its real influence is ≈68/32** — measured at
+69/31 on the 258-company list after the v1.0 data fixes. The trade is
 explicit: standardising would make the weights exact but would destroy
 the real-percentage units, and those units are what allow an absolute
 threshold — which is what allows the page to say *nothing is on sale
@@ -749,15 +761,39 @@ out of nothing. That directly contradicts §6 principle 2.
 
 An absolute bar can return zero. Measured across the eligible list on
 29 Aug 2026 — a period when the median eligible company was trading
-**4.6% above** its own normal:
+**4.4% above** its own normal:
 
-| Bar | Companies of 239 |
+| Bar | Companies of 258 |
 |---|---|
-| ≥ 5% | 34 (14.2%) |
-| ≥ 8% | 23 (9.6%) |
-| **≥ 10%** | **16 (6.7%)** |
-| ≥ 15% | 10 (4.2%) |
-| ≥ 20% | 7 (2.9%) |
+| **≥ 10%** | **16 (6.2%)** |
+
+Distribution across the eligible list: median −4.4%, p75 +1.6%,
+p90 +6.6%, p95 +12.2%, max +40.5%.
+
+The sixteen that clear it, with the shape of each decline:
+
+| | Below own normal | 200d | 50d | Shape |
+|---|---|---|---|---|
+| MNST | 40.5% | 40.6% | 40.3% | still falling |
+| TTD | 37.4% | 48.2% | 21.2% | stabilising |
+| ROL | 23.3% | 31.6% | 11.0% | stabilising |
+| PODD | 22.9% | 33.5% | 6.9% | stabilising |
+| LII | 21.1% | 21.6% | 20.4% | still falling |
+| PNR | 20.7% | 28.2% | 9.4% | stabilising |
+| NKE | 18.7% | 25.6% | 8.5% | stabilising |
+| ZTS | 16.7% | 27.4% | 0.6% | recovering |
+| LULU | 16.2% | 25.5% | 2.2% | recovering |
+| ISRG | 14.9% | 21.8% | 4.6% | stabilising |
+| DECK | 14.8% | 15.7% | 13.3% | still falling |
+| TJX | 12.7% | 13.0% | 12.4% | still falling |
+| CHRW | 12.2% | 12.2% | 12.3% | still falling |
+| TPR | 11.8% | 10.2% | 14.2% | still falling |
+| WMT | 11.2% | 13.0% | 8.4% | stabilising |
+| CRH | 10.8% | 14.0% | 5.9% | stabilising |
+
+Eight stabilising, six still falling, two recovering. Two companies
+(FDXF, HONA — recent spinoffs) are reported as **insufficient history**
+rather than scored.
 
 **10% is adopted.** Sixteen candidates is the right width for Stage 3 to
 narrow to a handful of ACT verdicts. A 20% bar here would do Stage 3's
@@ -802,12 +838,11 @@ been flat for months. A single number cannot distinguish those.
 A ratio above 1.0 (the 50-day gap exceeding the 200-day gap) means the
 decline is accelerating, and falls inside "still falling".
 
-### 4.6 Gate 6 — liquidity, executed here
+### 4.6 Liquidity — removed
 
-Gate 6 belongs to Stage 1 but needs prices, so it runs with Stage 2.
-Median daily dollar volume over 63 trading days ≥ $25M. Every S&P 500
-name is expected to clear it comfortably; if any name fails, that is a
-finding to investigate, not a routine rejection.
+Stage 2 previously enforced Gate 6, being the one Stage 1 gate that
+needed prices rather than filings. That gate is gone (§3.14), and median
+dollar volume is no longer computed or displayed.
 
 ### 4.7 Data source and its known weaknesses
 
@@ -865,7 +900,8 @@ for "how dislocated is this". Validation is therefore mechanical:
    zero; one trading far under both averages must score near the top. A
    violation means a sign is inverted.
 3. **Effective-weight check.** Measure the realised influence split and
-   confirm it matches the ≈68/32 stated in §4.3. This is the direct test
+   confirm it matches the ≈68/32 stated in §4.3 (69/31 on the current
+   list). This is the direct test
    for the bug that broke the predecessor.
 4. **Shape-label check.** Confirm the three labels partition the on-sale
    list and that each example behaves as §4.5 describes.
@@ -1045,7 +1081,7 @@ exactly what went wrong in the predecessor project.
   what the news means without needing to interpret prose. Revisit if the
   six signals prove insufficient.
 - **Stage 2's components** — settled by measurement in v0.9. Two moving
-  averages; the 52-week high displayed but not scored; the analyst target
+  averages; the 52-week high removed entirely; the analyst target
   relocated to Stage 3. See §4.2.
 - **Ordering versus triggering** — settled. One absolute number does both
   jobs. A percentile rank was specified through v0.8 and removed because
