@@ -165,6 +165,13 @@ jobs:
           # cannot drift apart.
           python scripts/build_site.py
 
+      # Every documentation failure in this project has been a document
+      # asserting a fact the data had since changed. A stale sentence
+      # reads exactly like a fresh one, so this compares them instead.
+      - name: Do the documents still describe the code?
+        if: steps.gate.outputs.proceed == 'true'
+        run: python tests/test_docs_current.py
+
       - name: Commit and push, but only if the numbers moved
         if: steps.gate.outputs.proceed == 'true'
         run: |

@@ -1400,12 +1400,17 @@ part in the funnel.
 
 All four questions that stood open through v2.2 have been answered.
 
-- **The five gates are right.** They test profitability, returns on
-  capital, cash generation, solvency and margin durability. Deliberately
-  absent: *growth* (a great business can be flat, and growth screens
-  chase momentum) and *valuation* (cheapness is Stage 2's job — a P/E
-  limit here would fight the funnel by rejecting the very falls it exists
-  to find). A sixth, liquidity, was removed in v1.0 for rejecting nobody.
+- **The six gates are right.** They test profitability, returns on
+  capital, cash generation, solvency, margin durability and revenue
+  durability. *(Revised v2.9. Through v2.8 this read "the five gates" and
+  listed growth and valuation as DELIBERATELY ABSENT — "a great business
+  can be flat", and "cheapness is Stage 2's job". Both since changed:
+  gate 6 added revenue durability in v2.8 after measurement showed 41 of
+  262 eligible companies were flat or shrinking while clearing every
+  gate, and Stage 3 added valuation in v2.9 — against a company's OWN
+  history, never an absolute P/E limit, which is what the original
+  objection was actually about.)* A liquidity gate was removed in v1.0
+  for rejecting nobody.
 - **The "or improving" clause stays as written.** It passes a company on
   trajectory alone, which is what admits Amazon while still rejecting
   Intel decisively. Requiring two consecutive improving years would be
