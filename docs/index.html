@@ -98,35 +98,6 @@ col.c-shape{width:125px}
 col.c-read {width:133px}
 col.c-links{width:76px}
 
-/* Hand-resizing is a BUILD-TIME tool, not a feature. It only switches on
-   with ?resize=1 in the URL, so an ordinary visitor never sees a grip.
-   Drag the right edge of a heading, then read the numbers off the panel
-   and freeze them into this stylesheet. */
-.resizing thead th{position:relative}
-.resizing thead th .grip{
-  position:absolute; top:0; right:-4px; width:9px; height:100%;
-  cursor:col-resize; z-index:5;
-}
-.resizing thead th .grip::after{
-  content:""; position:absolute; top:0; left:4px; width:1px; height:100%;
-  background:var(--accent); opacity:0; transition:opacity .12s;
-}
-.resizing thead th .grip:hover::after, .resizing thead th .grip.live::after{opacity:1}
-.resizing{cursor:default}
-.resizing.dragging, .resizing.dragging *{cursor:col-resize !important; user-select:none}
-#wpanel{
-  position:fixed; left:14px; bottom:14px; z-index:99;
-  background:var(--surface); border:1px solid var(--rule-strong); border-radius:4px;
-  padding:11px 13px; box-shadow:0 8px 28px rgba(0,0,0,.18);
-  font-family:var(--mono); font-size:11px; line-height:1.75; color:var(--ink);
-}
-#wpanel h4{margin:0 0 6px; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:500}
-#wpanel .r{display:flex; gap:10px; justify-content:space-between}
-#wpanel .r span:last-child{font-variant-numeric:tabular-nums}
-#wpanel .btns{display:flex; gap:6px; margin-top:9px}
-#wpanel button{font:inherit; font-size:10px; padding:4px 8px; cursor:pointer;
-  border:1px solid var(--rule-strong); border-radius:3px; background:var(--raised); color:var(--ink)}
-#wpanel button:hover{background:var(--surface)}
 thead th{
   font-family:var(--mono); font-size:10px; letter-spacing:.09em;
   text-transform:uppercase; color:var(--muted); font-weight:500;
@@ -638,7 +609,7 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
       Not investment advice. This encodes one person's screening rules in
       software; it is not from a licensed advisor. Company figures from
       SEC filings; prices from Yahoo Finance.
-      <span class="built">Built 30 Aug 2026 07:03 UTC · 31ebaa3</span>
+      <span class="built">Built 30 Aug 2026 07:13 UTC · feb1f97</span>
     </div>
   </section>
 </div>
@@ -1087,92 +1058,6 @@ document.querySelectorAll("th.sortable").forEach(th=>{
 
 wireFilters();
 render();
-const RESIZE = new URLSearchParams(location.search).has("resize");
-const WKEY = "vantage.colwidths.v3";
-
-/* Widths chosen by hand beat widths measured from content. They are kept
-   in this browser only (localStorage) — nothing here is published until
-   the numbers are read off and written into the stylesheet. */
-function savedWidths(){
-  try { return JSON.parse(localStorage.getItem(WKEY) || "null"); } catch(e){ return null; }
-}
-function applyWidths(w){
-  const cols = [...document.querySelectorAll("#tbl > colgroup col")];
-  cols.forEach((c,i) => { if(w[i]) c.style.width = w[i] + "px"; });
-  const nameCol = document.querySelector("#tbl > colgroup col.c-name");
-  if(w[1]) nameCol.style.width = w[1] + "px";   // beats the 100% slack rule
-}
-
-function enableColumnResize(){
-  document.body.classList.add("resizing");
-  const ths  = [...document.querySelectorAll("#tbl > thead th")];
-  const cols = [...document.querySelectorAll("#tbl > colgroup col")];
-  const label = i => (ths[i].textContent.trim() || "expand").replace(/\u2193$/, "");
-
-  const panel = document.createElement("div");
-  panel.id = "wpanel";
-  panel.innerHTML = "<h4>Column widths — drag a heading edge</h4><div id='wrows'></div>" +
-    "<div class='btns'><button id='wcopy'>Copy</button>" +
-    "<button id='wreset'>Reset to frozen</button></div>";
-  document.body.append(panel);
-
-  const readout = () => {
-    document.getElementById("wrows").innerHTML = ths.map((t,i) =>
-      `<div class='r'><span>${label(i)}</span><span>${Math.round(t.getBoundingClientRect().width)}px</span></div>`
-    ).join("");
-  };
-
-  const store = () => {
-    const w = ths.map(t => Math.round(t.getBoundingClientRect().width));
-    localStorage.setItem(WKEY, JSON.stringify(w));
-    readout();
-  };
-
-  ths.forEach((th,i) => {
-    const g = document.createElement("span");
-    g.className = "grip";
-    g.addEventListener("pointerdown", e => {
-      e.preventDefault(); e.stopPropagation();          // never sort on a grip drag
-      const x0 = e.clientX, w0 = th.getBoundingClientRect().width;
-      g.classList.add("live");
-      document.body.classList.add("dragging");
-      const move = ev => {
-        const w = Math.max(28, Math.round(w0 + (ev.clientX - x0)));
-        cols[i].style.width = w + "px";
-        if(i === 1) th.style.minWidth = "";              // let COMPANY go below its floor by hand
-        readout();
-      };
-      const up = () => {
-        removeEventListener("pointermove", move); removeEventListener("pointerup", up);
-        g.classList.remove("live"); document.body.classList.remove("dragging");
-        store();
-      };
-      addEventListener("pointermove", move); addEventListener("pointerup", up);
-    });
-    th.append(g);
-  });
-
-  document.getElementById("wcopy").addEventListener("click", () => {
-    const w = ths.map((t,i) => `${label(i)}: ${Math.round(t.getBoundingClientRect().width)}px`).join("\n");
-    navigator.clipboard && navigator.clipboard.writeText(w);
-    document.getElementById("wcopy").textContent = "Copied";
-    setTimeout(() => document.getElementById("wcopy").textContent = "Copy", 1200);
-  });
-  document.getElementById("wreset").addEventListener("click", () => {
-    localStorage.removeItem(WKEY);
-    cols.forEach(c => c.style.width = "");   // fall back to the frozen stylesheet
-    ths[1].style.minWidth = "";
-    readout();
-  });
-
-  readout();
-}
-
-(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
-  const w = savedWidths();
-  if(w) applyWidths(w);              // a width set by hand outranks the frozen one
-  if(RESIZE) enableColumnResize();
-});
 // open Nike by default so the working is visible on arrival
 
 </script>
