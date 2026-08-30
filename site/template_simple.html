@@ -82,10 +82,20 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
 
 /* Padding, not margin: the last row's margin would collapse out of the
    section and the gap below would not match the 18px above it. */
-.filters{margin:28px 0 0; border-top:1px solid var(--rule); padding:18px 0 11px}
-.frow{display:flex; align-items:center; gap:7px; margin-bottom:8px; flex-wrap:wrap}
-.fname{font-family:var(--mono); font-size:9.5px; letter-spacing:.09em; text-transform:uppercase;
-       color:var(--faint); width:126px; flex:none}
+.filters{margin:28px 0 0; border-top:1px solid var(--rule); padding:18px 0 16px}
+/* Side by side rather than a stack of full-width rows. Stacked, six
+   filters ran 200px down the page before the first company; in three
+   columns they occupy two rows and read as one set. */
+.fgrid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px 26px}
+.fgroup{min-width:0}
+.fname{display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.09em;
+       text-transform:uppercase; color:var(--faint); margin-bottom:6px}
+.fchips{display:flex; gap:6px; flex-wrap:wrap}
+/* Sorting is not filtering — it changes the order, never the membership —
+   so it sits below the rule rather than inside the set. */
+.fsort{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+       margin-top:16px; padding-top:14px; border-top:1px solid var(--rule)}
+.fsort .fname{margin:0 4px 0 0; flex:none}
 .chip{font:inherit; font-size:12.5px; padding:4px 11px; border-radius:12px; cursor:pointer;
       border:1px solid var(--rule-strong); background:var(--surface); color:var(--muted)}
 .chip:hover{border-color:var(--accent); color:var(--accent)}
@@ -143,9 +153,10 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
 .foot{margin-top:34px; padding-top:16px; border-top:1px solid var(--rule);
       font-size:12.5px; color:var(--faint)}
 .foot .stamp{font-family:var(--mono); font-size:11px; margin-top:6px; display:block}
+@media (max-width:960px){ .fgrid{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media (max-width:720px){
   .qs,.defs{grid-template-columns:1fr}
-  .fname{width:100%}
+  .fgrid{grid-template-columns:1fr}
   .cbig{text-align:left; min-width:0}
 }
 
@@ -197,22 +208,34 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
 </section>
 
 <section class="filters">
-  <div class="frow"><span class="fname">Quality</span>
-    <button class="chip on" data-f="q" data-v="high">high</button>
-    <button class="chip" data-f="q" data-v="medium">medium</button>
-    <button class="chip" data-f="q" data-v="low">low</button>
-    <button class="chip" data-f="q" data-v="uncertain">not enough history</button></div>
-  <div class="frow"><span class="fname">Price vs usual</span>
-    <button class="chip on" id="barChip">{{BAR}}%+ below usual</button>
-    <span class="count" id="shown"></span></div>
-  <div class="frow"><span class="fname">Size</span>
-    <button class="chip" data-f="z" data-v="big">over $500bn</button>
-    <button class="chip" data-f="z" data-v="mid">$100–500bn</button>
-    <button class="chip" data-f="z" data-v="small">under $100bn</button></div>
-  <div class="frow"><span class="fname">Sort order</span>
+  <div class="fgrid">
+    <div class="fgroup"><span class="fname">Quality</span><div class="fchips">
+      <button class="chip on" data-f="q" data-v="high">high</button>
+      <button class="chip" data-f="q" data-v="medium">medium</button>
+      <button class="chip" data-f="q" data-v="low">low</button>
+      <button class="chip" data-f="q" data-v="uncertain">not enough history</button></div></div>
+    <div class="fgroup"><span class="fname">Price vs usual</span><div class="fchips">
+      <button class="chip on" id="barChip">{{BAR}}%+ below usual</button></div></div>
+    <div class="fgroup"><span class="fname">Size</span><div class="fchips">
+      <button class="chip" data-f="z" data-v="over $500bn">over $500bn</button>
+      <button class="chip" data-f="z" data-v="$100-500bn">$100–500bn</button>
+      <button class="chip" data-f="z" data-v="under $100bn">under $100bn</button></div></div>
+    <div class="fgroup"><span class="fname">Recent direction</span><div class="fchips">
+      <button class="chip" data-f="sh" data-v="falling now">falling now</button>
+      <button class="chip" data-f="sh" data-v="fell, now flat">fell, now flat</button>
+      <button class="chip" data-f="sh" data-v="fell, now rising">fell, now rising</button></div></div>
+    <div class="fgroup"><span class="fname">Vs own history</span><div class="fchips">
+      <button class="chip" data-f="s3" data-v="cheaper">cheaper</button>
+      <button class="chip" data-f="s3" data-v="about as usual">about as usual</button>
+      <button class="chip" data-f="s3" data-v="pricier">pricier</button></div></div>
+    <div class="fgroup"><span class="fname">Business warning</span><div class="fchips">
+      <button class="chip" data-f="s3" data-v="profit falling">profit falling</button></div></div>
+  </div>
+  <div class="fsort"><span class="fname">Sort order</span>
     <button class="chip on" data-s="b">furthest below usual</button>
     <button class="chip" data-s="c">biggest company</button>
-    <button class="chip" data-s="n">A–Z</button></div>
+    <button class="chip" data-s="n">A–Z</button>
+    <span class="count" id="shown"></span></div>
 </section>
 
 <div id="cards"></div>
@@ -251,7 +274,6 @@ const TREND={"falling now":["still falling","warnc"],
              "fell, now flat":["fell, now steady",""],
              "fell, now rising":["fell, now recovering","ok"]};
 const QLAB={high:"high", medium:"medium", low:"low", uncertain:"not enough history"};
-const sizeOf=r=>r.c==null?"small":r.c>=500?"big":r.c>=100?"mid":"small";
 const cap=v=>v==null?"—":v>=1000?"$"+(v/1000).toFixed(1)+"T":"$"+v.toFixed(1)+"B";
 const passed=r=>(r.gt||[]).filter(g=>g[1]==="pass"||g[1]==="near-pass").length;
 
@@ -271,12 +293,31 @@ function sentence(r){
                + " anything else." : "");
 }
 
-const F={q:new Set(["high"]), bar:true, z:new Set()};
+/* The same two defaults the detailed page carries, and for the same
+   reason: quality first, and only show what has actually moved. Both are
+   claims the project already makes (§6 principle 1). */
+const F={q:new Set(["high"]), bar:true, z:new Set(), sh:new Set(), s3:new Set()};
 let SORT="b";
+/* Deliberately identical to passes() on the detailed page — it reads the
+   same fields (r.z, r.sh, r.s3.l) rather than recomputing them, so the
+   two pages cannot disagree about which companies match a filter. An
+   earlier version derived size from market cap here and would have
+   drifted the moment a boundary moved. */
 function passes(r){
   if(F.q.size && !F.q.has(r.q)) return false;
   if(F.bar && !(r.b != null && r.b >= BAR)) return false;
-  if(F.z.size && !F.z.has(sizeOf(r))) return false;
+  if(F.sh.size && !F.sh.has(r.sh)) return false;
+  if(F.z.size && !F.z.has(r.z)) return false;
+  if(F.s3.size){
+    const l = (r.s3 && r.s3.l) || "";
+    let hit = false;
+    for(const v of F.s3){
+      if(v === "profit falling") hit = hit || /profit falling/.test(l);
+      else hit = hit || l.startsWith(v === "about as usual" ? "priced about as usual"
+                                   : v === "cheaper" ? "cheaper" : "pricier");
+    }
+    if(!hit) return false;
+  }
   return true;
 }
 function ordered(){
