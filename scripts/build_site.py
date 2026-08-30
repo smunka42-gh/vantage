@@ -134,11 +134,17 @@ def build() -> int:
         everything in one bucket, and index-relative ones would call a
         $20bn company "small cap", which is wrong by any market reading.
         The ranges say what they mean and need no convention.
+
+        These split 4% / 22% / 74%, which is deliberately uneven: they
+        are the numbers people actually think in, and the useful cut is
+        at the top — 18 companies over $500bn — rather than an even
+        three-way division at figures ($28bn) nobody recognises.
         """
         if not cap:
             return None
         bn = cap / 1e9
-        return "over $80bn" if bn > 80 else "$28-80bn" if bn >= 28 else "under $28bn"
+        return ("over $500bn" if bn > 500 else
+                "$100-500bn" if bn >= 100 else "under $100bn")
 
     def _stage3_for(t):
         """Stage 3's label and the evidence behind it.
