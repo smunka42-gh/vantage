@@ -45,9 +45,11 @@ reorders, filters or scores it. See §5 of the spec.
   percentages, with an absolute 10% bar so the honest answer on a calm
   day is an empty list. 13-check validation suite passing. Latest run:
   **16 of 260 below normal**.
-- **Stage 3 — specified, not yet built.** Two checks: cheapness against
-  a company's own earnings-yield history, and operating income against
-  the year-ago quarter. Both measured before being specified. See spec §5.
+- **Stage 3 — built.** Two gates: cheapness against a company's own
+  earnings-yield history over both 3 and 5 years, and operating income
+  against the year-ago quarter. It annotates the ranking and never
+  reorders it. Latest run: **14 of 260 show profit falling**, two of them
+  on the published list. See spec §5.
 - **UI — built and published.** A static page rebuilt by the daily
   scan, served by GitHub Pages at the link above. Every constituent is
   embedded, so any ticker can be looked up, not only the ranked ones.

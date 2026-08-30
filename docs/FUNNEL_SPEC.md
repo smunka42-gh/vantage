@@ -1109,97 +1109,141 @@ because its yield is computed on stale annual earnings while its most
 recent quarter shows operating income down 37%. That is a value trap,
 and the two checks together identify it where either alone would not.
 
-### 5.3 The two checks
+### 5.3 The two gates
 
-**Check 1 — cheaper than its own normal?**
+Called GATES, matching Stage 1's vocabulary. Both read filed figures
+only; nothing is reconstructed.
+
+**Gate 1 — is it cheaper than its own normal?**
 
 ```python
 yield_now = latest annual EPS / today's price
-yield_own = median of (EPS / price at that fiscal year end) over 5 years
-cheapness = (yield_now - yield_own) * 100      # PERCENTAGE POINTS
+yield_3y  = median of (EPS / price at that fiscal year end), last 3 years
+yield_5y  = same, last 5 years
+                                     # PERCENTAGE POINTS, never a ratio
+above BOTH medians   -> "cheaper than usual"
+below BOTH medians   -> "pricier than usual"
+between them         -> "priced about as usual"
 ```
 
-Points, not a ratio. A ratio explodes when historical earnings approach
-zero — Insulet's own-normal P/E computes to 595x, and The Trade Desk
-reads "+1093% cheaper", both arithmetic rather than information.
-Inverting P/E to a yield does not fix this; it moves the explosion into
-the ratio. Differencing two yields is bounded: measured across 249
-companies the spread runs −28.4pt to +15.2pt, median −0.5pt.
+The threshold is **zero**, which is structural rather than chosen: a
+company's own median is the definition of its normal.
 
-Robustness: the same six names disagree with the price score under both
-the P/E formulation and the yield-points formulation, independently.
+**Points, not a ratio.** A ratio explodes as historical earnings approach
+zero — Insulet's own-normal P/E computes to 595x and The Trade Desk reads
+"+1093% cheaper", both arithmetic rather than information. Inverting P/E
+to a yield does NOT fix this; it moves the explosion into the ratio.
+Differencing two yields is bounded: across 249 companies the spread runs
+-28.4pt to +15.2pt, median -0.5pt.
 
-**Check 2 — is the business still intact?**
+**Both windows, and they must agree.** Measured, 3 and 5 years disagree
+for only 8% of the index — but for **4 of the 16 published names**
+(TJX, WMT, CRH, TPR), all four flipping from "not cheaper" to "cheaper".
+A quarter of what the reader sees would be decided by a window choice
+with no principled reason to prefer either.
+
+Disagreement is not indecision, and "between the two medians" is the same
+statement as "the two windows disagree" — if today's yield is above one
+median and below the other it lies between them by definition. So the
+three labels answer one question: *where does today sit relative to the
+band its own history spans?*
+
+| | 3y median | today | 5y median | |
+|---|---|---|---|---|
+| NKE | 4.13% | **5.30%** | 3.69% | above both -> cheaper than usual |
+| GNRC | 2.53% | **1.46%** | 2.53% | below both -> pricier than usual |
+| WMT | 2.49% | **2.65%** | 3.09% | between -> priced about as usual |
+| TPR | 4.98% | **5.79%** | 8.48% | between, on a very wide band |
+
+Requiring agreement also removes false precision at the boundary: TJX at
+-0.05pt against a single median is a coin flip reported as a verdict.
+
+**Gate 2 — is the business still intact?**
 
 ```python
-latest reported quarter's operating income  vs  the year-ago quarter
-FAIL if down more than 20%
+quarterly operating income vs the SAME quarter one year earlier
+FIRES when TWO CONSECUTIVE quarters are below -10%
 ```
 
-Both figures are as filed. Nothing is reconstructed — no deriving Q4 by
-subtraction, no summing quarters into a trailing twelve months. Quarters
-are identified by period LENGTH (80-100 days), not by form, because a
-10-K carries quarters inside it too (§3.17).
+**Why two consecutive, and not one at a bigger number.** Measured across
+**11,536 year-on-year quarter pairs**, a single quarter is never rare:
 
-Two exclusions, each justified independently of what it catches:
-
-| Excluded | Why |
-|---|---|
-| Swings into an operating **loss** (worse than −100%) | A company that just cleared six quality gates and posts a single-quarter operating loss is recording a charge, not collapsing. Gilead −520%, Waters −146%, Merck −114% are all acquired-IPR&D or litigation. Removes 3. |
-| Quarters older than **200 days** | "Right now" cannot be answered with year-old data. Removes 5. |
-
-**Why operating income, and not revenue or net income.** All three were
-measured on the same 262 companies:
-
-| measure | fires on | verdict |
+| fall of at least | share of quarters | companies that have ever had one |
 |---|---|---|
-| revenue | 6 of 258 (2%), none on the flagged list | too insensitive — misses Nike and Lululemon, whose revenue is flat or growing while profit collapses |
-| net income | 53 of 261 (20%) | too noisy — dominated by one-off charges below the operating line |
-| **operating income** | **12 of 252 (4.8%)** at −20% | catches both real cases, excludes the charges |
+| -10% | 19.7% | — |
+| -20% | 12.5% | **92%** |
+| -30% | 8.6% | 84% |
 
-"Require revenue AND profit down" was measured and rejected: only 5
-companies qualify and neither Nike (revenue +0.1%) nor Lululemon (+4.3%)
-is among them. The entire pattern is profit falling while revenue holds.
+An earlier draft of this spec set a single-quarter bar at -20% and called
+it "material by any reading". **That was wrong** — 92% of companies that
+clear six quality gates have had one, roughly every two years. There is
+no single-quarter threshold at which the event becomes rare.
 
-**The −20% bar is the weakest-justified number in this spec.** The
-principle is that a fifth of operating profit gone against the same
-quarter a year earlier is material, and the fire rate settles at 4.8%.
-But −20% catches both Nike and Lululemon while −25% loses Nike, and that
-was visible when the number was chosen. Recorded here rather than
-presented as derived. −15% and −25% are equally defensible.
+Two in a row is 2.3x rarer at EVERY threshold, and it is the difference
+between Lululemon (-11.2% then -36.9%) and The Trade Desk (**+22.4%**
+then -13.0% — one soft quarter after a strong one). Persistence is what
+"deteriorating" means, and no single-quarter rule can express it.
+
+**Three things this gate deliberately does NOT do:**
+
+| Rejected | Why |
+|---|---|
+| Exclude swings into an operating loss (worse than -100%) | Redundant under a two-quarter rule: it only bites when BOTH quarters breach, and in both such cases (MRK, WAT) the company posted two consecutive operating LOSSES — worth reporting whatever the cause. The panel shows the figures, so a sign-flip reads as one. |
+| An annual fallback when the newest period is a fiscal year | 10-Ks do not tag Q4 as a quarter, so for a company just past year end the newest QUARTER is ~6 months old while the newest YEAR is ~3 months. Measured, the annual view detects **nothing** the quarterly rule misses and **loses Nike**, whose full year was flat while its last two quarters fell 29% and 23%. The Q4 gap makes evidence older, not missing. |
+| A staleness cutoff | The cases it would exclude (BNY resolving to 2016, ACGL to 2021) are a TAG-SELECTION BUG, not a staleness policy. A cutoff would hide the bug. Show the age instead. |
+
+**Only one judged number exists in Stage 3: -10%.** Zero is structural,
+two-consecutive is structural, agreement between windows is structural.
 
 ### 5.4 Output — a label, never a verdict
 
-Four states, stating what was measured rather than what to do:
+Gate 1's state, with `, profit falling` appended when gate 2 fires:
 
 ```
-cheaper, holding up          both checks clear
-cheaper, earnings falling    cheap on valuation, last quarter down
-not cheaper                  fell, but not below its own normal valuation
-not yet reported             no recent quarter available
+cheaper than usual · priced about as usual · pricier than usual
+   +/- ", profit falling"
 ```
+
+Where one gate is unavailable the label reports only what WAS
+established — 14 of 260 have no usable earnings-yield history, 3 have no
+usable quarter pair, 2 have neither.
 
 **No confidence figure.** There is no backtest, so any percentage beside
 these would be invented. What is shown instead is the evidence and its
 AGE — "quarter to 28 Feb 2026, filed 182 days ago" — which degrades
-visibly for a company whose last filing is old. This follows §6: the
-funnel refuses to say whether a fall is good or bad, so "WARNING" is not
-an available word.
+visibly for an old filing. §6 forbids "WARNING" as a word: the funnel
+refuses to say whether a fall is good or bad, and a label that judges
+would put that judgement back in.
 
-**What Stage 3 must never do:** reorder Stage 2, filter it, contribute a
-number to it, or display a competing score beside it. The 52-week high
-was removed for exactly that reason — a second figure next to the first
-invites the reader to weight them inconsistently and reach for the
-larger. A label with its evidence does not have that property.
+**Stage 3 ANNOTATES Stage 2's ranking.** It never reorders, filters,
+scores, or contributes a number to it. If it ever starts influencing the
+order it has become Stage 2 and must be resisted. The 52-week high was
+removed (§4.2) precisely because a second figure beside the first invites
+the reader to weight them inconsistently and reach for the larger.
 
 ### 5.5 What it changes today
 
-Two of the seventeen published names:
+Two of the sixteen published names:
 
-| | cheapness | latest quarter | label |
+| | gate 1 | gate 2 | label |
 |---|---|---|---|
-| LULU | +8.51pt — the cheapest name on the list | operating income −36.9% | cheaper, earnings falling |
-| NKE | +1.76pt | operating income −23.0% | cheaper, earnings falling |
+| LULU | +8.51pt, the cheapest name on the list | -11.2% then -36.9% | cheaper than usual, profit falling |
+| NKE | +1.76pt | -29.4% then -23.0% | cheaper than usual, profit falling |
+
+Lululemon reads as the cheapest name on the list *because* its earnings
+are collapsing: the yield uses annual earnings while its most recent
+quarter is down 37%. That is a value trap neither Stage 1 nor Stage 2 can
+see — Stage 1 reads annual filings 2-12 months old, Stage 2 reads only
+price.
+
+**Why this design survived when others did not.** Four Stage 1 proposals
+were measured and dropped in the same session (gate 6 option B, the
+utility coverage bar, a gate 2 deterioration clause, a gate 4 coverage
+median). Three died on one finding: **a 3-year window today begins at the
+2022-23 inflation peak, so it reads cycle position as decline.** Gate 1
+is immune because it REQUIRES the two windows to agree and treats
+disagreement as its own answer; gate 2 is immune because a year-on-year
+quarter comparison does not depend on where a window starts.
 
 ## 6. Interface principles
 

@@ -26,6 +26,7 @@ from funnel.universe import load_sp500                      # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 STAGE1 = ROOT / "scripts/stage1_results.json"
 STAGE2 = ROOT / "scripts/stage2_results.json"
+STAGE3 = ROOT / "scripts/stage3_results.json"
 TEMPLATE = ROOT / "site/template.html"
 OUT = ROOT / "docs/index.html"
 SCAN = ROOT / "docs/scan.json"
@@ -41,6 +42,10 @@ def build() -> int:
 
     s1 = json.loads(STAGE1.read_text())
     s2 = json.loads(STAGE2.read_text())
+    # Stage 3 is optional: the page must still build from stages 1 and 2
+    # alone, so a missing file degrades to no annotation rather than a
+    # crash. It ANNOTATES the ranking and never reorders it (spec §5.4).
+    s3 = json.loads(STAGE3.read_text()) if STAGE3.exists() else {}
     sectors = {c["ticker"]: c["sector"] for c in load_sp500()}
 
     def _series_for(a):
@@ -70,6 +75,31 @@ def build() -> int:
         if sr.get("revenue") and "3y average" in gate.get("6", ""):
             rows.append(["revenue ($bn)", sr["revenue"], "own 3y avg"])
         return {"years": sr["years"], "rows": rows} if rows else None
+
+    def _stage3_for(t):
+        """Stage 3's label and the evidence behind it.
+
+        Carries the AGE of the quarterly evidence, which is not decoration:
+        a company just past its fiscal year end files no Q4 10-Q, so its
+        newest quarter can honestly be ~6 months old. The reader has to be
+        able to see that rather than trust a bare label (spec §5.4).
+        """
+        r = s3.get(t)
+        if not r or r.get("label") in (None, "not enough history"):
+            return None
+        c, i = r.get("cheap"), r.get("intact")
+        return {
+            "l": r["label"],
+            # yield now, and its own two medians, as real percentages
+            "y": None if not c else [round(c["now"], 2),
+                                     round(c["medians"]["3"], 2) if "3" in c["medians"]
+                                     else round(c["medians"][3], 2),
+                                     round(c["medians"]["5"], 2) if "5" in c["medians"]
+                                     else round(c["medians"][5], 2)],
+            # the two year-on-year quarters the gate actually judged
+            "q": None if not i else [round(v * 100, 1) for v in i["recent"]],
+            "qe": r.get("quarter_end"), "qa": r.get("quarter_age_days"),
+        }
 
     def pack(t, r, a):
         """One company, in the shape the page reads."""
@@ -106,6 +136,7 @@ def build() -> int:
             "y": r.get("yahoo"), "g": r.get("google"), "ar": risk,
             "gt": [[g["gate"], g["grade"], g["detail"]] for g in a.get("gates", [])],
             "sr": _series_for(a),
+            "s3": _stage3_for(t),
         }
 
     # The ranked list: only what clears the bar.

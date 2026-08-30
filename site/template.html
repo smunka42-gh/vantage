@@ -125,6 +125,19 @@ tbody tr.row.open{background:var(--accent-soft)}
 .big{font-size:15px; font-weight:600; letter-spacing:-.01em}
 .dim{color:var(--muted)}
 
+col.c-read{width:15%}
+/* Stage 3's read. Form, not colour: an outline marks the fact that
+   profit fell, and says nothing about whether that is good or bad. */
+.read{
+  display:inline-block; font-size:11px; color:var(--muted);
+  white-space:nowrap; margin-right:6px;
+}
+.read.falling{
+  border:1px solid var(--rule); border-radius:3px;
+  padding:1px 5px; color:var(--ink); font-size:10.5px;
+}
+.gate .d .asof{display:block; color:var(--faint); font-size:11.5px; margin-top:3px}
+
 /* shape pill — deliberately NOT colour-coded good/bad */
 .pill{
   display:inline-flex; align-items:center; gap:6px;
@@ -381,7 +394,7 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
         <colgroup>
           <col class="c-name"><col class="c-main"><col class="c-cap">
           <col class="c-ma"><col class="c-ma"><col class="c-shape">
-          <col class="c-links">
+          <col class="c-read"><col class="c-links">
         </colgroup>
         <thead>
           <tr>
@@ -391,6 +404,7 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
             <th>200-day</th>
             <th>50-day</th>
             <th>Shape</th>
+            <th>Own history</th>
             <th>External links</th>
           </tr>
         </thead>
@@ -404,9 +418,10 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
             <td class="dim lk-m2">—</td>
             <td class="dim lk-m5">—</td>
             <td class="lk-sh">—</td>
+            <td class="lk-read">—</td>
             <td class="lk-lk">—</td>
           </tr>
-          <tr class="detail lk-detail" hidden><td colspan="7"></td></tr>
+          <tr class="detail lk-detail" hidden><td colspan="8"></td></tr>
         </tbody>
         <tbody id="body"></tbody>
       </table>
@@ -460,6 +475,30 @@ let sortKey="b",sortDir=-1;
 // Plain English for the gate names. The backend labels are precise but
 // assume finance vocabulary; these say the same thing to a reader who
 // does not have it.
+// Stage 3's label, shortened for the table only. The full wording lives
+// in the expanded panel — a cell cannot hold "cheaper than usual, profit
+// falling" without squeezing every other column.
+const READ_SHORT = {
+  "cheaper than usual":    "cheaper",
+  "priced about as usual": "as usual",
+  "pricier than usual":    "pricier",
+  "profit holding up":     "",
+  "not enough history":    "",
+};
+function readCell(r){
+  if(!r.s3) return "";
+  const falling = /profit falling/.test(r.s3.l);
+  const base = r.s3.l.replace(/, profit falling$/, "");
+  const short = READ_SHORT[base] ?? "";
+  // Form, not colour. The funnel refuses to say whether a fall is good
+  // or bad, so "profit falling" is stated as a fact, never flagged red.
+  const value = short ? `<span class="read">${short}</span>` : "";
+  const note  = falling ? `<span class="read falling">profit falling</span>` : "";
+  // A company with no usable earnings-yield history (14 of 260) would
+  // otherwise render an empty cell that reads as a rendering fault.
+  return (value || note) ? value + note : "—";
+}
+
 const GATE_LABEL={
   "Sustained profit":"Profitable every year",
   "Return on capital":"Earns well on its assets",
@@ -509,6 +548,12 @@ function plain(gate, d){
   return d;   // unrecognised shape: show it as filed rather than guess
 }
 
+// "2026-02-28" is parsed by Date() as UTC midnight and then rendered in
+// the READER'S timezone, so anyone west of Greenwich saw every date a day
+// early — fiscal year ends included, since this page shipped. Appending a
+// time forces local parsing. Every date on the page goes through here.
+function onDate(iso){ return new Date(iso + "T00:00:00"); }
+
 function detail(r){
   const a200=(r.p/(1-r.m2/100)), a50=(r.p/(1-r.m5/100));
   const gates=r.gt.map(g=>{
@@ -535,8 +580,8 @@ function detail(r){
       <div class="v">${risk?"closest":(g[1]||"n/a")}</div>
     </div>`;}).join("");
 
-  const months=Math.round((new Date("{{TODAY}}")-new Date(r.pe))/2629800000);
-  const ended=new Date(r.pe).toLocaleDateString("en-GB",
+  const months=Math.round((onDate("{{TODAY}}")-onDate(r.pe))/2629800000);
+  const ended=onDate(r.pe).toLocaleDateString("en-GB",
     {day:"numeric",month:"long",year:"numeric"});
 
   // where today's price sits between the 52-week extremes
@@ -602,6 +647,30 @@ function detail(r){
       </table></div>
     </div>`;
 
+  // Stage 3 ANNOTATES; it never reorders or scores. The AGE of the
+  // quarterly evidence is shown because a company just past its fiscal
+  // year end files no Q4 10-Q, so a 6-month-old quarter is honest rather
+  // than neglectful — the reader has to see that, not trust a bare label.
+  const s3 = r.s3;
+  const readCard = !s3 ? "" : `<div class="card">
+      <h4>Against its own history</h4>
+      <p class="pillars">${s3.l}</p>
+      ${!s3.y ? "" : `<div class="gate">
+        <div class="g">Cheaper than usual?</div>
+        <div class="d">Earns <b>${s3.y[0].toFixed(2)}%</b> a year per dollar
+          you pay today, against its own <b>${s3.y[1].toFixed(2)}%</b> over
+          three years and <b>${s3.y[2].toFixed(2)}%</b> over five.</div>
+        <div class="v"></div></div>`}
+      ${!s3.q ? "" : `<div class="gate">
+        <div class="g">Profit still holding?</div>
+        <div class="d">Operating profit
+          <b>${s3.q[0].toFixed(1)}%</b> then <b>${s3.q[1].toFixed(1)}%</b>
+          against the same quarters a year earlier.
+          <span class="asof">Quarter to ${onDate(s3.qe).toLocaleDateString("en-GB",
+            {day:"numeric",month:"long",year:"numeric"})} · ${s3.qa} days ago.</span></div>
+        <div class="v"></div></div>`}
+    </div>`;
+
   const gatesCard = r.gt.length === 0 ? "" :
    `<div class="card">
       <h4>${H}</h4>
@@ -614,6 +683,7 @@ function detail(r){
   return `<div class="work">
     ${scaleCard}
     ${reitNote}
+    ${readCard}
     ${gatesCard}
     ${recCard}
 
@@ -666,12 +736,13 @@ function render(){
       <td class="dim">${r.m2.toFixed(1)}%</td>
       <td class="dim">${r.m5.toFixed(1)}%</td>
       <td><span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span></td>
+      <td>${readCell(r)}</td>
       <td><span class="rowlinks">
         <a href="${r.y}" target="_blank" rel="noopener" title="Yahoo Finance">Yahoo</a>
         ${r.g?`<a href="${r.g}" target="_blank" rel="noopener" title="Google Finance">Google</a>`:""}
       </span></td>
     </tr>
-    <tr class="detail" hidden><td colspan="7">${detail(r)}</td></tr>`).join("");
+    <tr class="detail" hidden><td colspan="8">${detail(r)}</td></tr>`).join("");
   document.querySelectorAll("#body tr.row").forEach(tr=>{
     const toggle=()=>{
       const d=tr.nextElementSibling;
@@ -716,6 +787,7 @@ function render(){
     cell(".lk-c").textContent  = r.c == null ? "—" : "$" + fmtCap(r.c);
     cell(".lk-m2").textContent = r.m2 == null ? "—" : r.m2.toFixed(1) + "%";
     cell(".lk-m5").textContent = r.m5 == null ? "—" : r.m5.toFixed(1) + "%";
+    cell(".lk-read").innerHTML = readCell(r) || "—";
     cell(".lk-sh").innerHTML   = r.sh
       ? `<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`
       : `<span class="tierbadge">${r.tier || "—"}</span>`;

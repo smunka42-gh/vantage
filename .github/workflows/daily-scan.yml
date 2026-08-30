@@ -117,6 +117,15 @@ jobs:
         if: steps.gate.outputs.proceed == 'true'
         run: python scripts/run_stage2.py
 
+      # Stage 3 ANNOTATES the ranking; it never reorders or filters it.
+      # continue-on-error because build_site degrades to no annotation if
+      # the results file is missing: a Stage 3 outage must not stop the
+      # page refreshing with current prices and gates.
+      - name: Stage 3 — opportunity or warning
+        if: steps.gate.outputs.proceed == 'true'
+        continue-on-error: true
+        run: python scripts/run_stage3.py
+
       - name: Refuse to publish a bad scan
         if: steps.gate.outputs.proceed == 'true'
         run: |
