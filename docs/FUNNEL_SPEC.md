@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.21 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.22 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -8,8 +8,8 @@ in full — and then you go and read about the company yourself.
 
 > **This document is the single source of truth for Vantage.** Anything
 > that disagrees with it — code comment, README, chat history — is wrong
-> until this file is changed. See [CONTRIBUTING.md](../CONTRIBUTING.md)
-> for what may and may not enter this repository.
+> until this file is changed. Change the spec and the code together, or
+> they drift.
 
 ## Tenets
 
@@ -57,6 +57,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.22** | 30 Aug 2026 | **Coverage checks, and tenet 6.** Every documentation miss this project has had was the same shape: a list that must cover something, with nothing checking that it does. `GATE_LABEL` held five entries for six gates; `plain()` held the shapes already seen; the pre-commit risk map held the files that existed when it was written. Each was correct about its entries and silent about what was absent. Three checks now assert completeness rather than correctness — every gate has a label and wording, every source file is covered by the risk map, and no prose denies a stage whose module exists. All three were verified to fail when the gap is reintroduced. They immediately found four uncovered source files and **a second "There is no Stage 3"**, which had survived because check 4's slicing discards the exact region between the changelog and §1 where it sat. **`CONTRIBUTING.md` deleted** under the new tenet: one section was a rule about an archived private repository a reader cannot see, the other two restated the spec. |
 | **v2.21** | 30 Aug 2026 | **"What this version is" was two versions stale and said so in the present tense** — *"Both stages are built"* and *"There is no Stage 3"*, thirteen versions after Stage 3 shipped in v2.8. It also pointed only at the detailed page. Rewritten, and both pages are now named here and in the README. The doc-currency test did not catch it: it checks counts, gate numbers and placeholders, not prose about which stages exist. Worth knowing about the guard's shape — it catches numbers that drift, not sentences that were true once. Also teaches the pre-commit risk map about `site/detail.js`, `site/detail.css` and `site/template_simple.html`, added earlier today: the panel is inlined into BOTH pages, so a change there is the most warning-worthy kind, and it was triggering nothing. |
 | **v2.20** | 30 Aug 2026 | **A page that has quietly stopped updating now fails something.** Measured 30 Aug: GitHub fires the schedule but unreliably — one firing in ~22 opportunities, 4h 18m late. A single miss is harmless (16.5h of slack before the next open, and the state gate keeps a late run correct), but consecutive silent days would leave the page stale behind a green tick, because a run that never happens cannot fail. Two guards, both keyed on `scan.json`'s `generated_utc`: the doc-currency test fails locally, and an **ungated** final workflow step fails on any firing — including one that skipped the scan, which is the state this failure actually produces. **Five days, not three**: the workflow commits only when the page changes, so a market holiday produces no commit, and Thu→Tue closures make 5 the longest real gap. Three would fire every ordinary weekend, which is how a check earns being ignored. Verified at 3, 5, 6 and 9 days. **What neither catches**: a period where the workflow never fires at all — nothing inside GitHub can, and that needs an external check. |
 | **v2.19** | 30 Aug 2026 | **Every gate detail is now written for a reader**, on both pages — the wording lives in the shared `site/detail.js`. Measured before: **628 of them reached the reader as backend strings**; after: none. Gate 6 had no `plain()` case and no `GATE_LABEL` entry at all, so ~470 companies showed *"revenue grew 10.6% a year over 5y (2021-2025)"* raw. Four more shapes fell through their regexes: **negative** cumulative cash flow (`$-1.1B`, which assumed a `+`), **negative** operating margin (EchoStar's −118.1%), four-year windows, and `operating cash (no capex tag)`. **Labels no longer assert over a check that never ran**: where the filings contain nothing to measure, the label drops to a neutral topic — *Profit record*, *Debt*, *Sales growth* — instead of *"Profitable every year"* above *"insufficient history"*. §3.5 already said CANNOT ASSESS is not REJECTED; the wording now says it too. **The REIT note is deleted as dead code** — REITs are excluded from the page entirely (§6 principle 7), so no row could ever reach it. The build stamp now says why staleness matters rather than printing a bare timestamp. |
@@ -90,8 +91,9 @@ Each is documented below with the measurement that caught it.
 | v0.2 | 28 Aug 2026 | Scoped to S&P 500. Tag-coverage audit across all 500. Institutional ownership tested and rejected; volume and short interest adopted. |
 | v0.1 | 28 Aug 2026 | Initial three-stage funnel concept, thresholds proposed from sampled distributions. |
 
-The funnel is complete at two stages. There is no Stage 3 and none is
-planned — see section 5 for why.
+The funnel runs to three stages. Stage 3 was cancelled in v1.0 and
+reopened in v2.8 when its own stated revisit condition was met — §5.1
+keeps the cancellation on record and §5.2 the reasoning that reversed it.
 
 ---
 

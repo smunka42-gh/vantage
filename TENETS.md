@@ -125,6 +125,32 @@ to move a bar: a company you believe in that is REJECTED.
 
 ---
 
+## 6 · Every file must earn its place, and keep earning it
+
+**A file stays only if something breaks or is lost when it goes.**
+Duplicating another file's content is not a reason to exist, and
+scaffolding is deleted when the thing it scaffolded is finished.
+
+**Why.** A repository is read as a whole. Files that no longer pull
+weight make a reader distrust the ones that do — and a document nobody
+maintains does not sit there neutrally, it goes stale and starts telling
+people things that are no longer true.
+
+**What this has cut:** the `?resize=1` column-drag tool, deleted the day
+the widths it existed to choose were frozen into the stylesheet. The REIT
+note in `detail.js`, which proved unreachable — REITs are excluded from
+the page, so no row could ever render it. `CONTRIBUTING.md`, whose three
+sections were a rule about an archived private repository the reader
+cannot see, plus two restatements of things the spec already says.
+
+**The test this implies.** Deletion is easy; noticing is not. The same
+failure that makes a file go stale makes a LIST go stale — see the
+coverage checks in `tests/test_docs_current.py`, which assert that every
+gate has wording and every source file is covered by the pre-commit risk
+map. Both exist because something was added and a list was not updated.
+
+---
+
 ## Credits
 
 These tenets are original to this project and were derived from its own

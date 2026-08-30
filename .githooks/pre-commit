@@ -47,6 +47,10 @@ risky=$(
   # rewrite triggered no warning at all.
   risk '^site/detail\.(js|css)' 'docs/FUNNEL_SPEC.md §6, §6.1 — the panel BOTH pages inline'
   risk '^scripts/build_site' 'docs/FUNNEL_SPEC.md §6 — what the page shows'
+  risk '^funnel/prices\.py'  'docs/FUNNEL_SPEC.md §4 — the price source and its cadence'
+  risk '^scripts/run_stage1' 'docs/FUNNEL_SPEC.md §3, §3.19 — what the gates produce'
+  risk '^scripts/run_stage2' 'docs/FUNNEL_SPEC.md §4 — the below-normal calculation'
+  risk '^scripts/run_stage3' 'docs/FUNNEL_SPEC.md §5 — the two Stage 3 gates'
   risk '^\.github/workflows' 'README.md — how it runs'
 )
 if [ -n "$risky" ]; then

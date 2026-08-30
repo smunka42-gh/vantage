@@ -157,6 +157,65 @@ def main() -> int:
                   f"covers any weekend or holiday, so this means the daily "
                   f"scan has stopped and the page is showing stale prices")
 
+    # ---- COVERAGE CHECKS ------------------------------------------
+    #
+    # Everything above asks "is this entry correct?". Every miss this
+    # project has had was the other question: "does the list cover
+    # everything it should?" — and nothing asked it.
+    #
+    #   GATE_LABEL held 5 entries for 6 gates, so gate 6 rendered raw on
+    #   ~470 companies. plain() held the shapes I had seen, so 628 details
+    #   reached the reader as backend strings. The pre-commit risk map
+    #   held the files that existed when it was written, so three files
+    #   added later warned nobody.
+    #
+    # Each fails when something is ADDED, which is when these gaps open.
+
+    # 5c. Every gate stage1.py emits must have a label and plain wording.
+    detail_js = (ROOT / "site/detail.js").read_text()
+    gate_names = sorted(set(re.findall(r'out\.append\(\("(\d+ [^"]+)"',
+                                      (ROOT / "funnel/stage1.py").read_text())))
+    for full in gate_names:
+        bare = re.sub(r"^\d+\s+", "", full)
+        labelled = (f'"{bare}"' in detail_js)
+        worded = (f'gate==="{bare}"' in detail_js
+                  or f'raw==="{bare}"' in detail_js)
+        check(labelled, f"gate '{bare}' has no entry in detail.js's label tables "
+                        f"— it will render with its internal name")
+        check(worded, f"gate '{bare}' has no wording case in detail.js's plain() "
+                      f"— its detail will render as the backend string")
+
+    # 5d. Every source file must be covered by the pre-commit risk map,
+    #     which tells a human which docs a change puts at risk.
+    hook = ROOT / ".githooks/pre-commit"
+    if hook.exists():
+        pats = re.findall(r"risk '(\^[^']+)'", hook.read_text())
+        for path in sorted(list(ROOT.glob("funnel/*.py"))
+                           + list(ROOT.glob("site/*"))
+                           + list(ROOT.glob("scripts/*.py"))):
+            rel = str(path.relative_to(ROOT))
+            if path.name == "__init__.py":
+                continue
+            check(any(re.match(p, rel) for p in pats),
+                  f"{rel} matches no pattern in .githooks/pre-commit — a change "
+                  f"there will flag no documentation for re-reading")
+
+    # 5e. Prose that denies something the code contains.
+    #     "There is no Stage 3" sat in the spec for THIRTEEN versions after
+    #     stage3.py shipped, because every other check compares numbers and
+    #     this is a sentence. Deliberately narrow: it catches this shape,
+    #     not the class.
+    # Changelog ROWS legitimately quote what a document used to say, so
+    # they are dropped -- but only the rows. Check 4 drops the whole
+    # region between the table and section 1, which is precisely where
+    # the second instance of this had been sitting undisturbed.
+    spec_prose = "\n".join(l for l in spec.splitlines() if not l.startswith("|"))
+    for n in (1, 2, 3):
+        if (ROOT / f"funnel/stage{n}.py").exists():
+            check(not re.search(rf"[Tt]here is no Stage {n}\b", spec_prose),
+                  f"the spec says 'there is no Stage {n}' but "
+                  f"funnel/stage{n}.py exists")
+
     # 6. Memory must hold no counts — they rot, and pointers do not.
     mem = (pathlib.Path.home() /
            ".claude/projects/<derived-from-repo-location>/memory")
