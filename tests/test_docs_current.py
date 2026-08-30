@@ -128,6 +128,35 @@ def main() -> int:
                       f"{f.name} contains the live count {n} — memory stores "
                       f"pointers, not snapshots, because counts go stale")
 
+    # 7. The PRIVATE documents, which CI can never see because they live
+    #    outside the repo. Skipped silently where absent so this still
+    #    passes in the daily scan.
+    private = ROOT.parent / "vantage-private"
+    todo = private / "TODO.md"
+    if todo.exists():
+        text = todo.read_text()
+        done = re.findall(r"^## (\d+ · .+?) — (?:DONE|MOSTLY DONE)", text, re.M)
+        # A queue, not a record: finished items belong in the spec and
+        # should leave. Two or more sitting here means it has started
+        # becoming an archive.
+        check(len(done) < 2,
+              f"TODO.md still lists {len(done)} completed items "
+              f"({', '.join(d.split(' · ')[0] for d in done)}) — settled work "
+              f"belongs in FUNNEL_SPEC.md, and the list is a queue")
+
+    log = private / "BUILD_LOG.md"
+    if log.exists():
+        tail = log.read_text()[-4000:]
+        # Its "Next" section pointed at Stage 2 for weeks after Stage 3
+        # shipped. If it names a stage, that stage should not be built.
+        for m in re.finditer(r"##\s*Next(.*)$", tail, re.S):
+            nxt = m.group(1)
+            for stage, module in (("Stage 2", "funnel/stage2.py"),
+                                  ("Stage 3", "funnel/stage3.py")):
+                check(not (stage in nxt and (ROOT / module).exists()),
+                      f"BUILD_LOG's 'Next' still points at {stage}, but "
+                      f"{module} exists")
+
     print(f"{'=' * 62}\nDOCUMENTATION CURRENCY\n{'=' * 62}")
     if not problems:
         print("  ok — spec, README, page and memory all agree with the data")

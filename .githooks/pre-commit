@@ -27,6 +27,27 @@ if [ -f tests/test_docs_current.py ]; then
   rm -f /tmp/vantage_docs.$$
 fi
 
+# --- what this change puts at risk: advisory --------------------------
+# A machine cannot judge whether a paragraph's REASONING has gone stale.
+# §6 principle 1 was reversed and no test noticed; only reading it did.
+# What a machine CAN do is say which documents a change puts at risk, so
+# the reading is aimed rather than remembered.
+changed=$(git diff --cached --name-only)
+risk() { echo "$changed" | grep -qE "$1" && echo "     $2"; }
+risky=$(
+  risk '^funnel/stage1\.py'  'docs/FUNNEL_SPEC.md §3 — gates, thresholds, §3.19 index result'
+  risk '^funnel/stage2\.py'  'docs/FUNNEL_SPEC.md §4 — the below-normal calculation'
+  risk '^funnel/stage3\.py'  'docs/FUNNEL_SPEC.md §5 — the two Stage 3 gates'
+  risk '^funnel/universe\.py' 'docs/FUNNEL_SPEC.md §2, §3.16 — universe and sector tracks'
+  risk '^site/template\.html' 'docs/FUNNEL_SPEC.md §6 — interface principles'
+  risk '^scripts/build_site' 'docs/FUNNEL_SPEC.md §6 — what the page shows'
+  risk '^\.github/workflows' 'README.md — how it runs'
+)
+if [ -n "$risky" ]; then
+  echo "  re-read before pushing — a test cannot tell you if the REASONING here is stale:"
+  echo "$risky"
+fi
+
 # --- private docs: advisory ------------------------------------------
 # BUILD_LOG and TODO are outside the repo, so CI can never see them. They
 # went 25 commits stale once, which is what this exists to notice.
