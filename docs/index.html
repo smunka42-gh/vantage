@@ -89,25 +89,38 @@ col.c-name {width:18%}
 col.c-main {width:13%}
 col.c-cap  {width:13%}
 col.c-ma   {width:12%}
-col.c-shape{width:16%}
 col.c-links{width:16%}
 thead th{
-  font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+  /* Column headings match the FILTER that controls them — the filter
+     chips say "trend" and "priced", so the columns do too. Two names for
+     one thing cost a reader more than a longer word ever saves, and the
+     shorter headings happen to fit nine columns on one line. */
+  font-family:var(--mono); font-size:10px; letter-spacing:.09em;
   text-transform:uppercase; color:var(--muted); font-weight:500;
-  text-align:right; padding:13px 11px; border-bottom:1px solid var(--rule-strong);
+  text-align:right; padding:13px 13px; border-bottom:1px solid var(--rule-strong);
   white-space:nowrap; background:var(--raised);
+  vertical-align:bottom;
 }
 thead th:first-child,thead th.l{text-align:left}
+/* One rule, not a grid. This table is read ACROSS a row, and a vertical
+   line between every column fights that; a single divider between the
+   identity columns and the measurements helps without boxing anything in. */
+thead th.divide, tbody td.divide{border-left:1px solid var(--rule)}
 thead th.sortable{cursor:pointer; user-select:none}
 thead th.sortable:hover{color:var(--ink)}
 thead th .caret{opacity:0; margin-left:5px}
 thead th[aria-sort] .caret{opacity:1; color:var(--accent)}
 tbody td{
-  padding:12px 11px; text-align:right; border-bottom:1px solid var(--rule);
+  padding:12px 13px; text-align:right; border-bottom:1px solid var(--rule);
   font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums;
   white-space:nowrap;
 }
 tbody td.l{text-align:left; font-family:var(--sans); font-size:13.5px}
+/* Numbers align right so digits stack and can be compared down a column.
+   Words gain nothing from it and lose the straight left edge the eye
+   follows, so the label columns align left and use the sans face. */
+tbody td.txt{text-align:left; font-family:var(--sans); font-size:12.5px}
+thead th.txt{text-align:left}
 tbody tr:last-child td{border-bottom:0}
 tbody tr.row{cursor:pointer}
 tbody tr.row:hover{background:var(--raised)}
@@ -122,6 +135,9 @@ tbody tr.row.open{background:var(--accent-soft)}
 .dim{color:var(--muted)}
 
 col.c-exp{width:30px}
+/* Everything else sizes to content. The old fixed percentages were
+   chosen when every column held a right-aligned number; with words in
+   half of them they cramped three headers by a few pixels each. */
 /* A per-row affordance rather than a standing instruction above the
    table: the instruction had to be read once and remembered, this sits
    at the point of use and shows state. */
@@ -133,8 +149,6 @@ td.exp{padding-left:0; padding-right:0; text-align:center; vertical-align:middle
 }
 tr.row:hover .expmark, tr.row.open .expmark{color:var(--ink)}
 
-col.c-qual{width:8%}
-col.c-read{width:15%}
 
 /* ---------- filters ---------- */
 .filters{
@@ -502,13 +516,13 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
           <tr>
             <th class="exp" aria-label="Expand"></th>
             <th class="l sortable" data-k="t">Company<span class="caret">↓</span></th>
-            <th class="sortable" data-k="q">Quality<span class="caret">↓</span></th>
-            <th class="sortable" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
+            <th class="sortable txt" data-k="q">Quality<span class="caret">↓</span></th>
+            <th class="sortable divide" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
             <th class="sortable" data-k="c">Size<span class="caret">↓</span></th>
             <th>vs 10m / 2m avg</th>
-            <th>Price trend</th>
-            <th>Cheaper or pricier?</th>
-            <th>Research</th>
+            <th class="txt">Trend</th>
+            <th class="txt">Priced</th>
+            <th class="txt">Research</th>
           </tr>
         </thead>
 
@@ -553,7 +567,7 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
       Not investment advice. This encodes one person's screening rules in
       software; it is not from a licensed advisor. Company figures from
       SEC filings; prices from Yahoo Finance.
-      <span class="built">Built 30 Aug 2026 06:09 UTC · 9de02a1</span>
+      <span class="built">Built 30 Aug 2026 06:16 UTC · 71599f2</span>
     </div>
   </section>
 </div>
@@ -952,13 +966,13 @@ function render(){
       <td class="exp"><span class="expmark" aria-hidden="true">+</span></td>
       <td class="l"><div class="tkr">${r.t}${r.ar?'<span class="flag">AT RISK</span>':""}</div>
         <div class="co">${r.n}</div></td>
-      <td><span class="qual q-${r.q||"na"}">${r.q||"—"}</span></td>
-      <td class="big">${r.b==null?"—":r.b.toFixed(1)+"%"}</td>
+      <td class="txt"><span class="qual q-${r.q||"na"}">${r.q||"—"}</span></td>
+      <td class="big divide">${r.b==null?"—":r.b.toFixed(1)+"%"}</td>
       <td class="dim">${r.c==null?"—":"$"+fmtCap(r.c)}</td>
       <td class="dim">${r.m2==null?"—":r.m2.toFixed(1)+"% / "+r.m5.toFixed(1)+"%"}</td>
-      <td>${!r.sh?"—":`<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`}</td>
-      <td>${readCell(r)}</td>
-      <td><span class="rowlinks">
+      <td class="txt">${!r.sh?"—":`<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`}</td>
+      <td class="txt">${readCell(r)}</td>
+      <td class="txt"><span class="rowlinks">
         ${r.y?`<a href="${r.y}" target="_blank" rel="noopener">Yahoo</a>`:""}
         ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google</a>`:""}
       </span></td>
