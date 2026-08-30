@@ -1,6 +1,6 @@
 # Project tenets
 
-Six rules that govern every stage of this project. Each was earned by
+Seven rules that govern every stage of this project. Each was earned by
 something that actually went wrong here, and each is written to be
 testable rather than aspirational — a proposal either violates one or it
 doesn't.
@@ -148,6 +148,44 @@ failure that makes a file go stale makes a LIST go stale — see the
 coverage checks in `tests/test_docs_current.py`, which assert that every
 gate has wording and every source file is covered by the pre-commit risk
 map. Both exist because something was added and a list was not updated.
+
+---
+
+## 7 · The repo carries nothing about the machine it was built on
+
+**No absolute path containing a home directory, username or machine name
+goes into tracked code — derive it, or take it from the environment.**
+The same applies to email addresses and any other personal reference, in
+code, docs and commit messages alike. Assume every repository ships
+public, because this one does.
+
+**Why.** It is not the name that leaks, it is the shape: a path like
+`/Users/<someone>/Desktop/<sandbox>/…` discloses who, what tools they
+run, and how their machine is laid out. Any of that is searchable the
+moment a repository is public, and none of it is recoverable once
+published — history is forever unless it is rewritten, and rewriting is
+expensive and never quite complete.
+
+**What this cost.** `tests/test_docs_current.py` hard-coded the memory
+directory as an absolute path under a home folder. It sat in **45
+commits of a public repository** before a sweep found it, and removing
+it took a `git filter-repo` rewrite of all 97 commits and a force-push —
+which invalidated every commit id, broke two references in the spec, and
+still leaves old objects cached on GitHub until support garbage-collects
+them.
+
+**The trap this sets.** Deriving a path is the fix, and it is also the
+next bug: the first derivation replaced `/` with `-` but not `_`, so it
+pointed at a directory that did not exist — and the caller guarded on
+`if path.exists()`, which meant every check underneath skipped **while
+the suite printed ok**. A derived path must therefore prove it resolved.
+Where the target is genuinely absent (no such tool on this machine),
+skipping is right; where the parent exists and only the derived leaf does
+not, that is a wrong derivation and must fail loudly.
+
+**The test this implies.** A sweep of the whole history, not just HEAD,
+for home paths, usernames and email addresses — and it must run before a
+repository is made public, not after.
 
 ---
 

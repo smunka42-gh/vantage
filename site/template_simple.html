@@ -197,14 +197,18 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
    ====================================================================== */
 #tblwrap{overflow-x:auto; margin-bottom:34px}
 table.list{
-  border-collapse:collapse; width:100%; min-width:1160px;
+  border-collapse:collapse; width:100%; min-width:988px;
   table-layout:fixed;   /* so a filter change cannot resize the columns */
 }
 /* Every column is sized except Company, which absorbs whatever is left —
    it holds the longest and most variable content on the row. */
-col.w-no{width:44px}   col.w-qual{width:120px} col.w-below{width:132px}
-col.w-rng{width:152px} col.w-size{width:86px}  col.w-trend{width:150px}
-col.w-read{width:142px} col.w-src{width:64px}
+col.w-no{width:42px}   col.w-qual{width:124px} col.w-below{width:100px}  /* floor is -131.8%, not 39.9% */
+col.w-rng{width:150px} col.w-size{width:78px}  col.w-trend{width:158px}
+col.w-read{width:138px} col.w-src{width:66px}
+/* Company is sized deliberately narrow and WRAPS instead of truncating.
+   An ellipsis hides which company a row is about, which is the one thing
+   the row must never hide. */
+col.w-name{width:132px}
 
 table.list thead th{
   font-family:var(--mono); font-size:9.5px; letter-spacing:.08em;
@@ -228,8 +232,8 @@ table.list tbody tr.row.open td{background:var(--raised)}
 
 td.k-no{font-family:var(--mono); font-size:12px; color:var(--faint); text-align:right}
 .k-tkr{font-family:var(--mono); font-size:13px; font-weight:600}
-.k-co{color:var(--muted); font-size:12.5px; margin-top:1px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.k-co{color:var(--muted); font-size:12.5px; margin-top:1px; line-height:1.3;
+  overflow-wrap:break-word}
 
 /* Quality — a verdict, so colour is allowed. One mark per check: filled
    where it passed, outlined where it did not, absent-looking where it
@@ -417,6 +421,17 @@ const TREND={"falling now":["still falling","warnc"],
              "fell, now flat":["fell, now steady",""],
              "fell, now rising":["fell, now recovering","ok"]};
 const QLAB={high:"high", medium:"medium", low:"low", uncertain:"not enough history"};
+
+/* The filter chips said "fell, now flat" while the card for the same
+   company said "fell, now steady" — the raw stored value against the
+   reader-facing rewording, two names for one state. The chips now take
+   their TEXT from TREND, so a single map is the only place the wording
+   lives and the two can never disagree again. data-v keeps the stored
+   value, because that is what passes() matches on. */
+document.querySelectorAll('.chip[data-f="sh"]').forEach(b=>{
+  const t = TREND[b.dataset.v];
+  if (t) b.textContent = t[0];
+});
 const cap=v=>v==null?"—":v>=1000?"$"+(v/1000).toFixed(1)+"T":"$"+v.toFixed(1)+"B";
 const passed=r=>(r.gt||[]).filter(g=>g[1]==="pass"||g[1]==="near-pass").length;
 
@@ -595,7 +610,7 @@ function rowHtml(r,i){
 
 function tableHtml(list){
   return `<table class="list">
-    <colgroup><col class="w-no"><col><col class="w-qual"><col class="w-below">
+    <colgroup><col class="w-no"><col class="w-name"><col class="w-qual"><col class="w-below">
       <col class="w-rng"><col class="w-size"><col class="w-trend">
       <col class="w-read"><col class="w-src"></colgroup>
     <thead><tr>
