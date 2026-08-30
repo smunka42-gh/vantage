@@ -45,6 +45,19 @@ function readCell(r){
   return (value || note) ? value + note : "—";
 }
 
+// The four ways a gate says "there was nothing here to measure". Read as
+// malfunctions by anyone who does not know the vocabulary, and §3.5 is
+// explicit that CANNOT ASSESS is never the same as REJECTED — so neither
+// the label nor the detail may imply a failure.
+const UNMEASURED=/^(insufficient history|no revenue tag match|no usable revenue series|no interest or equity tag|no cash-flow tag|no profit tag)$/;
+const NEUTRAL={
+  "Sustained profit":"Profit record",
+  "Return on capital":"Returns on capital",
+  "Cumulative 5y FCF":"Spare cash",
+  "Debt serviceable":"Debt",
+  "Op margin durable":"Margins",
+  "Revenue durability":"Sales growth",
+};
 const GATE_LABEL={
   "Sustained profit":"Profitable every year",
   "Return on capital":"Earns well on its assets",
@@ -73,9 +86,12 @@ function plain(gate, d){
            + `Most recent year: ${latest}%.`;
     }
   }
-  if(gate==="Cumulative 5y FCF" && (m=d.match(/\$\+?([\d.]+)B over (\d+)y/))){
-    return `Threw off $${m[1]}B of spare cash over ${m[2]} years, after paying `
-         + `for the equipment and buildings it needs.`;
+  if(gate==="Cumulative 5y FCF" && (m=d.match(/\$([+-]?)([\d.]+)B over (\d+)y/))){
+    return m[1] === "-"
+      ? `Spent $${m[2]}B more than it brought in over ${m[3]} years, after paying `
+      + `for the equipment and buildings it needs.`
+      : `Threw off $${m[2]}B of spare cash over ${m[3]} years, after paying `
+      + `for the equipment and buildings it needs.`;
   }
   if(gate==="Debt serviceable"){
     if((m=d.match(/interest coverage ([\d.]+)x vs ([\d.]+)x bar/)))
@@ -86,11 +102,51 @@ function plain(gate, d){
            + `against a ${m[2]}% bar.`;
   }
   if(gate==="Op margin durable" &&
-     (m=d.match(/latest ([\d.]+)% is (\d+)% of 3y avg ([\d.]+)% \((\d+)% bar\)/))){
+     (m=d.match(/latest (-?[\d.]+)% is (-?\d+)% of 3y avg (-?[\d.]+)% \((\d+)% bar\)/))){
     const [,latest,pct,avg,bar]=m;
-    return `Keeps ${latest} cents of profit per dollar of sales. That is ${pct}% `
-         + `of its ${avg}% three-year average — it must stay above ${bar}%.`;
+    return Number(latest) < 0
+      ? `Lost ${Math.abs(latest)} cents per dollar of sales last year, against a `
+      + `${avg}% three-year average — it must stay above ${bar}% of that average.`
+      : `Keeps ${latest} cents of profit per dollar of sales. That is ${pct}% `
+      + `of its ${avg}% three-year average — it must stay above ${bar}%.`;
   }
+  // Gate 6 had no case here at all, so every company showed it raw:
+  // "revenue grew 10.6% a year over 5y (2021-2025)".
+  if(gate==="Revenue durability"){
+    if((m=d.match(/revenue grew ([\d.-]+)% a year over (\d+)y \(\d+-(\d+)\)/))){
+      const words={2:"two",3:"three",4:"four",5:"five"}[m[2]] || m[2];
+      return `Sales grew ${m[1]}% a year over the ${words} years to ${m[3]}.`;
+    }
+    if((m=d.match(/shrinking (-?[\d.]+)% a year[^]*?latest revenue is (\d+)% of its own 3y/)))
+      return `Sales are shrinking ${m[1].replace("-","")}% a year, but last year `
+           + `still came in at ${m[2]}% of its own three-year average.`;
+  }
+  // A company that reports cash in but never breaks out what it spent on
+  // equipment: we can say what came in, but not what was left over, and
+  // the page must not imply we know the second.
+  if(gate==="Cumulative 5y FCF" && (m=d.match(/\$\+?([\d.]+)B operating cash \(no capex tag\)/)))
+    return `Brought in $${m[1]}B of cash from trading. It does not report what it `
+         + `spent on equipment and buildings, so what was left over cannot be worked out.`;
+  // "utility track" and "capex" are our vocabulary, not a reader's.
+  if(gate==="Cumulative 5y FCF" &&
+     (m=d.match(/operating cash flow positive (\d+)\/(\d+)y/)))
+    return `Brought in cash in ${m[1]} of ${m[2]} years. For utilities the spending `
+         + `on power lines and plants is left out, because building them is the business.`;
+
+  // The "nothing to measure" family. Stated as an absence of a figure,
+  // never as a fault — see UNMEASURED above.
+  if(d==="insufficient history")
+    return "Too few years of filings to judge this one.";
+  if(d==="no revenue tag match" || d==="no usable revenue series")
+    return "This company does not report the sales figure this check needs.";
+  if(d==="no cash-flow tag")
+    return "This company does not report the cash-flow figures this check needs.";
+  if(d==="no profit tag")
+    return "This company does not report the profit figure this check needs.";
+  if(d==="no interest or equity tag")
+    return "This company reports neither its interest bill nor its equity, so there "
+         + "is nothing to measure its debt against.";
+
   return d;   // unrecognised shape: show it as filed rather than guess
 }
 
@@ -134,11 +190,18 @@ function detail(r){
     // Gate 6: grew across the window, or held its own 3-year average.
     // "Still growing" beside a detail reading "shrinking 9.5% a year"
     // is the same defect "Debt under control" had.
-    let label = GATE_LABEL[raw] || raw;
-    if (raw === "Debt serviceable")
+    // A label ASSERTS. Where the check could not run at all, every one of
+    // these asserts something that did not happen — "Profitable every
+    // year" above "insufficient history", "Can cover its interest" above
+    // "no interest or equity tag". Those drop to a neutral topic, which
+    // claims nothing. Same defect as "Still growing" over "shrinking",
+    // one step further back.
+    let label = UNMEASURED.test(g[2]) ? (NEUTRAL[raw] || raw)
+                                      : (GATE_LABEL[raw] || raw);
+    if (raw === "Debt serviceable" && !UNMEASURED.test(g[2]))
       label = /interest coverage/.test(g[2]) ? "Can cover its interest"
                                              : "Not overloaded with debt";
-    if (raw === "Revenue durability")
+    if (raw === "Revenue durability" && !UNMEASURED.test(g[2]))
       label = /grew/.test(g[2]) ? "Still growing" : "Revenue holding up";
     return `<div class="gate${risk?" risk":""}">
       <div class="g">${label}</div>
@@ -173,13 +236,11 @@ function detail(r){
     "CANNOT ASSESS":"Not enough filing history to judge",
   }[r.tier] || "Not assessed";
 
-  // A REIT otherwise shows a bare tier with no hint as to why
-  const reitNote = (r.tier || "").startsWith("REIT")
-    ? `<div class="card stale-card"><h4>Why this one is not assessed</h4>
-         <p class="stale">Real estate investment trusts are judged on funds
-         from operations and must pay out most of their income, so the cash
-         and margin gates misread them. A separate track would be needed;
-         there is not one yet.</p></div>` : "";
+  // A REIT note stood here and was unreachable: REITs are excluded from
+  // the page entirely (§6 principle 7), so ROWS holds 470 companies and
+  // not one carries a REIT tier. The explanation a reader needs already
+  // sits in the page's notes, where it can be found without clicking a
+  // company that is not there.
 
   const scaleInner = (r.lo == null || r.hi == null || r.hi <= r.lo) ? "" :
    `
@@ -289,7 +350,6 @@ function detail(r){
     </section>`;
 
   return `<div class="work">
-    ${reitNote}
     ${stage1}
     ${stage2}
     ${stage3}
