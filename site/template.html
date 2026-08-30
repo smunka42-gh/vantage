@@ -691,7 +691,8 @@ function qtr(s3, i){
   const when = end ? `In the quarter to ${longDate(end)}`
                    : (i === 1 ? "In the latest quarter" : "In the quarter before that");
   const dir = v < 0 ? "lower" : "higher";
-  return `${when}, operating profit was <b>${Math.abs(v).toFixed(1)}%</b> ${dir}.`;
+  return `${when}, operating profit was <b>${Math.abs(v).toFixed(1)}%</b> `
+       + `${dir} year on year.`;
 }
 
 function detail(r){
@@ -780,7 +781,7 @@ function detail(r){
     return `<div class="rec"><table class="rec-t">
         <thead><tr><th class="lbl"></th>
           ${g.years.map(y => `<th>${y}</th>`).join("")}
-          <th class="bar">at least</th></tr></thead>
+          <th class="bar">${g.barhead || "at least"}</th></tr></thead>
         <tbody>${g.rows.map(([label, vals, bar]) => `<tr>
             <td class="lbl">${label}</td>
             ${vals.map(v => `<td>${v === null ? "—" : v.toFixed(1)}</td>`).join("")}

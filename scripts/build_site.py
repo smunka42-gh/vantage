@@ -107,22 +107,40 @@ def build() -> int:
         groups = []
         if own:
             groups.append({"stage": 1, "q": "Stage 1 — would I ever want to own this?",
+                           "barhead": "at least",
                            "years": sr["years"], "rows": own})
 
         # Stage 3's own trend: the yields its two medians are drawn from.
         # Its own fiscal years, which need not match Stage 1's window.
         r3 = s3.get(t) or {}
         ys, ye = r3.get("yield_series"), r3.get("yield_ends")
+        cheap = r3.get("cheap")
         if ys and ye and len(ys) == len(ye):
+            # TODAY as the final column. Without it the card quotes one
+            # figure ("a dollar buys 1.95%") and the row ends on another
+            # (2.1 for 2025) and they read as a contradiction — they are
+            # the same measure on different DATES, which the row label
+            # alone was too quiet about.
+            today = round(cheap["now"], 1) if cheap else None
+            meds = (cheap or {}).get("medians") or {}
+            m3 = meds.get("3", meds.get(3))
+            m5 = meds.get("5", meds.get(5))
+            # publish the medians rather than naming them: every other
+            # row's bar column carries a NUMBER, so this one should too
+            bar = (f"{m3:.1f}% / {m5:.1f}%" if m3 is not None and m5 is not None
+                   else "—")
             groups.append({
                 "stage": 3, "q": "Stage 3 — is it cheaper than usual?",
-                "years": [e[:4] for e in ye],
+                # not "at least": a yield is compared with a median, not
+                # required to clear a minimum
+                "barhead": "its own median",
+                "years": [e[:4] for e in ye] + (["today"] if today is not None else []),
                 # "at year end" matters: each value uses the price on that
                 # fiscal year end, while the Stage 3 card quotes today's
                 # yield. Same measure, different dates — without the label
                 # the two read as a contradiction.
-                "rows": [["earnings yield at year end (%)", ys,
-                          "vs its own median"]]})
+                "rows": [["earnings yield (%)",
+                          ys + ([today] if today is not None else []), bar]]})
         return {"groups": groups} if groups else None
 
     def _size_of(cap):
