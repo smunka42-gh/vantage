@@ -17,16 +17,19 @@ Most days the answer is none, and that is the correct answer.
 |---|---|---|---|
 | **1 · Quality** | Would I ever want to own this? | Quarterly, on filings | SEC EDGAR (audited) |
 | **2 · Below normal** | Has it moved a long way from where it usually trades? | Daily, on prices | Yahoo Finance |
+| **3 · Opportunity or warning** | Is it cheap, and is the business still intact? | Daily | SEC EDGAR (quarterly) |
 | **You** | Is it worth buying? | — | The links the tool hands you |
 
 Stage 1 is a **hard gate** — quality is a precondition, not a factor to
 trade off. Stage 2 is a percentage, not a verdict.
 
-**There is no Stage 3.** One was specified and removed before being
-built: every candidate signal turned out to be circular, near-constant,
-or lagging the event it was meant to judge — and two stages already
-reduce 500 companies to about 16, ranked, which is a short enough list to
-read yourself. See §5 of the spec.
+**Stage 3 was cancelled, then reopened on evidence.** The original
+design died because every candidate signal was circular, near-constant,
+or lagged the event it judged. The spec set its own condition for
+revisiting — *"if a lagging signal can be replaced by a current one"* —
+and that was met: quarterly filings are a median 60 days old against
+annual filings at 2-12 months. It annotates the ranking; it never
+reorders, filters or scores it. See §5 of the spec.
 
 ## Status
 
@@ -42,7 +45,9 @@ read yourself. See §5 of the spec.
   percentages, with an absolute 10% bar so the honest answer on a calm
   day is an empty list. 13-check validation suite passing. Latest run:
   **17 of 262 below normal**.
-- **Stage 3 — does not exist, deliberately.** See spec §5.
+- **Stage 3 — specified, not yet built.** Two checks: cheapness against
+  a company's own earnings-yield history, and operating income against
+  the year-ago quarter. Both measured before being specified. See spec §5.
 - **UI — built and published.** A static page rebuilt by the daily
   scan, served by GitHub Pages at the link above. Every constituent is
   embedded, so any ticker can be looked up, not only the ranked ones.
@@ -68,7 +73,7 @@ export SEC_USER_AGENT="vantage you@example.com"
 ## Layout
 
 ```
-funnel/stage1.py     the five quality gates, grading and tiers
+funnel/stage1.py     the six quality gates, grading and tiers
 funnel/universe.py   S&P 500 constituents, sectors, track assignment
 funnel/prices.py     price history and the checks that gate publishing
 funnel/stage2.py     the below-normal figure and shape labels

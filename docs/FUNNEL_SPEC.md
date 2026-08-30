@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.7 · 29 Aug 2026**
+**Vantage · Funnel Spec v2.8 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,8 +45,9 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.7** | 29 Aug 2026 | **Part-year figures rejected.** A 10-K carries the quarters inside it as well as the year, and some filers tag those `fp=FY` too. `_pick` grouped facts by the year in their end-date and kept the newest-*filed* entry, so where a quarter and the year were filed the same day the tie broke on JSON ordering and the **quarter could win** — Accenture's return on assets read 2.7% instead of 12.4%, one quarter's profit over a full year's balance sheet. Duration facts must now span **350-380 days**. The error was one-directional (a part-year profit against a full-year balance sheet always understates), so it could only wrongly reject: D, SO, TKO and URI move up, none move down, eligible 258 to 262. The golden set could not guard this — not one of its seventeen anchors was affected — so `partial_years()` asserts on the data across the whole index (§3.16). **Interest as % of profit removed** from the five-year record: it was coverage inverted (share = 1/coverage), the only row where lower was better, and it carried no bar; the record's `bar` column now reads **`at least`**, which states the direction for every remaining row without per-row markers (§6.1). **Gate 4's label now follows the test that ran** — "Can cover its interest" where coverage was used, "Not overloaded with debt" where the equity/assets fallback was (§3.12). |
-| **v2.6** | 29 Aug 2026 | **REIT exclusion stated plainly.** The page said "all 500 constituents are tested", which was untrue — the gates never run on the 30 REITs, so the scan covers **470**. Both the page and §3.15 now say so, and a looked-up REIT explains why it was skipped. The spec had also described REITs as "a second watchlist, not an exclusion", which described an intention rather than the code; that track does not exist. Page footer trimmed of a hardcoded spec version that had already gone stale, plus gate and stage counts that mean nothing to a reader. |
+| **v2.8** | 30 Aug 2026 | **Gate 6 added — revenue durability** (§3.14). Gates 1-5 test whether a business is sound; none tested whether it is shrinking, and 41 of 262 eligible (16%) were flat or shrinking while passing all five. It is not redundant (r = +0.14, +0.17, +0.06 against gates 2, 5, 4). Conditional on purpose: neither the 5-year CAGR nor the vs-3-year-average view works alone, and requiring both to be negative excludes every cyclical in the index while catching Nike, which CAGR misses entirely at −0.2%. Bar **1.00**, the company's own 3-year average; at 0.95 the gate rejected nobody, CHRW missing the fail line by four thousandths. Rejects CHRW, HPQ, TGT; marks nine more. **Borderline band stays at 15%** — 10% was measured across all 470 assessed companies and costs 9 eligible (CMS, D, DTE, GNRC, HUM, KEY, L, NOC, SO), concentrated in the regulated and leveraged sectors the tracks already accommodate, and would re-reject D and SO which the v2.7 part-year fix had just rescued. PASS is unchanged at 224 either way: the band's upper half has no tier consequence at all, so tightening it is a one-directional change to the rejection rule, not a symmetric one. **Stage 3 specified and reopened** (§5) — the spec's own revisit condition ("a lagging signal replaced by a current one") was met: quarterly filings are a median 60 days old against annual filings at 2-12 months, covering 260 of 262. Two checks — cheapness in earnings-yield POINTS, and operating income against the year-ago quarter. The v1.0 circularity objection to P/E is answered by measurement rather than waived. §4's stale "specified, not yet built" removed. |
+| **v2.7** | 29 Aug 2026 | **Part-year figures rejected.** A 10-K carries the quarters inside it as well as the year, and some filers tag those `fp=FY` too. `_pick` grouped facts by the year in their end-date and kept the newest-*filed* entry, so where a quarter and the year were filed the same day the tie broke on JSON ordering and the **quarter could win** — Accenture's return on assets read 2.7% instead of 12.4%, one quarter's profit over a full year's balance sheet. Duration facts must now span **350-380 days**. The error was one-directional (a part-year profit against a full-year balance sheet always understates), so it could only wrongly reject: D, SO, TKO and URI move up, none move down, eligible 258 to 262. The golden set could not guard this — not one of its seventeen anchors was affected — so `partial_years()` asserts on the data across the whole index (§3.17). **Interest as % of profit removed** from the five-year record: it was coverage inverted (share = 1/coverage), the only row where lower was better, and it carried no bar; the record's `bar` column now reads **`at least`**, which states the direction for every remaining row without per-row markers (§6.1). **Gate 4's label now follows the test that ran** — "Can cover its interest" where coverage was used, "Not overloaded with debt" where the equity/assets fallback was (§3.12). |
+| **v2.6** | 29 Aug 2026 | **REIT exclusion stated plainly.** The page said "all 500 constituents are tested", which was untrue — the gates never run on the 30 REITs, so the scan covers **470**. Both the page and §3.16 now say so, and a looked-up REIT explains why it was skipped. The spec had also described REITs as "a second watchlist, not an exclusion", which described an intention rather than the code; that track does not exist. Page footer trimmed of a hardcoded spec version that had already gone stale, plus gate and stage counts that mean nothing to a reader. |
 | v2.5 | 29 Aug 2026 | **All open questions settled.** Five gates confirmed; the improvement clause left as written; the borderline band stays at 15% (no evidence favours a change, and moving a threshold without evidence is what tenet 3 forbids); exceptions removed entirely in v2.3. §8 now records what would settle a future question rather than listing opinions. |
 | v2.4 | 29 Aug 2026 | **52-week scale added to the expanded row** — low, today, high, with today's distance from each end. Shown, never scored: distance above the low correlates −0.77 with the below-normal figure, so it would cancel itself out as an input, but the residual separates names the score rates identically. §6.1 records the collision and wording decisions. Also clears two passages that still assumed EXCEPTION existed. |
 | v2.3 | 29 Aug 2026 | **Exceptions removed.** The mechanism could only relabel a named near-fail as EXCEPTION instead of BORDERLINE — and nothing else, since both tiers were already eligible and treated identically everywhere downstream. It changed no outcome (tenet 4), and never covered the case that actually creates pressure to move a bar: a company you believe in that is REJECTED. An exception could only rescue a *near*-fail, and a single near-fail already yields BORDERLINE, which already passes through. Tenet 5 is now absolute: the company clears the bar or it does not. |
@@ -164,6 +165,7 @@ read the code, not a summary of it.
 | **3 · Cash generation** | Sum of (operating cash flow − capex) over 5 years > 0 | Same as standard | Operating cash flow positive every year — capex excluded entirely | Same as standard |
 | **4 · Debt serviceable** | Coverage ≥ 4×, fallback equity/assets ≥ 10% | Coverage ≥ 4×, fallback ≥ 8% | Coverage ≥ 2.5×, fallback ≥ 10% | Same as standard |
 | **5 · Margin durable** | Latest operating margin ≥ 70% of its trailing 3-year average | Same | Same | Same |
+| **6 · Revenue durability** | Passes outright if 5y revenue CAGR ≥ 0; otherwise latest revenue ≥ its own trailing 3-year average | Same | Same | Same |
 
 Sector-wide shock years are excluded from Gate 1 on **every** track.
 
@@ -520,7 +522,71 @@ retailer. Measured — Dollar General's operating margin roughly halved
 (8.2% → 4.2%) and still passed a 6pp band. The 70% rule fails DG at 51%
 of its average while passing Texas Instruments at 74%.
 
-### 3.14 Gate 6 — Liquidity (removed in v1.0)
+### 3.14 Gate 6 — Revenue durability *(conditional)*
+
+```python
+if 5-year revenue CAGR >= 0:
+    PASS                                    # growing over the window
+else:
+    PASS if latest revenue / its own 3-year average >= 1.00
+```
+
+**Why the funnel needed this.** Gates 1-5 test whether a business is
+SOUND. None of them tests whether it is SHRINKING. Measured across the
+262 eligible on 29 Aug 2026, **41 (16%) were flat or shrinking and passed
+every gate** — Blackstone's revenue had fallen 10.6% a year for four
+years and read PASS, because falling revenue with intact margins,
+returns, cash flow and coverage clears all five.
+
+It is not a restatement of an existing gate. Rank correlation of the
+revenue measure against what the others actually compute:
+
+| against | r |
+|---|---|
+| Gate 2 · return on capital | +0.14 |
+| Gate 5 · operating margin | +0.17 |
+| Gate 4 · interest coverage | +0.06 |
+
+**Why the CAGR condition, and why it is not optional.** Neither view
+works alone; their AGREEMENT is the signal. Three formulations were
+measured — 5-year CAGR, latest-vs-own-3-year-average, and worst single
+year — and each alone conflates decay with the cycle:
+
+| | cagr | vs 3y avg | worst yr | what it is |
+|---|---|---|---|---|
+| EXPD | −9.5% | 0.90 | −45.5% | genuine decay |
+| CHRW | −8.4% | 0.81 | −28.7% | genuine decay |
+| NKE | −0.2% | 0.93 | −9.8% | real deterioration — **CAGR misses it entirely** |
+| BX | −10.6% | **1.46** | −62.3% | lumpy fees, currently 46% ABOVE its own average |
+| CVX | **+4.3%** | 0.88 | — | cyclical trough |
+
+Requiring both to be negative excludes every cyclical in the index
+automatically — Chevron, Exxon, Marathon, EOG, Paccar, Old Dominion,
+NXP, CF all grew over five years and are merely below their own
+three-year average today. Worst-single-year was measured and discarded:
+it flags 33 names dominated by exactly those energy cyclicals, so it
+measures the cycle rather than decay.
+
+**Why the bar is 1.00 and not 0.95.** 1.00 is the company's own
+three-year average — a natural reference point, not a number reverse-
+engineered from which companies it catches. At 0.95 the gate rejected
+nobody: the ±15% band put the fail line at 0.807 and the worst name in
+the index (CHRW at 0.8114) missed it by four thousandths, making the
+gate purely cosmetic. At 1.00 it rejects CHRW, HPQ and TGT and marks
+nine more, including Nike, whose five-year record independently shows
+return on assets collapsing 13.9% → 8.0%.
+
+**Known false positive.** Divestitures read as decline — Kimberly-Clark
+at 0.91 sold businesses rather than lost them. No formulation separates
+a sale from a fall without reading the filings, and this is recorded
+rather than engineered around.
+
+**The evaluability floor stays at 4**, not 5. It is an absolute minimum
+of substantive evidence, not a proportion of the gates that happen to
+exist; raising it alongside a new gate would silently reject companies
+for a reason unrelated to their quality.
+
+### 3.15 The removed liquidity gate
 
 A sixth gate required median daily dollar volume ≥ $25M. It was **removed**.
 
@@ -534,7 +600,7 @@ keeping it as a displayed fact.
 Rebuild it if and when the universe widens beyond the S&P 500, where
 every constituent clears the bar comfortably by construction.
 
-### 3.15 Sector handling
+### 3.16 Sector handling
 
 | Track | Count | Treatment |
 |---|---|---|
@@ -561,7 +627,7 @@ described an intention rather than the code.
 > were excluded for lack of a valid test, separately from those that
 > failed one. Those are different facts and must not be merged.
 
-### 3.16 Data plumbing — five bugs that would have silently corrupted results
+### 3.17 Data plumbing — five bugs that would have silently corrupted results
 
 None of these are visible from reading a spec. All were found by running
 the gates against real filings, and each would have produced confident,
@@ -575,7 +641,7 @@ wrong answers.
 | **A quarter posing as a year** | A 10-K carries the quarters inside it as well as the year, and some filers tag those `fp=FY`. Accenture's fiscal-2025 filing holds both `2024-09-01..2025-08-31` ($10.23B, 364 days) and `2024-12-01..2025-02-28` ($2.24B, 89 days), filed the same day — the tie broke on JSON ordering and the quarter won. Its return on assets read 2.7% instead of 12.4%. | Duration facts must span **350-380 days**, wide enough for 52- and 53-week fiscal calendars. Instant facts carry no start date and are exempt. `partial_years()` then asserts across the whole index that no company's revenue collapses like a part-year figure — the golden set cannot do this job, since none of its anchors was affected. |
 | **Orphaned history** | A 2025 reorganisation moved Exxon to a new filer ID with 94 tags and zero annual history; its real 19-year record sits under the predecessor CIK. The successor's record lists no former names, so nothing links them. | An explicit predecessor map (`PREDECESSOR_CIK`). Named rather than fuzzy-matched, so it can never attach the wrong company's accounts. |
 
-### 3.17 The regression test
+### 3.18 The regression test
 
 Seventeen companies where the right answer is known independently of this
 code. It runs on every threshold change and fails loudly if any anchor
@@ -595,7 +661,7 @@ Genuinely debatable names are deliberately excluded from the set: TXN,
 CSCO, GE, ORCL, CVS, DG, EL. **A golden set may only contain cases we are
 certain about, or it stops being a reliable alarm.**
 
-### 3.18 Full-index result
+### 3.19 Full-index result
 
 Measured across all 500 from this repository on 29 Aug 2026, with the
 frame-filter, freshest-tag and part-year defects fixed:
@@ -653,8 +719,6 @@ scored a different five-year window.
 ---
 
 ## 4. Stage 2 — how far below its own normal
-
-*Specified, not yet built.*
 
 Applies to every Stage 1 PASS and BORDERLINE — the tier carries through
 so the interface can show it, but both are scored.
@@ -890,7 +954,7 @@ decline is accelerating, and falls inside "still falling".
 ### 4.7 Liquidity — removed
 
 Stage 2 previously enforced Gate 6, being the one Stage 1 gate that
-needed prices rather than filings. That gate is gone (§3.14), and median
+needed prices rather than filings. That gate is gone (§3.15), and median
 dollar volume is no longer computed or displayed.
 
 ### 4.8 Data source and its known weaknesses
@@ -960,7 +1024,12 @@ for "how below normal is this". Validation is therefore mechanical:
 
 ---
 
-## 5. What Stage 3 was, and why there isn't one
+## 5. Stage 3 — is this fall an opportunity or a warning?
+
+*Specified 30 Aug 2026. Annotates Stage 2's ranking; never reorders,
+filters or scores it.*
+
+### 5.1 The design that was cancelled, and why it stays on record
 
 A third stage was specified through v1.0: six signals — analyst
 conviction, fundamental trajectory, sector context, distance from failing
@@ -997,7 +1066,133 @@ that verdict is.
 **When to revisit.** If the flagged list routinely runs long enough that
 ranking stops being sufficient triage, or if a lagging signal can be
 replaced by a current one. Not before — building for a future that has
-not arrived is what removed Gate 6.
+not arrived is what removed the liquidity gate.
+
+### 5.2 Why it was reopened
+
+**The second revisit condition was met.** The fatal objection to the
+cancelled design was that every surviving signal LAGGED the event it
+judged. Stage 1 reads annual 10-Ks that are 2-12 months old; Stage 2
+reads today's price; nothing looked at the months between. Measured
+across the 262 eligible, the most recent QUARTER a company has filed is
+a median of **60 days old** (p90 151 days), with **260 of 262 covered**.
+That is a current signal replacing a lagging one, which is the condition
+this spec set for itself.
+
+**The triage argument does not apply.** Stage 3 was cancelled partly
+because ranking 500 companies down to ~16 is already sufficient triage.
+That remains true, and Stage 3 does not add triage — it does not
+reorder, filter, score or rank anything. It annotates rows the ranking
+already chose. A reader still reads the top few.
+
+**The circularity objection, answered with measurement.** §5.1 rejected
+"P/E versus its own range" as circular: new price over old earnings
+always looks cheap immediately after a fall. That objection is correct
+and it is why the cheapness check is not used alone. It is also
+testable, and it fails as a general claim: if the measure were purely
+mechanical, EVERY name that had fallen would read cheap. Measured on the
+17 flagged names, **6 do not** — Walmart is 10.7% below its own normal
+price and still trades at a 2.65% earnings yield against its own 3.33%
+median, i.e. more expensive than usual despite having fallen. A purely
+circular measure cannot produce that.
+
+The residual circularity is real and is precisely what check 2 exists to
+catch: Lululemon reads as the CHEAPEST name on the list at +8.51 points,
+because its yield is computed on stale annual earnings while its most
+recent quarter shows operating income down 37%. That is a value trap,
+and the two checks together identify it where either alone would not.
+
+### 5.3 The two checks
+
+**Check 1 — cheaper than its own normal?**
+
+```python
+yield_now = latest annual EPS / today's price
+yield_own = median of (EPS / price at that fiscal year end) over 5 years
+cheapness = (yield_now - yield_own) * 100      # PERCENTAGE POINTS
+```
+
+Points, not a ratio. A ratio explodes when historical earnings approach
+zero — Insulet's own-normal P/E computes to 595x, and The Trade Desk
+reads "+1093% cheaper", both arithmetic rather than information.
+Inverting P/E to a yield does not fix this; it moves the explosion into
+the ratio. Differencing two yields is bounded: measured across 249
+companies the spread runs −28.4pt to +15.2pt, median −0.5pt.
+
+Robustness: the same six names disagree with the price score under both
+the P/E formulation and the yield-points formulation, independently.
+
+**Check 2 — is the business still intact?**
+
+```python
+latest reported quarter's operating income  vs  the year-ago quarter
+FAIL if down more than 20%
+```
+
+Both figures are as filed. Nothing is reconstructed — no deriving Q4 by
+subtraction, no summing quarters into a trailing twelve months. Quarters
+are identified by period LENGTH (80-100 days), not by form, because a
+10-K carries quarters inside it too (§3.17).
+
+Two exclusions, each justified independently of what it catches:
+
+| Excluded | Why |
+|---|---|
+| Swings into an operating **loss** (worse than −100%) | A company that just cleared six quality gates and posts a single-quarter operating loss is recording a charge, not collapsing. Gilead −520%, Waters −146%, Merck −114% are all acquired-IPR&D or litigation. Removes 3. |
+| Quarters older than **200 days** | "Right now" cannot be answered with year-old data. Removes 5. |
+
+**Why operating income, and not revenue or net income.** All three were
+measured on the same 262 companies:
+
+| measure | fires on | verdict |
+|---|---|---|
+| revenue | 6 of 258 (2%), none on the flagged list | too insensitive — misses Nike and Lululemon, whose revenue is flat or growing while profit collapses |
+| net income | 53 of 261 (20%) | too noisy — dominated by one-off charges below the operating line |
+| **operating income** | **12 of 252 (4.8%)** at −20% | catches both real cases, excludes the charges |
+
+"Require revenue AND profit down" was measured and rejected: only 5
+companies qualify and neither Nike (revenue +0.1%) nor Lululemon (+4.3%)
+is among them. The entire pattern is profit falling while revenue holds.
+
+**The −20% bar is the weakest-justified number in this spec.** The
+principle is that a fifth of operating profit gone against the same
+quarter a year earlier is material, and the fire rate settles at 4.8%.
+But −20% catches both Nike and Lululemon while −25% loses Nike, and that
+was visible when the number was chosen. Recorded here rather than
+presented as derived. −15% and −25% are equally defensible.
+
+### 5.4 Output — a label, never a verdict
+
+Four states, stating what was measured rather than what to do:
+
+```
+cheaper, holding up          both checks clear
+cheaper, earnings falling    cheap on valuation, last quarter down
+not cheaper                  fell, but not below its own normal valuation
+not yet reported             no recent quarter available
+```
+
+**No confidence figure.** There is no backtest, so any percentage beside
+these would be invented. What is shown instead is the evidence and its
+AGE — "quarter to 28 Feb 2026, filed 182 days ago" — which degrades
+visibly for a company whose last filing is old. This follows §6: the
+funnel refuses to say whether a fall is good or bad, so "WARNING" is not
+an available word.
+
+**What Stage 3 must never do:** reorder Stage 2, filter it, contribute a
+number to it, or display a competing score beside it. The 52-week high
+was removed for exactly that reason — a second figure next to the first
+invites the reader to weight them inconsistently and reach for the
+larger. A label with its evidence does not have that property.
+
+### 5.5 What it changes today
+
+Two of the seventeen published names:
+
+| | cheapness | latest quarter | label |
+|---|---|---|---|
+| LULU | +8.51pt — the cheapest name on the list | operating income −36.9% | cheaper, earnings falling |
+| NKE | +1.76pt | operating income −23.0% | cheaper, earnings falling |
 
 ## 6. Interface principles
 
