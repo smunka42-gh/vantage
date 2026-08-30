@@ -115,7 +115,10 @@ tbody tr.row.open{background:var(--accent-soft)}
 .tkr{font-family:var(--mono); font-weight:600; font-size:13.5px; letter-spacing:.01em}
 .co{color:var(--muted); font-size:12.5px; margin-top:1px;
     white-space:normal; line-height:1.35}
-.big{font-size:15px; font-weight:600; letter-spacing:-.01em}
+/* Weight carries the emphasis, not size. At 15px against the 13px of
+   every other numeric cell, this column sat on a different baseline and
+   made the row read as two rows. */
+.big{font-weight:600}
 .dim{color:var(--muted)}
 
 col.c-exp{width:30px}
