@@ -40,6 +40,21 @@ QUALITY = {"PASS": "high", "BORDERLINE": "medium",
            "REJECTED": "low", "CANNOT ASSESS": "uncertain"}
 
 
+def _built() -> str:
+    """When this page was generated, and from which commit if known."""
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%d %b %Y %H:%M UTC")
+    try:
+        import subprocess
+        sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                             cwd=ROOT, capture_output=True, text=True,
+                             timeout=5).stdout.strip()
+        if sha:
+            stamp += f" · {sha}"
+    except Exception:                                       # noqa: BLE001
+        pass
+    return stamp
+
+
 def build() -> int:
     for f in (STAGE1, STAGE2, TEMPLATE):
         if not f.exists():
@@ -236,6 +251,12 @@ def build() -> int:
         "TESTED": str(len(s1) - reits),
         "ASOF": as_of_txt,
         "TODAY": dt.date.today().isoformat(),
+        # A build stamp, GENERATED — never hand-written. v2.6 removed a
+        # hardcoded spec version from the footer precisely because it had
+        # gone stale. This says when the page was actually rebuilt, which
+        # is the one thing that cannot be wrong, and makes it obvious at a
+        # glance whether the daily scan ran.
+        "BUILT": _built(),
     }.items():
         page = page.replace("{{" + k + "}}", v)
 

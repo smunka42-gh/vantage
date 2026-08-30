@@ -59,19 +59,10 @@ a:hover{text-decoration:underline}
 }
 
 /* ---------- the answer ---------- */
-.answer{padding:22px 0 20px; border-bottom:1px solid var(--rule)}
-.eyebrow{
-  font-family:var(--mono); font-size:11px; letter-spacing:.14em;
-  text-transform:uppercase; color:var(--muted); margin-bottom:20px;
-}
-/* margin-top removed: .sub used to sit BELOW the headline and now leads
-   the section, so its top margin was stacking with .answer's padding. */
-.sub{
-  margin:0; color:var(--muted); font-size:14.5px;
-}
 
 /* ---------- table ---------- */
 .sect{margin-top:26px}
+.sect.first{margin-top:22px}
 .sect-head{
   display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
   margin-bottom:6px;
@@ -426,6 +417,7 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
 @media(min-width:700px){.note-grid{grid-template-columns:1fr 1fr}}
 .note-grid p{margin:0; font-size:13px; color:var(--muted); line-height:1.6}
 .note-grid p b{color:var(--ink); font-weight:600}
+.built{display:block; margin-top:8px; font-family:var(--mono); font-size:11px}
 .foot{
   margin-top:40px; padding-top:18px; border-top:1px solid var(--rule);
   font-size:11.5px; color:var(--faint); line-height:1.7;
@@ -442,22 +434,16 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
 
 <div class="wrap">
 
-  <section class="answer">
-    <p class="sub">
-      Every S&amp;P 500 company we can assess, ranked by how far its price
-      sits below its own recent average. Not a buy list — this gets you to
-      a short list, then you go and read about the business.
-    </p>
-  </section>
-
-  <section class="sect">
+  <section class="sect first">
     <div class="sect-head">
       <h2>The List</h2>
     </div>
     <p class="sect-lede">
-      Sorted by how far each price sits below its own average. Size is
-      sortable but never ranks the list — grouping by size would bury the
-      unfamiliar names this screen exists to surface.
+      Every S&amp;P 500 company we can assess, ranked by how far its price
+      sits below its own recent average. Quality comes from six gates on
+      audited annual filings, and the list shows high-quality names by
+      default — widen the filters to see the rest. Not a buy list: it gets
+      you to a short list, then you go and read about the business.
     </p>
 
     <div class="filters">
@@ -564,6 +550,7 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
       Not investment advice. This encodes one person's screening rules in
       software; it is not from a licensed advisor. Company figures from
       SEC filings; prices from Yahoo Finance.
+      <span class="built">Built 30 Aug 2026 05:54 UTC · 7fa639d</span>
     </div>
   </section>
 </div>

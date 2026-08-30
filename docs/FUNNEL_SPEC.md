@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.8 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.9 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,6 +45,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.9** | 30 Aug 2026 | **The page becomes one filterable table.** Every company Stage 1 assessed (470) is now a row; the quality gate and the 10% bar became filter DEFAULTS rather than a hard cut, so the default view is unchanged in spirit (14 rows) while nothing is hidden. **§6 principle 1 is REVERSED** — it required the page to open with an answer rather than filters — and §6 principle 7's dedicated ticker inspector is replaced by search, redundant once every ticker is a row. Both revisions are recorded in place rather than quietly dropped. Quality is shown as **high / medium / low / uncertain**; "uncertain" is CANNOT ASSESS, which is unmeasured rather than bad. Trend and pricing filters deliberately have NO defaults: a default is a claim, and defaulting those would assert "still falling is bad" and "not cheap is uninteresting", which §4.2 and principle 3 refuse. **REITs are absent from stages 2 and 3** as well as 1 — whatever Stage 1 did not run on, nothing downstream runs on either. **The headline is gone**: it was a claim that could not survive filters changing what is on screen. Plain-language column headings throughout (`% below usual`, `Price trend`, `Cheaper or pricier?`, `Size`, `Research`); the two moving-average columns merge. A per-row `+` replaces "click a row to see the working" and adds the `aria-expanded` the rows never had. Footer carries a GENERATED build stamp — v2.6 removed a hardcoded spec version for going stale, so this is the date and commit the page was actually built from. |
 | **v2.8** | 30 Aug 2026 | **Gate 6 added — revenue durability** (§3.14). Gates 1-5 test whether a business is sound; none tested whether it is shrinking, and 41 of 262 eligible (16%) were flat or shrinking while passing all five. It is not redundant (r = +0.14, +0.17, +0.06 against gates 2, 5, 4). Conditional on purpose: neither the 5-year CAGR nor the vs-3-year-average view works alone, and requiring both to be negative excludes every cyclical in the index while catching Nike, which CAGR misses entirely at −0.2%. Bar **1.00**, the company's own 3-year average; at 0.95 the gate rejected nobody, CHRW missing the fail line by four thousandths. Rejects CHRW, HPQ, TGT; marks nine more. **Borderline band stays at 15%** — 10% was measured across all 470 assessed companies and costs 9 eligible (CMS, D, DTE, GNRC, HUM, KEY, L, NOC, SO), concentrated in the regulated and leveraged sectors the tracks already accommodate, and would re-reject D and SO which the v2.7 part-year fix had just rescued. PASS is unchanged at 224 either way: the band's upper half has no tier consequence at all, so tightening it is a one-directional change to the rejection rule, not a symmetric one. **Stage 3 specified and reopened** (§5) — the spec's own revisit condition ("a lagging signal replaced by a current one") was met: quarterly filings are a median 60 days old against annual filings at 2-12 months, covering 260 of 262. Two checks — cheapness in earnings-yield POINTS, and operating income against the year-ago quarter. The v1.0 circularity objection to P/E is answered by measurement rather than waived. §4's stale "specified, not yet built" removed. |
 | **v2.7** | 29 Aug 2026 | **Part-year figures rejected.** A 10-K carries the quarters inside it as well as the year, and some filers tag those `fp=FY` too. `_pick` grouped facts by the year in their end-date and kept the newest-*filed* entry, so where a quarter and the year were filed the same day the tie broke on JSON ordering and the **quarter could win** — Accenture's return on assets read 2.7% instead of 12.4%, one quarter's profit over a full year's balance sheet. Duration facts must now span **350-380 days**. The error was one-directional (a part-year profit against a full-year balance sheet always understates), so it could only wrongly reject: D, SO, TKO and URI move up, none move down, eligible 258 to 262. The golden set could not guard this — not one of its seventeen anchors was affected — so `partial_years()` asserts on the data across the whole index (§3.17). **Interest as % of profit removed** from the five-year record: it was coverage inverted (share = 1/coverage), the only row where lower was better, and it carried no bar; the record's `bar` column now reads **`at least`**, which states the direction for every remaining row without per-row markers (§6.1). **Gate 4's label now follows the test that ran** — "Can cover its interest" where coverage was used, "Not overloaded with debt" where the equity/assets fallback was (§3.12). |
 | **v2.6** | 29 Aug 2026 | **REIT exclusion stated plainly.** The page said "all 500 constituents are tested", which was untrue — the gates never run on the 30 REITs, so the scan covers **470**. Both the page and §3.16 now say so, and a looked-up REIT explains why it was skipped. The spec had also described REITs as "a second watchlist, not an exclusion", which described an intention rather than the code; that track does not exist. Page footer trimmed of a hardcoded spec version that had already gone stale, plus gate and stage counts that mean nothing to a reader. |
@@ -1252,8 +1253,25 @@ both stages are built and validated.** This section records only the
 principles that constrain it, so that the interface is designed around
 real numbers rather than a guess.
 
-1. **The page reads as the funnel, top to bottom.** It opens with an
-   answer, not with filters. Filters are adjustment, not the product.
+1. **The page is one filterable table, and its DEFAULTS carry the
+   thesis.** *(Revised v2.9. Through v2.8 this principle read: "It opens
+   with an answer, not with filters. Filters are adjustment, not the
+   product." The page now opens with filters, and that reversal is
+   deliberate — recorded rather than quietly dropped.)*
+
+   Every company Stage 1 assessed is on the page; the quality gate and
+   the below-normal bar became filter DEFAULTS rather than a hard cut.
+   Nothing is hidden, and the separate ticker inspector is no longer
+   needed because every ticker is already present.
+
+   What keeps this from becoming a generic screener is that **a default
+   is a claim**. Two defaults are on: quality first, and only show what
+   has actually moved. Trend and pricing get filters but NO defaults,
+   because defaulting them would claim "still falling is bad" and "not
+   cheap is uninteresting" — judgements principle 3 and §4.2 refuse.
+   Measured: a trend default drops MNST, the biggest faller on the page;
+   a pricing default drops WMT, the fell-but-not-cheap case Stage 3
+   exists to surface.
 2. **Most days the answer is "nothing is far below normal."** That is a
    useful and honest answer, and the design must make it tolerable rather
    than treating it as an empty state to apologise for.
@@ -1290,10 +1308,16 @@ real numbers rather than a guess.
    and theirs starts.
 6. **CANNOT ASSESS is never merged into REJECTED.** No record and a bad
    record are different facts.
-7. **A ticker inspector is required.** Type any ticker, see exactly where
-   it stands in the funnel and why — including, and especially, the
-   rejected ones. This is what makes weeks of "nothing far below normal"
+7. **Any ticker must be answerable.** Every company Stage 1 assessed is
+   a row, so search filters the table rather than a separate inspector
+   answering one name at a time. Rejected companies are included, and
+   especially so. This is what makes weeks of "nothing far below normal"
    tolerable: the screen may be silent, but the tool never is.
+
+   *(Revised v2.9. Until then this was a dedicated lookup row, which
+   became redundant once the table held all 470.)* Whatever Stage 1 did
+   not run on, nothing downstream runs on either — so REITs are absent
+   entirely rather than appearing with a price and no verdict.
 8. **The tier is always visible.** A BORDERLINE name is never shown as a
    clean pass.
 

@@ -20,8 +20,11 @@ Most days the answer is none, and that is the correct answer.
 | **3 · Opportunity or warning** | Is it cheap, and is the business still intact? | Daily | SEC EDGAR (quarterly) |
 | **You** | Is it worth buying? | — | The links the tool hands you |
 
-Stage 1 is a **hard gate** — quality is a precondition, not a factor to
-trade off. Stage 2 is a percentage, not a verdict.
+Stage 1 is a **quality gate**, and the page defaults to showing only what
+clears it. It is a filter default rather than a hard cut: every assessed
+company is on the page and the filters open it up, because hiding a
+company answers no question a reader actually has. Stage 2 is a
+percentage, not a verdict.
 
 **Stage 3 was cancelled, then reopened on evidence.** The original
 design died because every candidate signal was circular, near-constant,
@@ -44,7 +47,8 @@ reorders, filters or scores it. See §5 of the spec.
 - **Stage 2 — built.** Two moving-average components blended as real
   percentages, with an absolute 10% bar so the honest answer on a calm
   day is an empty list. 13-check validation suite passing. Latest run:
-  **16 of 260 below normal**.
+  **14 high-quality companies more than 10% below their usual price**,
+  which is what the page shows by default.
 - **Stage 3 — built.** Two gates: cheapness against a company's own
   earnings-yield history over both 3 and 5 years, and operating income
   against the year-ago quarter. It annotates the ranking and never
@@ -68,7 +72,8 @@ export SEC_USER_AGENT="vantage you@example.com"
 .venv/bin/python tests/test_golden_set.py   # Stage 1 regression, ~20s
 .venv/bin/python tests/test_stage2.py       # Stage 2 validation, ~30s
 .venv/bin/python scripts/run_stage1.py      # quality gate, ~9 min
-.venv/bin/python scripts/run_stage2.py      # below-normal, ~1 min
+.venv/bin/python scripts/run_stage2.py      # below-normal, ~4 min
+.venv/bin/python scripts/run_stage3.py      # cheap or deteriorating, ~9 min
 .venv/bin/python scripts/build_site.py      # rebuild docs/index.html
 ```
 
@@ -79,9 +84,11 @@ funnel/stage1.py     the six quality gates, grading and tiers
 funnel/universe.py   S&P 500 constituents, sectors, track assignment
 funnel/prices.py     price history and the checks that gate publishing
 funnel/stage2.py     the below-normal figure and shape labels
+funnel/stage3.py     the two Stage 3 gates and the label they produce
 scripts/run_stage1.py  quality gate over the whole index
-scripts/run_stage2.py  below-normal over the whole index
-scripts/build_site.py  renders docs/index.html from the two result files
+scripts/run_stage2.py  below-normal over everything stage 1 assessed
+scripts/run_stage3.py  cheapness and quarterly profit, same coverage
+scripts/build_site.py  renders docs/index.html from the three result files
 site/template.html   the page layout, with placeholders
 docs/                what GitHub Pages serves
 tests/               golden-set regression + Stage 2 validation suite
