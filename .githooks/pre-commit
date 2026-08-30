@@ -40,6 +40,12 @@ risky=$(
   risk '^funnel/stage3\.py'  'docs/FUNNEL_SPEC.md §5 — the two Stage 3 gates'
   risk '^funnel/universe\.py' 'docs/FUNNEL_SPEC.md §2, §3.16 — universe and sector tracks'
   risk '^site/template\.html' 'docs/FUNNEL_SPEC.md §6 — interface principles'
+  risk '^site/template_simple' 'docs/FUNNEL_SPEC.md §6 principle 9 — the simple page'
+  # detail.js and detail.css are inlined into BOTH pages, so a change here
+  # lands on the detailed page and the simple one at once. They were added
+  # on 30 Aug and this map did not know about them, so the gate wording
+  # rewrite triggered no warning at all.
+  risk '^site/detail\.(js|css)' 'docs/FUNNEL_SPEC.md §6, §6.1 — the panel BOTH pages inline'
   risk '^scripts/build_site' 'docs/FUNNEL_SPEC.md §6 — what the page shows'
   risk '^\.github/workflows' 'README.md — how it runs'
 )
