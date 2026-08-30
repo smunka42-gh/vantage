@@ -125,7 +125,50 @@ tbody tr.row.open{background:var(--accent-soft)}
 .big{font-size:15px; font-weight:600; letter-spacing:-.01em}
 .dim{color:var(--muted)}
 
+col.c-qual{width:8%}
 col.c-read{width:15%}
+
+/* ---------- filters ---------- */
+.filters{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;
+  margin:0 0 16px;
+}
+#q{
+  font-family:var(--sans); font-size:13px; color:var(--ink);
+  background:var(--surface); border:1px solid var(--rule);
+  border-radius:3px; padding:6px 10px; min-width:210px;
+}
+#q:focus{outline:none; border-color:var(--accent)}
+.fgroup{display:flex; align-items:center; gap:6px}
+.flab{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); margin-right:2px;
+}
+/* Form, not colour. An active filter is filled; an inactive one is
+   outlined. Nothing here says whether a value is good. */
+.fgroup button{
+  font-family:var(--sans); font-size:12px; color:var(--muted);
+  background:transparent; border:1px solid var(--rule);
+  border-radius:11px; padding:3px 10px; cursor:pointer;
+}
+.fgroup button:hover{border-color:var(--muted)}
+.fgroup button.on{
+  background:var(--ink); border-color:var(--ink); color:var(--surface);
+}
+.reset{
+  font-family:var(--sans); font-size:12px; color:var(--muted);
+  background:none; border:0; cursor:pointer; text-decoration:underline;
+  text-underline-offset:3px; padding:3px 2px;
+}
+.shown{
+  font-family:var(--mono); font-size:11px; color:var(--faint);
+  margin-left:auto;
+}
+
+/* quality, stated as a word — never colour-coded good or bad */
+.qual{font-size:12px; color:var(--muted)}
+.qual.q-high{color:var(--ink); font-weight:500}
+.qual.q-uncertain{font-style:italic}
 /* Stage 3's read. Form, not colour: an outline marks the fact that
    profit fell, and says nothing about whether that is good or bad. */
 .read{
@@ -379,22 +422,16 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
 <div class="wrap">
 
   <header class="mast">
-    <div class="mark">Vantage</div>
+    <h1 class="mark">Vantage</h1>
     <div class="meta">S&amp;P 500 · last close {{ASOF}} · filings via SEC EDGAR</div>
   </header>
 
   <section class="answer">
-    <div class="eyebrow">Today</div>
-    <h1 class="headline">
-      <b>{{COUNT}}</b> {{NOUN}} worth owning {{VERB}} trading more than
-      <b>{{BAR}}%</b> below their own normal
-    </h1>
     <p class="sub">
-      Ranked by how far each has moved from where it usually trades. Not a
-      buy list — the funnel gets you to the short list, then you go and read
-      about the business.
+      Every S&amp;P 500 company we can assess, ranked by how far its price
+      sits below its own recent average. Not a buy list — this gets you to
+      a short list, then you go and read about the business.
     </p>
-
   </section>
 
   <section class="sect">
@@ -403,45 +440,73 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
       <div class="note">Click a row to see the working</div>
     </div>
     <p class="sect-lede">
-      Sorted by how far below normal. Market cap is sortable but never ranks
-      the list — grouping by size would bury the unfamiliar names this screen
-      exists to surface.
+      Sorted by how far each price sits below its own average. Size is
+      sortable but never ranks the list — grouping by size would bury the
+      unfamiliar names this screen exists to surface.
     </p>
+
+    <div class="filters">
+      <input id="q" type="search" placeholder="Search ticker or company"
+             autocomplete="off" spellcheck="false" aria-label="Search">
+      <div class="fgroup" data-f="q">
+        <span class="flab">Quality</span>
+        <button data-v="high" class="on">high</button
+        ><button data-v="medium">medium</button
+        ><button data-v="low">low</button
+        ><button data-v="uncertain">uncertain</button>
+      </div>
+      <div class="fgroup" data-f="bar">
+        <span class="flab">Price</span>
+        <button data-v="bar" class="on">{{BAR}}%+ below usual</button>
+      </div>
+      <div class="fgroup" data-f="sh">
+        <span class="flab">Trend</span>
+        <button data-v="falling now">falling now</button
+        ><button data-v="fell, now flat">now flat</button
+        ><button data-v="fell, now rising">now rising</button>
+      </div>
+      <div class="fgroup" data-f="s3">
+        <span class="flab">Priced</span>
+        <button data-v="cheaper">cheaper</button
+        ><button data-v="about as usual">about as usual</button
+        ><button data-v="pricier">pricier</button
+        ><button data-v="profit falling">profit falling</button>
+      </div>
+      <div class="fgroup" data-f="z">
+        <span class="flab">Size</span>
+        <button data-v="over $80bn">over $80bn</button
+        ><button data-v="$28-80bn">$28&#8211;80bn</button
+        ><button data-v="under $28bn">under $28bn</button>
+      </div>
+      <button id="reset" class="reset">reset</button>
+      <span id="shown" class="shown"></span>
+    </div>
+
+    <div class="quiet" id="empty" hidden>
+      <div class="q1">Nothing matches these filters.</div>
+      <div class="q2">Widen them, or reset to start again.</div>
+    </div>
 
     <div class="scroller">
       <table id="tbl">
         <colgroup>
-          <col class="c-name"><col class="c-main"><col class="c-cap">
-          <col class="c-ma"><col class="c-ma"><col class="c-shape">
+          <col class="c-name"><col class="c-qual"><col class="c-main">
+          <col class="c-cap"><col class="c-ma"><col class="c-shape">
           <col class="c-read"><col class="c-links">
         </colgroup>
         <thead>
           <tr>
             <th class="l sortable" data-k="t">Company<span class="caret">↓</span></th>
-            <th class="sortable" data-k="b" aria-sort="descending">Below normal<span class="caret">↓</span></th>
-            <th class="sortable" data-k="c">Market cap<span class="caret">↓</span></th>
-            <th>200-day</th>
-            <th>50-day</th>
-            <th>Shape</th>
-            <th>Own history</th>
-            <th>External links</th>
+            <th class="sortable" data-k="q">Quality<span class="caret">↓</span></th>
+            <th class="sortable" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
+            <th class="sortable" data-k="c">Size<span class="caret">↓</span></th>
+            <th>vs 10m / 2m avg</th>
+            <th>Price trend</th>
+            <th>Cheaper or pricier?</th>
+            <th>Research</th>
           </tr>
         </thead>
-        <tbody id="lookup">
-          <tr class="row lk" tabindex="0">
-            <td class="l"><input id="tk" type="text" autocomplete="off"
-                 spellcheck="false" maxlength="6"
-                 placeholder="Type any S&amp;P 500 ticker" aria-label="Look up a ticker"></td>
-            <td class="big lk-b">—</td>
-            <td class="dim lk-c">—</td>
-            <td class="dim lk-m2">—</td>
-            <td class="dim lk-m5">—</td>
-            <td class="lk-sh">—</td>
-            <td class="lk-read">—</td>
-            <td class="lk-lk">—</td>
-          </tr>
-          <tr class="detail lk-detail" hidden><td colspan="8"></td></tr>
-        </tbody>
+
         <tbody id="body"></tbody>
       </table>
     </div>
@@ -450,27 +515,34 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
   <section class="notes">
     <h3>How to read this</h3>
     <div class="note-grid">
-      <p><b>Below normal</b> measures price against its own price history —
-        how far it has moved from where it usually trades. It is not a
-        discount: a business worth 40% less, priced 40% lower, reads exactly
-        like an unchanged business priced 40% lower.</p>
-      <p><b>Shape</b> dates the fall. The 50-day average catches up to a new
-        price level in about two months; the 200-day takes a year. Both gaps
-        wide means it is happening now; only the 200-day wide means it
+      <p><b>% below usual</b> measures a price against its own recent
+        history — how far it sits below the average it has traded at. It is
+        NOT a discount: a business worth 40% less, priced 40% lower, reads
+        exactly like an unchanged business priced 40% lower.</p>
+      <p><b>Quality</b> is this year's verdict from six gates on audited
+        annual filings — profit, returns, cash, debt, margins, revenue.
+        <b>Uncertain</b> is not a bad score: it means too little filing
+        history to judge at all.</p>
+      <p><b>vs 10m / 2m avg</b> are the two figures the main number is
+        built from. The 2-month average catches up to a new price level in
+        about two months; the 10-month one takes far longer. Both wide
+        means the fall is happening now; only the 10-month wide means it
         happened months ago.</p>
-      <p><b>Closest to failing</b> is the one fact no finance site can give
-        you, because it exists only relative to our own bars. {{ATRISK}}
-        of this list {{ATRISK_VERB}} grazing a gate.</p>
-      <p><b>Where this list comes from.</b> The S&amp;P 500 holds
+      <p><b>Cheaper or pricier</b> compares today's price against what the
+        company's own earnings have historically cost — not against other
+        companies. A price can fall a long way and still be pricier than
+        this company usually is.</p>
+      <p><b>Where these come from.</b> The S&amp;P 500 holds
         {{UNIVERSE}} companies, of which <b>{{REITS}} are REITs</b> —
         property trusts, excluded because the quality gates measure things
         that do not apply to them. The remaining {{TESTED}} are tested
-        against five gates on audited SEC filings; {{ELIGIBLE}} clear
-        every one. Of those, {{COUNT}} {{VERB}} currently more than
-        {{BAR}}% below their own normal.</p>
-      <p><b>Filed through</b> says where our knowledge stops. The quality
-        gate reads annual filings, so a verdict can be two to twelve months
-        old — everything since is yours to check.</p>
+        against six gates on audited SEC filings; {{ELIGIBLE}} clear every
+        one. {{COUNT}} of those {{VERB}} currently more than {{BAR}}% below
+        their usual price, which is what the page shows by default.</p>
+      <p><b>How current this is.</b> The quality gates read ANNUAL filings,
+        so a verdict can be two to twelve months old. Prices are from the
+        last close. The quarterly figures behind "cheaper or pricier" carry
+        their own date inside each row.</p>
     </div>
     <div class="foot">
       Not investment advice. This encodes one person's screening rules in
@@ -481,12 +553,12 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
 </div>
 
 <script>
+const BAR={{BAR}};   // the price filter's threshold, from the spec
 const ROWS={{ROWS}};
 // Every S&P 500 company, so the lookup can answer instantly and offline.
 // A static page cannot fetch live — SEC EDGAR and Yahoo both refuse
 // cross-origin browser requests — so the answer has to already be here.
-const ALL={{ALL}};
-const BY_TICKER = Object.fromEntries(ALL.map(r => [r.t, r]));
+const BY_TICKER = Object.fromEntries(ROWS.map(r => [r.t, r]));
 const fmtCap=c=>c==null?"—":(c>=1000?(c/1000).toFixed(2)+"T":c.toFixed(1)+"B");
 const body=document.getElementById("body");
 let sortKey="b",sortDir=-1;
@@ -780,21 +852,91 @@ function detail(r){
   </div>`;
 }
 
+// Filter state. Two defaults, and both are CLAIMS the project already
+// makes: quality comes first, and only show what has actually moved.
+// Trend and pricing get filters but NO defaults — defaulting those would
+// claim "still falling is bad" and "not cheap is uninteresting", and §6
+// refuses both. Measured: a trend default drops MNST, the biggest faller
+// on the page; a pricing default drops WMT, the fell-but-not-cheap case
+// Stage 3 exists to surface.
+const F = {q:new Set(["high"]), bar:true, sh:new Set(), s3:new Set(), z:new Set(), text:""};
+
+function passes(r){
+  if(F.q.size && !F.q.has(r.q)) return false;
+  if(F.bar && !(r.b != null && r.b >= BAR)) return false;
+  if(F.sh.size && !F.sh.has(r.sh)) return false;
+  if(F.z.size && !F.z.has(r.z)) return false;
+  if(F.s3.size){
+    const l = (r.s3 && r.s3.l) || "";
+    let hit = false;
+    for(const v of F.s3){
+      if(v === "profit falling") hit = hit || /profit falling/.test(l);
+      else hit = hit || l.startsWith(v === "about as usual" ? "priced about as usual"
+                                   : v === "cheaper" ? "cheaper" : "pricier");
+    }
+    if(!hit) return false;
+  }
+  if(F.text){
+    const t = F.text.toLowerCase();
+    if(!((r.t||"").toLowerCase().includes(t) || (r.n||"").toLowerCase().includes(t)))
+      return false;
+  }
+  return true;
+}
+
+function wireFilters(){
+  document.querySelectorAll(".fgroup").forEach(g => {
+    const key = g.dataset.f;
+    g.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+      if(key === "bar"){ F.bar = !F.bar; b.classList.toggle("on", F.bar); }
+      else {
+        const v = b.dataset.v;
+        F[key].has(v) ? F[key].delete(v) : F[key].add(v);
+        b.classList.toggle("on", F[key].has(v));
+      }
+      render();
+    }));
+  });
+  const q = document.getElementById("q");
+  let t;
+  q.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(() => { F.text = q.value.trim(); render(); }, 120);
+  });
+  document.getElementById("reset").addEventListener("click", () => {
+    F.q = new Set(["high"]); F.bar = true;
+    F.sh.clear(); F.s3.clear(); F.z.clear(); F.text = "";
+    q.value = "";
+    document.querySelectorAll(".fgroup button").forEach(b =>
+      b.classList.toggle("on", b.dataset.v === "high" || b.dataset.v === "bar"));
+    render();
+  });
+}
+
 function render(){
   // The quiet-day state is BEHAVIOUR, not an illustration. It replaces the
   // table rather than sitting beside it — the two are mutually exclusive,
   // and showing both at once contradicted the headline.
-  if(ROWS.length===0){
-    document.querySelector(".scroller").innerHTML =
-      `<div class="quiet">
-         <div class="q1">Nothing is more than 10% below normal today.</div>
-         <div class="q2">Every company worth owning is trading close to where
-           it usually does. Nothing to look at today.</div>
-       </div>`;
-    document.querySelector(".sect-head .note").textContent = "";
+  const kept = ROWS.filter(passes);
+  const shown = document.getElementById("shown");
+  if(shown) shown.textContent = `${kept.length} of ${ROWS.length}`;
+
+  // The empty state TOGGLES a sibling; it must never replace the
+  // scroller's contents. Doing that destroyed <tbody id="body">, and
+  // since a filter can return to non-zero, every later render then wrote
+  // into an element that no longer existed. It was safe only while the
+  // empty case was static and unreachable.
+  const empty = document.getElementById("empty");
+  empty.hidden = kept.length !== 0;
+  document.querySelector(".scroller").hidden = kept.length === 0;
+  if(kept.length === 0){
+    // Clear as well as hide. Hiding alone left the previous rows in the
+    // DOM, where a screen reader would still announce them under a
+    // message saying nothing matched.
+    document.getElementById("body").innerHTML = "";
     return;
   }
-  const rows=[...ROWS].sort((x,y)=>{
+  const rows=[...kept].sort((x,y)=>{
     const a=x[sortKey],b=y[sortKey];
     if(a==null)return 1; if(b==null)return -1;
     return (typeof a==="string"?a.localeCompare(b):a-b)*sortDir;
@@ -803,15 +945,15 @@ function render(){
     <tr class="row" data-i="${i}" tabindex="0">
       <td class="l"><div class="tkr">${r.t}${r.ar?'<span class="flag">AT RISK</span>':""}</div>
         <div class="co">${r.n}</div></td>
-      <td class="big">${r.b.toFixed(1)}%</td>
-      <td class="dim">$${fmtCap(r.c)}</td>
-      <td class="dim">${r.m2.toFixed(1)}%</td>
-      <td class="dim">${r.m5.toFixed(1)}%</td>
-      <td><span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span></td>
+      <td><span class="qual q-${r.q||"na"}">${r.q||"—"}</span></td>
+      <td class="big">${r.b==null?"—":r.b.toFixed(1)+"%"}</td>
+      <td class="dim">${r.c==null?"—":"$"+fmtCap(r.c)}</td>
+      <td class="dim">${r.m2==null?"—":r.m2.toFixed(1)+"% / "+r.m5.toFixed(1)+"%"}</td>
+      <td>${!r.sh?"—":`<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`}</td>
       <td>${readCell(r)}</td>
       <td><span class="rowlinks">
-        <a href="${r.y}" target="_blank" rel="noopener" title="Yahoo Finance">Yahoo</a>
-        ${r.g?`<a href="${r.g}" target="_blank" rel="noopener" title="Google Finance">Google</a>`:""}
+        ${r.y?`<a href="${r.y}" target="_blank" rel="noopener">Yahoo</a>`:""}
+        ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google</a>`:""}
       </span></td>
     </tr>
     <tr class="detail" hidden><td colspan="8">${detail(r)}</td></tr>`).join("");
@@ -829,66 +971,7 @@ function render(){
     });
   });
 }
-// ---------- the lookup row ----------
-(function(){
-  const input = document.getElementById("tk");
-  const row   = input.closest("tr");
-  const det   = row.nextElementSibling;
-  const cell  = c => row.querySelector(c);
 
-  const blank = () => {
-    for (const c of [".lk-b",".lk-c",".lk-m2",".lk-m5",".lk-sh",".lk-lk"])
-      cell(c).innerHTML = "—";
-    det.hidden = true; row.classList.remove("open");
-    det.firstElementChild.innerHTML = "";
-    row.dataset.found = "";
-  };
-
-  const message = txt => {
-    blank();
-    cell(".lk-b").innerHTML = `<span class="lk-msg">${txt}</span>`;
-    cell(".lk-b").setAttribute("colspan","0");
-  };
-
-  function show(r){
-    row.dataset.found = r.t;
-    // A looked-up company may not be on the list, so say which tier it is
-    cell(".lk-b").innerHTML = r.b == null
-      ? `<span class="lk-msg">no price data</span>`
-      : `${r.b.toFixed(1)}%`;
-    cell(".lk-c").textContent  = r.c == null ? "—" : "$" + fmtCap(r.c);
-    cell(".lk-m2").textContent = r.m2 == null ? "—" : r.m2.toFixed(1) + "%";
-    cell(".lk-m5").textContent = r.m5 == null ? "—" : r.m5.toFixed(1) + "%";
-    cell(".lk-read").innerHTML = readCell(r) || "—";
-    cell(".lk-sh").innerHTML   = r.sh
-      ? `<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`
-      : `<span class="tierbadge">${r.tier || "—"}</span>`;
-    cell(".lk-lk").innerHTML = r.y
-      ? `<span class="rowlinks">
-           <a href="${r.y}" target="_blank" rel="noopener">Yahoo</a>
-           ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google</a>`:""}
-         </span>` : "—";
-    cell(".lk-lk").querySelectorAll("a").forEach(a =>
-      a.addEventListener("click", e => e.stopPropagation()));
-    det.firstElementChild.innerHTML = detail(r);
-    det.hidden = false; row.classList.add("open");
-  }
-
-  const lookup = () => {
-    const q = input.value.trim().toUpperCase().replace(/\s+/g,"");
-    if (!q) return blank();
-    const r = BY_TICKER[q] || BY_TICKER[q.replace(".","-")];
-    r ? show(r) : message(`${q} is not in the S&P 500`);
-  };
-
-  input.addEventListener("input", lookup);
-  input.addEventListener("click", e => e.stopPropagation());
-  // clicking the row toggles the detail, as it does for every other row
-  row.addEventListener("click", () => {
-    if (!row.dataset.found) return input.focus();
-    det.hidden = !det.hidden; row.classList.toggle("open", !det.hidden);
-  });
-})();
 
 document.querySelectorAll("th.sortable").forEach(th=>{
   th.addEventListener("click",()=>{
@@ -900,6 +983,7 @@ document.querySelectorAll("th.sortable").forEach(th=>{
     render();
   });
 });
+wireFilters();
 render();
 // open Nike by default so the working is visible on arrival
 

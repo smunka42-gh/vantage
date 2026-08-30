@@ -33,6 +33,12 @@ SCAN = ROOT / "docs/scan.json"
 
 ELIGIBLE_TIERS = {"PASS", "BORDERLINE"}
 
+# The reader-facing name for a Stage 1 tier. "uncertain" is deliberate:
+# CANNOT ASSESS means the funnel could not measure the company, which is
+# not a quality verdict and must not read as one.
+QUALITY = {"PASS": "high", "BORDERLINE": "medium",
+           "REJECTED": "low", "CANNOT ASSESS": "uncertain"}
+
 
 def build() -> int:
     for f in (STAGE1, STAGE2, TEMPLATE):
@@ -104,6 +110,21 @@ def build() -> int:
                           "vs its own median"]]})
         return {"groups": groups} if groups else None
 
+    def _size_of(cap):
+        """Size bucket, labelled by its RANGE rather than large/mid/small.
+
+        Measured across the index: 86% of the S&P 500 is "large cap" by
+        conventional thresholds and there are NO small caps — the
+        smallest company is $6.4bn. Conventional labels would put almost
+        everything in one bucket, and index-relative ones would call a
+        $20bn company "small cap", which is wrong by any market reading.
+        The ranges say what they mean and need no convention.
+        """
+        if not cap:
+            return None
+        bn = cap / 1e9
+        return "over $80bn" if bn > 80 else "$28-80bn" if bn >= 28 else "under $28bn"
+
     def _stage3_for(t):
         """Stage 3's label and the evidence behind it.
 
@@ -170,26 +191,34 @@ def build() -> int:
             "gt": [[g["gate"], g["grade"], g["detail"]] for g in a.get("gates", [])],
             "sr": _series_for(t, a),
             "s3": _stage3_for(t),
+            "q": QUALITY.get(a.get("tier")),
+            "z": _size_of(r.get("market_cap")),
         }
 
-    # The ranked list: only what clears the bar.
-    rows = [pack(t, r, s1.get(t, {})) for t, r in s2.items()
-            if r.get("far_below_normal") and r.get("eligible")]
-    rows.sort(key=lambda x: -x["b"])
-
-    # Every company, for the lookup. A static page cannot fetch live —
-    # SEC and Yahoo both block cross-origin browser requests — so the
-    # answer has to already be here. It compresses to a few KB.
-    everything = sorted(
-        (pack(t, s2.get(t, {}), a) for t, a in s1.items()),
-        key=lambda x: x["t"])
+    # ONE list: every company Stage 1 assessed, ranked by how far below its
+    # own usual price it trades. The page filters this rather than the
+    # build pre-selecting — the 10% bar and the quality gate are now
+    # filter DEFAULTS, not a hard cut, so nothing is hidden and the
+    # separate ticker-lookup row is no longer needed.
+    #
+    # A static page cannot fetch live (SEC and Yahoo both block
+    # cross-origin browser requests), so every answer has to already be
+    # here. It compresses well.
+    rows = [pack(t, s2.get(t, {}), a) for t, a in s1.items()
+            if not (a.get("tier") or "").startswith("REIT")]
+    rows.sort(key=lambda x: (x["b"] is None, -(x["b"] or 0)))
 
     eligible = sum(1 for r in s1.values() if r["tier"] in ELIGIBLE_TIERS)
     # The gates never run on REITs, so "all 500 are tested" was untrue
     reits = sum(1 for r in s1.values()
                 if str(r.get("tier", "")).startswith("REIT"))
-    n = len(rows)
-    n_risk = sum(1 for r in rows if r["ar"])
+    # The table now holds every assessed company and the page filters it,
+    # so these describe the DEFAULT VIEW — high quality, at least the bar
+    # below its usual price — not the whole table.
+    default_view = [r for r in rows
+                    if r["q"] == "high" and (r["b"] or 0) >= stage2.BELOW_NORMAL_BAR * 100]
+    n = len(default_view)
+    n_risk = sum(1 for r in default_view if r["ar"])
     as_of = next((r.get("as_of") for r in s2.values() if r.get("as_of")), None)
     as_of_txt = (dt.date.fromisoformat(as_of).strftime("%a %-d %b %Y")
                  if as_of else "unknown")
@@ -197,18 +226,14 @@ def build() -> int:
     page = TEMPLATE.read_text()
     for k, v in {
         "ROWS": json.dumps(rows, separators=(",", ":")),
-        "ALL": json.dumps(everything, separators=(",", ":")),
         "COUNT": str(n),
         # the page must read correctly when the answer is 1, or 0
-        "NOUN": "company" if n == 1 else "companies",
         "VERB": "is" if n == 1 else "are",
         "BAR": f"{stage2.BELOW_NORMAL_BAR:.0%}".rstrip("%"),
         "ELIGIBLE": str(eligible),
         "UNIVERSE": str(len(s1)),
         "REITS": str(reits),
         "TESTED": str(len(s1) - reits),
-        "ATRISK": {0: "None", 1: "One"}.get(n_risk, str(n_risk)),
-        "ATRISK_VERB": "is" if n_risk == 1 else "are",
         "ASOF": as_of_txt,
         "TODAY": dt.date.today().isoformat(),
     }.items():
