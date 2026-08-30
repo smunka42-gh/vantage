@@ -101,6 +101,17 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
 .chip:hover{border-color:var(--accent); color:var(--accent)}
 .chip.on{background:var(--ink); border-color:var(--ink); color:var(--ground)}
 .count{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--muted)}
+/* Prominent, but only while it can do something. At the default view it
+   is inert and says so; the moment a filter or the sort differs it takes
+   the accent and becomes the obvious way back. Seven control groups with
+   no way back is a trap for the reader this page is written for. */
+.resetb{font:inherit; font-size:12.5px; font-weight:500; padding:5px 14px;
+        border-radius:12px; cursor:pointer; margin-left:auto;
+        border:1px solid var(--accent); background:var(--accent); color:#fff}
+.resetb:hover{background:var(--accent-ink); border-color:var(--accent-ink)}
+.resetb[disabled]{background:transparent; border-color:var(--rule-strong);
+                  color:var(--faint); cursor:default}
+.fsort .count{margin-left:14px}
 
 /* NOT .card — detail.js uses that name for the boxes inside the expanded
    panel, and a bare .card here styled those as clickable company cards
@@ -235,6 +246,7 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
     <button class="chip on" data-s="b">furthest below usual</button>
     <button class="chip" data-s="c">biggest company</button>
     <button class="chip" data-s="n">A–Z</button>
+    <button class="resetb" id="resetBtn" disabled>Reset</button>
     <span class="count" id="shown"></span></div>
 </section>
 
@@ -365,6 +377,26 @@ function cardHtml(r,i){
   </div>`;
 }
 
+/* The default view is a CLAIM the page makes (§6 principle 1), so this is
+   what "reset" returns to — not an empty filter set. */
+const DEFAULTS={q:["high"], bar:true, z:[], sh:[], s3:[], sort:"b"};
+function atDefault(){
+  return F.bar===DEFAULTS.bar && SORT===DEFAULTS.sort
+      && F.z.size===0 && F.sh.size===0 && F.s3.size===0
+      && F.q.size===1 && F.q.has("high");
+}
+function resetAll(){
+  F.q=new Set(DEFAULTS.q); F.bar=true;
+  F.z.clear(); F.sh.clear(); F.s3.clear();
+  SORT=DEFAULTS.sort;
+  document.querySelectorAll(".chip[data-f]").forEach(b=>
+    b.classList.toggle("on", b.dataset.f==="q" && b.dataset.v==="high"));
+  document.getElementById("barChip").classList.add("on");
+  document.querySelectorAll(".chip[data-s]").forEach(b=>
+    b.classList.toggle("on", b.dataset.s===DEFAULTS.sort));
+  draw();
+}
+
 function draw(){
   const list=ordered();
   const el=document.getElementById("cards");
@@ -375,6 +407,9 @@ function draw(){
         it stays quiet until something moves. Widen a filter to see the rest.</p></div>`;
   document.getElementById("shown").textContent =
     `${list.length} of ${ROWS.length} shown`;
+  const rb=document.getElementById("resetBtn");
+  rb.disabled = atDefault();
+  rb.textContent = rb.disabled ? "Showing the default view" : "Reset to default view";
   el.querySelectorAll(".co-card").forEach(c=>{
     // A click inside the expanded panel must not close it. The whole card
     // is the toggle, so without this a reader who clicks anything while
@@ -400,6 +435,7 @@ document.querySelectorAll(".chip[data-s]").forEach(b=>b.addEventListener("click"
 document.getElementById("barChip").addEventListener("click",function(){
   F.bar=!F.bar; this.classList.toggle("on",F.bar); draw();
 });
+document.getElementById("resetBtn").addEventListener("click",resetAll);
 draw();
 </script>
 </body>
