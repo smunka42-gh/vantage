@@ -11,6 +11,17 @@ on:
     # gate below decides which one actually scans.
     - cron: "0 21 * * 1-5"    # 17:00 America/New_York while EDT
     - cron: "0 22 * * 1-5"    # 17:00 America/New_York while EST
+    # TEMPORARY PROBE — added 30 Aug 2026 10:50 UTC, REMOVE BY 31 Aug 2026.
+    # The daily schedule has never been observed to fire on its own; every
+    # run so far came from a manual dispatch. An earlier */10 probe saw
+    # nothing in 33 minutes, which is too short to tell "never fires" from
+    # "fires late" — GitHub delays scheduled runs under load.
+    #
+    # This is cheap to leave running: the gate below is state-based, so a
+    # firing on a day already scanned exits in seconds without touching
+    # EDGAR. What it proves is the only thing in question — whether GitHub
+    # triggers this workflow at all.
+    - cron: "*/15 * * * *"
   workflow_dispatch:          # manual run from the Actions tab
 
 permissions:
