@@ -1,6 +1,17 @@
 # Vantage
 
-**[smunka42-gh.github.io/vantage](https://smunka42-gh.github.io/vantage/)**
+**Two ways in, one scan behind both:**
+
+| | |
+|---|---|
+| **[/vantage/](https://smunka42-gh.github.io/vantage/)** | the detailed table — every company a row, nine columns, sortable |
+| **[/vantage/simple/](https://smunka42-gh.github.io/vantage/simple/)** | one readable sentence per company, for a reader without a trading background |
+
+Neither is a reduced version of the other. They are rendered by the same
+build from the same scan, and the expanded panel — every gate, the
+five-year record, the 52-week scale — is one implementation inlined into
+both, so they cannot drift apart. What differs is the way in, not the
+depth.
 
 Finds durably high-quality companies that are trading well below where
 they usually trade, and hands you the short list plus links to go read
@@ -54,9 +65,11 @@ reorders, filters or scores it. See §5 of the spec.
   against the year-ago quarter. It annotates the ranking and never
   reorders it. Latest run: **14 of 260 show profit falling**, two of them
   on the published list. See spec §5.
-- **UI — built and published.** A static page rebuilt by the daily
-  scan, served by GitHub Pages at the link above. Every constituent is
-  embedded, so any ticker can be looked up, not only the ranked ones.
+- **UI — built and published.** Two static pages rebuilt by the daily
+  scan and served by GitHub Pages, at the links above. Every constituent
+  is embedded in both, so any ticker can be looked up, not only the
+  ranked ones. `/simple/` opens with the funnel and one statement per
+  company; `/` opens with the full table.
 
 ## Running it
 

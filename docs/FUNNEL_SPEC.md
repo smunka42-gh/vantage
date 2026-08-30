@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.20 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.21 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -25,13 +25,25 @@ doesn't. Full text and the evidence behind each is in
 
 ## What this version is
 
-Both stages are built and running — Stage 1 against live SEC EDGAR
-filings with a 17-company regression test plus a data-recency assertion,
-Stage 2 against daily prices with a 13-check validation suite. There is
-no Stage 3; section 5 records what it would have been and why it was
-removed. The result is published at
-**[smunka42-gh.github.io/vantage](https://smunka42-gh.github.io/vantage/)**,
-regenerated from each scan.
+All three stages are built and running — Stage 1 against live SEC EDGAR
+filings with a 17-company regression test, a data-recency assertion and a
+unit test that a quarter can never pass as a year; Stage 2 against daily
+prices with a 13-check validation suite; Stage 3 against quarterly
+filings, annotating the ranking without reordering it. §5.1 keeps the
+record of why Stage 3 was cancelled in v1.0 and §5.2 why that decision
+was reopened.
+
+The result is published as **two pages over one scan**, regenerated from
+each run:
+
+- **[/vantage/](https://smunka42-gh.github.io/vantage/)** — the detailed
+  table, every company a row.
+- **[/vantage/simple/](https://smunka42-gh.github.io/vantage/simple/)** —
+  one readable sentence per company, for a reader without a trading
+  background (§6 principle 9).
+
+Neither withholds anything from the other: the expanded panel is one
+implementation inlined into both.
 
 Corrections forced by real data: the original returns bar excluded Amazon
 and Costco; the margin test was unrunnable on 13 of the 20 largest
@@ -45,6 +57,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.21** | 30 Aug 2026 | **"What this version is" was two versions stale and said so in the present tense** — *"Both stages are built"* and *"There is no Stage 3"*, thirteen versions after Stage 3 shipped in v2.8. It also pointed only at the detailed page. Rewritten, and both pages are now named here and in the README. The doc-currency test did not catch it: it checks counts, gate numbers and placeholders, not prose about which stages exist. Worth knowing about the guard's shape — it catches numbers that drift, not sentences that were true once. Also teaches the pre-commit risk map about `site/detail.js`, `site/detail.css` and `site/template_simple.html`, added earlier today: the panel is inlined into BOTH pages, so a change there is the most warning-worthy kind, and it was triggering nothing. |
 | **v2.20** | 30 Aug 2026 | **A page that has quietly stopped updating now fails something.** Measured 30 Aug: GitHub fires the schedule but unreliably — one firing in ~22 opportunities, 4h 18m late. A single miss is harmless (16.5h of slack before the next open, and the state gate keeps a late run correct), but consecutive silent days would leave the page stale behind a green tick, because a run that never happens cannot fail. Two guards, both keyed on `scan.json`'s `generated_utc`: the doc-currency test fails locally, and an **ungated** final workflow step fails on any firing — including one that skipped the scan, which is the state this failure actually produces. **Five days, not three**: the workflow commits only when the page changes, so a market holiday produces no commit, and Thu→Tue closures make 5 the longest real gap. Three would fire every ordinary weekend, which is how a check earns being ignored. Verified at 3, 5, 6 and 9 days. **What neither catches**: a period where the workflow never fires at all — nothing inside GitHub can, and that needs an external check. |
 | **v2.19** | 30 Aug 2026 | **Every gate detail is now written for a reader**, on both pages — the wording lives in the shared `site/detail.js`. Measured before: **628 of them reached the reader as backend strings**; after: none. Gate 6 had no `plain()` case and no `GATE_LABEL` entry at all, so ~470 companies showed *"revenue grew 10.6% a year over 5y (2021-2025)"* raw. Four more shapes fell through their regexes: **negative** cumulative cash flow (`$-1.1B`, which assumed a `+`), **negative** operating margin (EchoStar's −118.1%), four-year windows, and `operating cash (no capex tag)`. **Labels no longer assert over a check that never ran**: where the filings contain nothing to measure, the label drops to a neutral topic — *Profit record*, *Debt*, *Sales growth* — instead of *"Profitable every year"* above *"insufficient history"*. §3.5 already said CANNOT ASSESS is not REJECTED; the wording now says it too. **The REIT note is deleted as dead code** — REITs are excluded from the page entirely (§6 principle 7), so no row could ever reach it. The build stamp now says why staleness matters rather than printing a bare timestamp. |
 | **v2.18** | 30 Aug 2026 | **`/simple/` carries the same six filters as the detailed page**, laid out side by side in a three-column grid rather than stacked. It shipped with three of them removed on the argument that a fourteen-row list states each one on the face of every card; laid out horizontally the whole set costs 211px, so the argument for dropping them was really an argument about vertical space. Sorting sits below a rule, separated from the filters, because it changes the ORDER and never the membership. **`passes()` is now identical on both pages** and reads the same stored fields — `r.z`, `r.sh`, `r.s3.l`. The simple page had been deriving size from market cap itself, which would have drifted the moment a boundary moved. |
