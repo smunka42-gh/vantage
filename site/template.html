@@ -210,6 +210,18 @@ tr.detail > td{
 /* Each part of the working sits in its own bordered card, so the eye can
    tell "why it qualifies" from "how the number was reached" without
    reading the headings. */
+/* A stage groups several boxes under one question. The heading sits
+   OUTSIDE the boxes so the question reads as a section, not a card. */
+.stage{margin-bottom:26px}
+.stage:last-of-type{margin-bottom:0}
+.stage-h{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink); font-weight:600;
+  margin:0 0 10px;
+}
+.stage .card{margin-bottom:10px}
+.stage .card:last-child{margin-bottom:0}
+
 .card{
   background:var(--surface); border:1px solid var(--rule);
   border-radius:3px; padding:18px 20px 20px; margin-bottom:14px;
@@ -714,42 +726,49 @@ function detail(r){
   // stage asks. Before this, Stage 2's two cards sat at opposite ends of
   // the panel with four unrelated cards between them, and only the
   // five-year record named its stages at all.
-  const stage1 = (gates || recFor(1)) ? `<div class="card">
-      <h4>Stage 1 — would I ever want to own this?</h4>
-      <p class="pillars">${H}. Six gates, one per pillar, in this order:
-        <b>profit</b>, <b>returns</b>, <b>cash</b>, <b>debt</b>,
-        <b>margins</b>, <b>revenue</b>.</p>
-      ${gates}
-      ${recFor(1)}
-      ${!r.pe ? "" : `<p class="stale">These gates read the last annual
-        report, covering the year to <b>${ended}</b> — roughly
-        <b>${months} months</b> of trading ago. Nothing since is
-        reflected here.</p>`}
-    </div>` : "";
+  // A stage is a SECTION containing separate boxes, not one large box.
+  // Gates, the historical record and the currency note are different
+  // kinds of thing and each now has its own frame.
+  const stage1 = (gates || recFor(1)) ? `<section class="stage">
+      <h4 class="stage-h">Stage 1 — would I ever want to own this?</h4>
+      ${!gates ? "" : `<div class="card">
+        <p class="pillars">${H}. Six gates, one per pillar, in this order:
+          <b>profit</b>, <b>returns</b>, <b>cash</b>, <b>debt</b>,
+          <b>margins</b>, <b>revenue</b>.</p>
+        ${gates}
+      </div>`}
+      ${!recFor(1) ? "" : `<div class="card">${recFor(1)}</div>`}
+      ${!r.pe ? "" : `<div class="card stale-card"><p class="stale">These
+        gates read the last annual report, covering the year to
+        <b>${ended}</b> — roughly <b>${months} months</b> of trading ago.
+        Nothing since is reflected here.</p></div>`}
+    </section>` : "";
 
-  const stage2 = r.b == null ? "" : `<div class="card">
-      <h4>Stage 2 — has it moved from its own normal?</h4>
-      ${scaleInner}
-      <div class="calc">
+  const stage2 = r.b == null ? "" : `<section class="stage">
+      <h4 class="stage-h">Stage 2 — has it moved from its own normal?</h4>
+      ${!scaleInner ? "" : `<div class="card">${scaleInner}</div>`}
+      <div class="card"><div class="calc">
         today <b>$${r.p.toFixed(2)}</b><span class="sep">·</span>average over
         50 days <b>$${a50.toFixed(2)}</b><span class="sep">·</span>over 200 days
         <b>$${a200.toFixed(2)}</b><br>
         below normal = 0.60 × <b>${r.m2.toFixed(1)}%</b> + 0.40 ×
         <b>${r.m5.toFixed(1)}%</b> = <b>${r.b.toFixed(1)}%</b>
-      </div>
-    </div>`;
+      </div></div>
+    </section>`;
 
-  const stage3 = !s3 ? "" : `<div class="card">
-      <h4>Stage 3 — opportunity or warning?</h4>
-      <p class="pillars">${s3.l}</p>
-      ${s3Gates}
-      ${recFor(3)}
-      <p class="stale">The cheapness reading divides today's price by the
-        SAME annual earnings Stage 1 uses${r.pe ? ` — the year to
-        <b>${ended}</b>` : ""}, so it is only as current as that filing.
-        The profit reading uses the quarter dated above, which is
-        newer.</p>
-    </div>`;
+  const stage3 = !s3 ? "" : `<section class="stage">
+      <h4 class="stage-h">Stage 3 — opportunity or warning?</h4>
+      <div class="card">
+        <p class="pillars">${s3.l}</p>
+        ${s3Gates}
+      </div>
+      ${!recFor(3) ? "" : `<div class="card">${recFor(3)}</div>`}
+      <div class="card stale-card"><p class="stale">The cheapness reading
+        divides today's price by the SAME annual earnings Stage 1
+        uses${r.pe ? ` — the year to <b>${ended}</b>` : ""}, so it is only
+        as current as that filing. The profit reading uses the quarter
+        dated above, which is newer.</p></div>
+    </section>`;
 
   return `<div class="work">
     ${reitNote}
