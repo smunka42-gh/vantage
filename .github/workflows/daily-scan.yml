@@ -11,24 +11,25 @@ on:
     # gate below decides which one actually scans.
     - cron: "0 21 * * 1-5"    # 17:00 America/New_York while EDT
     - cron: "0 22 * * 1-5"    # 17:00 America/New_York while EST
-    # TEMPORARY PROBE — added 30 Aug 2026 10:50 UTC, REMOVE BY 31 Aug 2026.
-    # The daily schedule has never been observed to fire on its own; every
-    # run so far came from a manual dispatch. An earlier */10 probe saw
-    # nothing in 33 minutes, which is too short to tell "never fires" from
-    # "fires late" — GitHub delays scheduled runs under load.
     #
-    # This is cheap to leave running: the gate below is state-based, so a
-    # firing on a day already scanned exits in seconds without touching
-    # EDGAR. What it proves is the only thing in question — whether GitHub
-    # triggers this workflow at all.
-    - cron: "*/15 * * * *"
-    # The */15 probe above only proves GitHub FIRES the workflow — the gate
-    # skips its scan because today's already happened, so the scheduled
-    # path has never run end to end. This one forces a full scan so that
-    # gets tested too. Every 6 hours, not every 15 minutes: a forced run
-    # is ~8 minutes and ~500 EDGAR requests.
-    # REMOVE BOTH BY 31 Aug 2026.
-    - cron: "0 */6 * * *"
+    # Two temporary probes ran here on 30 Aug 2026 and were removed the
+    # same day, having answered their question. What they established:
+    # GitHub DOES fire this workflow on a schedule (4 firings in 11
+    # hours), and the scheduled path works END TO END — a forced probe
+    # ran all three stages, rebuilt the pages and committed, with no
+    # human involved. Before that the scheduled path had only ever been
+    # proven as far as the gate below.
+    #
+    # What they did NOT establish is how reliably the two crons above
+    # fire, and the probes could not: they hit 4 of ~46 expected
+    # firings, but that was a */15 schedule, which is exactly the
+    # pattern GitHub throttles. They were removed rather than left to
+    # run into Monday for the same reason — every cron here sits on the
+    # SAME workflow, so a high-frequency probe risks deprioritising the
+    # real schedule it was meant to measure.
+    #
+    # The remaining check is the simple one: does the page's date move
+    # after a market close.
   workflow_dispatch:          # manual run from the Actions tab
 
 permissions:
@@ -50,9 +51,6 @@ jobs:
         id: gate
         env:
           EVENT_NAME: ${{ github.event_name }}
-          # which cron fired, so the forced probe can be told apart from
-          # the real schedule. TEMPORARY — goes with the probe crons.
-          SCHEDULE: ${{ github.event.schedule }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os, pathlib, sys
@@ -62,15 +60,6 @@ jobs:
 
           if os.environ.get("EVENT_NAME") == "workflow_dispatch":
               log("Manual run — proceeding.")
-              print("proceed=true"); raise SystemExit
-
-          # TEMPORARY, REMOVE BY 31 Aug 2026 with the probe crons above.
-          # Forces a full end-to-end scan from a SCHEDULED trigger, which
-          # the state gate below would otherwise skip on a day already
-          # scanned. Without this the scheduled path is only ever proven
-          # as far as the gate.
-          if os.environ.get("SCHEDULE") == "0 */6 * * *":
-              log("Forced probe scan — proceeding for the end-to-end test.")
               print("proceed=true"); raise SystemExit
 
           # GATE ON STATE, NOT ON THE CLOCK.
