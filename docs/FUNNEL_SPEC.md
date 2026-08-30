@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.14 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.15 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,7 +45,8 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
-| **v2.14** | 30 Aug 2026 | **Gate 4's coverage discount is earned, not assigned** (§3.12). The 2.5x bar was given to utilities as a sector — bar-fitting, which §3.2 forbids, and v0.5's changelog records the pass-rate origin ("utilities went from 1/31 to 17/31 eligible"). It now goes to any company whose **operating income has not fallen more than 10% year-on-year** across the window, on any track. The justification was always real and simply misattached: measured, the median utility's worst year is **−0.3%** against **−15.2%** for standard companies, and 16% have ever fallen >25% against 36%. Utilities still qualify most often (66% vs 34%) but through the property. **NRG loses the discount** (operating income −80% in 2023, held it purely by label); **FISV, GEN and OKE** gain it — FISV and GEN move BORDERLINE → PASS, OKE REJECTED → BORDERLINE. The −10% line is not a new constant: Stage 3 gate 2 already uses it for this quantity across 11,536 quarter pairs. Measured annually over four comparisons, which is thin and said so; the quarterly alternative is rejected because Stage 1 rests on audited filings and quarterlies are reviewed. The sector-value count drops from four across three gates to **three across two**. The 4.0x base bar's own lack of derivation is left open rather than fixed here. |
+| **v2.15** | 30 Aug 2026 | **Stage 3 gate 1's four-year minimum documented as structural** (§5.3). It had read as an arbitrary constant, which is how it became an open item. At three years the 3y and 5y windows are the same list, so the medians are identical and *"priced about as usual"* — 52 of 450 companies today — becomes unreachable; four years is where the two windows first differ. A (3y, 4y) pairing was considered and changes nothing, being equally identical at three years. **The six eligible companies without gate 1 are closed as unfixable**, with the cause corrected: it is three companies whose data the API does not carry (V, BRK-B, ERIE file EPS per share-class, behind a dimension `companyfacts` omits) and three with genuinely three years (GDDY — which does file the tag, contrary to the earlier note — plus TKO and VLTO). Verified against EDGAR. Also corrects v2.14's predicted outcome to the measured one: five tiers moved, not three. |
+| **v2.14** | 30 Aug 2026 | **Gate 4's coverage discount is earned, not assigned** (§3.12). The 2.5x bar was given to utilities as a sector — bar-fitting, which §3.2 forbids, and v0.5's changelog records the pass-rate origin ("utilities went from 1/31 to 17/31 eligible"). It now goes to any company whose **operating income has not fallen more than 10% year-on-year** across the window, on any track. The justification was always real and simply misattached: measured, the median utility's worst year is **−0.3%** against **−15.2%** for standard companies, and 16% have ever fallen >25% against 36%. Utilities still qualify most often (66% vs 34%) but through the property. **Measured on the live scan, five tiers moved**, not the three predicted: FISV and GEN BORDERLINE → PASS and OKE REJECTED → BORDERLINE as expected, and **D (Dominion) and ED (Con Edison) BORDERLINE → REJECTED** — both had genuine double-digit operating-income falls (Dominion's margin 17.1% → 9.9% in 2022, Con Edison's 22.1% → 17.3% in 2024), so neither qualifies as stable and both moved to the 4.0x bar. NRG also loses the discount it held purely by label. Eligible utilities **20 → 18**; eligible overall 260 → 259, and Utilities is the only sector to fall. The −10% line is not a new constant: Stage 3 gate 2 already uses it for this quantity across 11,536 quarter pairs. Measured annually over four comparisons, which is thin and said so; the quarterly alternative is rejected because Stage 1 rests on audited filings and quarterlies are reviewed. The sector-value count drops from four across three gates to **three across two**. The 4.0x base bar's own lack of derivation is left open rather than fixed here. |
 | **v2.13** | 30 Aug 2026 | **No minimum years of history — decided and recorded** (§3.5). TKO Group passes on a four-year series whose coverage ran 3.9x, 1.6x, 0.1x, 4.1x, which raised the question of a minimum record length. Measured, both candidate instruments fail: a minimum-years rule would reject **Honeywell, Ross Stores and CRH**, whose short *series* is a tag-chain artifact rather than youth (Honeywell's own gates read `net income positive 5/5`), and a volatility rule would flag **PNC, USB, BAC and JPM** at 14-24x coverage swings, where coverage is a rate-cycle artifact. TKO is already graded near-pass on gate 4 and carries an `at_risk` flag naming it; 48 PASS companies rest on at least one near-pass. Recorded rather than left as a decision taken in conversation — the failure mode §3.12's utility bar is still an open item for. Also fixes the tier table, which said "4 of the 5 gates evaluable" and has read 4 of **6** since gate 6 landed in v2.8. |
 | **v2.12** | 30 Aug 2026 | **`partial_years()` removed, replaced by `tests/test_whole_years.py`** (§3.17). The guard against a quarter posing as a fiscal year inferred the defect from a REVENUE COLLAPSE — any year under 30% of the one before. That was a guess about values standing in for a fact about periods, and the corridor it worked in was narrower than it looked: measured across all 1,766 consecutive-year revenue pairs in the index, Accenture's quarter posing as its year was 0.22 of the prior year while Western Digital's entirely real FY2023 collapse was 0.34, leaving four points between a threshold and a false alarm — and a seasonally concentrated quarter above 30% of its year would have passed unnoticed, which is the case the guard existed for. The structural rule (350-380 days, in `_pick`) is unchanged and was always the real fix; it is now pinned by a unit test replaying the exact Accenture filing rather than by a heuristic re-run over 500 companies on every scan. The test was verified to fail — reproducing the original 2.24B-beats-10.23B result — with the rule removed. |
 | **v2.11** | 30 Aug 2026 | **The `?resize=1` drag tool removed.** It existed to let the column widths be chosen against real data; once they were frozen in v2.10 it was ~115 lines of CSS and JS shipped to every visitor for no remaining purpose, so it is deleted rather than left gated behind a flag. Recoverable from `feb1f97`. The `localStorage` override went with it, so the stylesheet is now the only thing that can set a column width. |
@@ -1240,6 +1241,26 @@ between them         -> "priced about as usual"
 
 The threshold is **zero**, which is structural rather than chosen: a
 company's own median is the definition of its normal.
+
+**Four years of history is also structural, not a chosen minimum.** With
+only three, `history[-3:]` and `history[-5:]` are the SAME LIST, so the
+two medians are identical, the windows can never disagree, and *"priced
+about as usual"* becomes unreachable — a state that describes 52 of 450
+companies today. Four years is the first point at which the two windows
+differ and the gate does what it claims. Widening the pairing to (3y, 4y)
+changes nothing: at three years those two windows are identical as well.
+
+**The six eligible companies without gate 1**, and why none is fixable:
+
+| | | |
+|---|---|---|
+| **V**, **BRK-B**, **ERIE** | data absent from the API | All three run multi-class share structures and file EPS **per class**, behind a dimension that the `companyfacts` endpoint omits. Visa files no diluted-EPS or weighted-average-share tag at all; Berkshire's EPS stops at 2013 and its share count at 2014; Erie returns neither. No tag-chain widening reaches figures the endpoint does not carry. |
+| **GDDY**, **TKO**, **VLTO** | genuinely three years | GoDaddy does file `EarningsPerShareDiluted`, but exactly three annual facts (2023-2025), carried as comparatives in one filing. TKO and VLTO are recent. |
+
+All six still receive gate 2's profit reading, so the page states *"no
+earnings history"* beside what **is** known rather than showing a blank.
+Checked against EDGAR on 30 Aug 2026 and closed: the constraint is the
+filings, not the reader.
 
 **Points, not a ratio.** A ratio explodes as historical earnings approach
 zero — Insulet's own-normal P/E computes to 595x and The Trade Desk reads
