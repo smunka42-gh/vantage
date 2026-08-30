@@ -132,6 +132,7 @@ col.c-read{width:15%}
   display:inline-block; font-size:11px; color:var(--muted);
   white-space:nowrap; margin-right:6px;
 }
+.read.faintly{color:var(--faint); font-style:italic}
 .read.falling{
   border:1px solid var(--rule); border-radius:3px;
   padding:1px 5px; color:var(--ink); font-size:10.5px;
@@ -309,6 +310,12 @@ tr.detail > td{
    harder to read. Scrolls rather than wrapping — a year column that
    reflows stops being a series. */
 .rec{overflow-x:auto; margin:0 -2px}
+/* the question each group of rows answers */
+.recq{
+  margin:16px 0 6px; font-size:12px; color:var(--muted);
+  letter-spacing:.01em;
+}
+.recq:first-of-type{margin-top:0}
 table.rec-t{border-collapse:collapse; width:100%; min-width:430px}
 table.rec-t th, table.rec-t td{
   font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums;
@@ -492,10 +499,20 @@ function readCell(r){
   const short = READ_SHORT[base] ?? "";
   // Form, not colour. The funnel refuses to say whether a fall is good
   // or bad, so "profit falling" is stated as a fact, never flagged red.
-  const value = short ? `<span class="read">${short}</span>` : "";
+  // "no earnings history" and "—" are different statements: the first
+  // says gate 1 could not be measured, the second would say nothing was
+  // found at all. 14 of 260 companies have EPS tags that stop years ago
+  // (Monster's end in 2010), and for those we still know whether profit
+  // is holding — so the cell must report what WAS established.
+  // Detect gate 1's absence from the DATA, not the label. A first
+  // attempt tested the label against READ_SHORT, but "profit holding up"
+  // IS in that table — so the exact case this is for, a company with no
+  // yield history whose profit is fine, fell through and still showed a
+  // bare dash.
+  const value = short ? `<span class="read">${short}</span>`
+              : !r.s3.y ? `<span class="read faintly">no earnings history</span>`
+              : "";
   const note  = falling ? `<span class="read falling">profit falling</span>` : "";
-  // A company with no usable earnings-yield history (14 of 260) would
-  // otherwise render an empty cell that reads as a rendering fault.
   return (value || note) ? value + note : "—";
 }
 
@@ -553,6 +570,25 @@ function plain(gate, d){
 // early — fiscal year ends included, since this page shipped. Appending a
 // time forces local parsing. Every date on the page goes through here.
 function onDate(iso){ return new Date(iso + "T00:00:00"); }
+const longDate = iso => onDate(iso).toLocaleDateString("en-GB",
+  {day:"numeric", month:"long", year:"numeric"});
+
+// "over three years" is not checkable without saying WHICH three.
+function yrs(s3, k){
+  const y = s3.yy && s3.yy[k];
+  return y ? ` over ${y[0]}\u2013${y[1]}` : "";
+}
+
+// "22.4% then -13.0%" made the reader work out which quarter was which
+// and what the sign meant. One sentence per quarter, with the direction
+// as a word and the date spelled out.
+function qtr(s3, i){
+  const v = s3.q[i], end = s3.qq && s3.qq[i];
+  const when = end ? `In the quarter to ${longDate(end)}`
+                   : (i === 1 ? "In the latest quarter" : "In the quarter before that");
+  const dir = v < 0 ? "lower" : "higher";
+  return `${when}, operating profit was <b>${Math.abs(v).toFixed(1)}%</b> ${dir}.`;
+}
 
 function detail(r){
   const a200=(r.p/(1-r.m2/100)), a50=(r.p/(1-r.m5/100));
@@ -615,9 +651,8 @@ function detail(r){
          and margin gates misread them. A separate track would be needed;
          there is not one yet.</p></div>` : "";
 
-  const scaleCard = (r.lo == null || r.hi == null || r.hi <= r.lo) ? "" :
-   `<div class="card">
-      <h4>Where today's price sits in its 52-week range</h4>
+  const scaleInner = (r.lo == null || r.hi == null || r.hi <= r.lo) ? "" :
+   `
       <div class="scale">
         <div class="track">
           <span class="tick lo"></span><span class="tick hi"></span>
@@ -629,74 +664,68 @@ function detail(r){
         </div>
       </div>
       <p class="footnote"><sup>*</sup> above the 52-week low, and below
-        the 52-week high</p>
-    </div>`;
+        the 52-week high</p>`;
 
   // The years behind the statistics each gate reports. A median hides
   // whether 5% is steady, recovering or collapsing.
-  const recCard = !r.sr ? "" : `<div class="card">
-      <h4>The five-year record</h4>
-      <div class="rec"><table class="rec-t">
+  // The record is split across the stage sections rather than sitting in
+  // one block: a trend belongs beside the question it is evidence for.
+  const recFor = stage => {
+    const g = (r.sr && r.sr.groups || []).find(x => x.stage === stage);
+    if (!g) return "";
+    return `<div class="rec"><table class="rec-t">
         <thead><tr><th class="lbl"></th>
-          ${r.sr.years.map(y => `<th>${y}</th>`).join("")}
+          ${g.years.map(y => `<th>${y}</th>`).join("")}
           <th class="bar">at least</th></tr></thead>
-        <tbody>${r.sr.rows.map(([label, vals, bar]) => `<tr>
+        <tbody>${g.rows.map(([label, vals, bar]) => `<tr>
             <td class="lbl">${label}</td>
             ${vals.map(v => `<td>${v === null ? "—" : v.toFixed(1)}</td>`).join("")}
             <td class="bar">${bar}</td></tr>`).join("")}</tbody>
-      </table></div>
-    </div>`;
+      </table></div>`;
+  };
 
   // Stage 3 ANNOTATES; it never reorders or scores. The AGE of the
   // quarterly evidence is shown because a company just past its fiscal
   // year end files no Q4 10-Q, so a 6-month-old quarter is honest rather
   // than neglectful — the reader has to see that, not trust a bare label.
   const s3 = r.s3;
-  const readCard = !s3 ? "" : `<div class="card">
-      <h4>Against its own history</h4>
-      <p class="pillars">${s3.l}</p>
+  const s3Gates = !s3 ? "" : `
       ${!s3.y ? "" : `<div class="gate">
         <div class="g">Cheaper than usual?</div>
-        <div class="d">Earns <b>${s3.y[0].toFixed(2)}%</b> a year per dollar
-          you pay today, against its own <b>${s3.y[1].toFixed(2)}%</b> over
-          three years and <b>${s3.y[2].toFixed(2)}%</b> over five.</div>
+        <div class="d">Every dollar you pay today buys
+          <b>${s3.y[0].toFixed(2)}%</b> a year of earnings. Its own history
+          bought <b>${s3.y[1].toFixed(2)}%</b>${yrs(s3,"3")} and
+          <b>${s3.y[2].toFixed(2)}%</b>${yrs(s3,"5")} —
+          so a dollar buys ${s3.y[0] > Math.max(s3.y[1],s3.y[2]) ? "MORE"
+            : s3.y[0] <= Math.min(s3.y[1],s3.y[2]) ? "LESS" : "about as much"}
+          earnings than usual.</div>
         <div class="v"></div></div>`}
       ${!s3.q ? "" : `<div class="gate">
         <div class="g">Profit still holding?</div>
-        <div class="d">Operating profit
-          <b>${s3.q[0].toFixed(1)}%</b> then <b>${s3.q[1].toFixed(1)}%</b>
-          against the same quarters a year earlier.
-          <span class="asof">Quarter to ${onDate(s3.qe).toLocaleDateString("en-GB",
-            {day:"numeric",month:"long",year:"numeric"})} · ${s3.qa} days ago.</span></div>
-        <div class="v"></div></div>`}
-    </div>`;
+        <div class="d">${qtr(s3, 1)} ${qtr(s3, 0)}
+          <span class="asof">Each compared with the SAME quarter a year
+            earlier, so seasonal ups and downs cancel out. Latest filed
+            ${s3.qa} days ago.</span></div>
+        <div class="v"></div></div>`}`;
 
-  const gatesCard = r.gt.length === 0 ? "" :
-   `<div class="card">
-      <h4>${H}</h4>
-      <p class="pillars">Six gates, one per pillar, in this order:
+
+
+  // ONE CARD PER STAGE, in funnel order, each headed by the question that
+  // stage asks. Before this, Stage 2's two cards sat at opposite ends of
+  // the panel with four unrelated cards between them, and only the
+  // five-year record named its stages at all.
+  const stage1 = (gates || recFor(1)) ? `<div class="card">
+      <h4>Stage 1 — would I ever want to own this?</h4>
+      <p class="pillars">${H}. Six gates, one per pillar, in this order:
         <b>profit</b>, <b>returns</b>, <b>cash</b>, <b>debt</b>,
         <b>margins</b>, <b>revenue</b>.</p>
       ${gates}
-    </div>`;
+      ${recFor(1)}
+    </div>` : "";
 
-  return `<div class="work">
-    ${scaleCard}
-    ${reitNote}
-    ${readCard}
-    ${gatesCard}
-    ${recCard}
-
-    ${r.pe ? `<div class="card stale-card">
-      <h4>How current this is</h4>
-      <p class="stale">These checks read the company's last annual report,
-        covering the year to <b>${ended}</b>. Roughly <b>${months} months</b>
-        of trading have happened since, and none of it is reflected above —
-        that part is for you to catch up on.</p>
-    </div>` : ""}
-
-    ${r.b == null ? "" : `<div class="card">
-      <h4>How ${r.b.toFixed(1)}% was calculated</h4>
+  const stage2 = r.b == null ? "" : `<div class="card">
+      <h4>Stage 2 — has it moved from its own normal?</h4>
+      ${scaleInner}
       <div class="calc">
         today <b>$${r.p.toFixed(2)}</b><span class="sep">·</span>average over
         50 days <b>$${a50.toFixed(2)}</b><span class="sep">·</span>over 200 days
@@ -704,7 +733,28 @@ function detail(r){
         below normal = 0.60 × <b>${r.m2.toFixed(1)}%</b> + 0.40 ×
         <b>${r.m5.toFixed(1)}%</b> = <b>${r.b.toFixed(1)}%</b>
       </div>
-    </div>`}
+    </div>`;
+
+  const stage3 = !s3 ? "" : `<div class="card">
+      <h4>Stage 3 — opportunity or warning?</h4>
+      <p class="pillars">${s3.l}</p>
+      ${s3Gates}
+      ${recFor(3)}
+    </div>`;
+
+  return `<div class="work">
+    ${reitNote}
+    ${stage1}
+    ${stage2}
+    ${stage3}
+
+    ${r.pe ? `<div class="card stale-card">
+      <h4>How current this is</h4>
+      <p class="stale">Stage 1 reads the company's last annual report,
+        covering the year to <b>${ended}</b>. Roughly <b>${months} months</b>
+        of trading have happened since. Stage 2 is today's price; Stage 3's
+        quarterly figures carry their own date above.</p>
+    </div>` : ""}
   </div>`;
 }
 

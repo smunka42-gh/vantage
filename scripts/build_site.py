@@ -48,33 +48,61 @@ def build() -> int:
     s3 = json.loads(STAGE3.read_text()) if STAGE3.exists() else {}
     sectors = {c["ticker"]: c["sector"] for c in load_sp500()}
 
-    def _series_for(a):
-        """The five-year rows, with the bar each was judged against.
+    def _series_for(t, a):
+        """The five-year record, GROUPED by the question each row answers.
 
-        Coverage is included ONLY when gate 4 actually used it. A bank's
-        interest expense IS its business — JPMorgan's coverage reads 0.8x
-        with interest at 132% of profit — so the ratio is meaningless
-        wherever the gate fell back to equity/assets, and showing it would
-        invite a conclusion the gate never drew.
+        Ungrouped, the reader had no way to tell which trend belonged to
+        which stage. Each group carries the question its stage asks, so a
+        row is never orphaned from the thing it is evidence for.
+
+        Two rows stay conditional, both under tenet 2 — do not display
+        what was not used:
+
+          * coverage only where gate 4 actually used it. A bank's interest
+            expense IS its business (JPMorgan reads 0.8x), so the ratio is
+            meaningless wherever the gate fell back to equity/assets.
+          * revenue only where gate 6 ran the 3-year-average test. Where it
+            passed on growth, that average was never the bar.
         """
         sr = a.get("series") or {}
         if not sr.get("years"):
             return None
         gate = {g["gate"][:1]: g["detail"] for g in a.get("gates", [])}
-        rows = []
+        own = []
         if sr.get("return"):
             bar = "10%" if "equity" in sr.get("return_label", "") else "8%"
-            rows.append([sr["return_label"], sr["return"], bar])
+            own.append([sr["return_label"], sr["return"], bar])
         if sr.get("margin"):
-            rows.append(["operating margin", sr["margin"], "70% of 3y avg"])
+            own.append(["operating margin", sr["margin"], "70% of 3y avg"])
+        if sr.get("net_income"):
+            own.append(["net income ($bn)", sr["net_income"], "above 0"])
+        if sr.get("fcf"):
+            own.append(["free cash flow ($bn)", sr["fcf"], "5y sum above 0"])
         if sr.get("coverage") and "interest coverage" in gate.get("4", ""):
-            rows.append(["interest coverage", sr["coverage"], "4.0x"])
-        # Only where gate 6 ran the ratio test. Where it passed on growth
-        # the 3-year average was never the bar, and showing it with one
-        # would imply a test that did not happen (tenet 2).
+            own.append(["interest coverage", sr["coverage"], "4.0x"])
         if sr.get("revenue") and "3y average" in gate.get("6", ""):
-            rows.append(["revenue ($bn)", sr["revenue"], "own 3y avg"])
-        return {"years": sr["years"], "rows": rows} if rows else None
+            own.append(["revenue ($bn)", sr["revenue"], "own 3y avg"])
+
+        groups = []
+        if own:
+            groups.append({"stage": 1, "q": "Stage 1 — would I ever want to own this?",
+                           "years": sr["years"], "rows": own})
+
+        # Stage 3's own trend: the yields its two medians are drawn from.
+        # Its own fiscal years, which need not match Stage 1's window.
+        r3 = s3.get(t) or {}
+        ys, ye = r3.get("yield_series"), r3.get("yield_ends")
+        if ys and ye and len(ys) == len(ye):
+            groups.append({
+                "stage": 3, "q": "Stage 3 — is it cheaper than usual?",
+                "years": [e[:4] for e in ye],
+                # "at year end" matters: each value uses the price on that
+                # fiscal year end, while the Stage 3 card quotes today's
+                # yield. Same measure, different dates — without the label
+                # the two read as a contradiction.
+                "rows": [["earnings yield at year end (%)", ys,
+                          "vs its own median"]]})
+        return {"groups": groups} if groups else None
 
     def _stage3_for(t):
         """Stage 3's label and the evidence behind it.
@@ -99,6 +127,11 @@ def build() -> int:
             # the two year-on-year quarters the gate actually judged
             "q": None if not i else [round(v * 100, 1) for v in i["recent"]],
             "qe": r.get("quarter_end"), "qa": r.get("quarter_age_days"),
+            "qq": r.get("quarter_ends"),
+            # first and last fiscal year behind each median, so the page
+            # can say WHICH three years "over three years" means
+            "yy": None if not r.get("yield_years") else {
+                k: [v[0][:4], v[-1][:4]] for k, v in r["yield_years"].items()},
         }
 
     def pack(t, r, a):
@@ -135,7 +168,7 @@ def build() -> int:
             "fy": asof.get("fiscal_year"), "pe": asof.get("period_end"),
             "y": r.get("yahoo"), "g": r.get("google"), "ar": risk,
             "gt": [[g["gate"], g["grade"], g["detail"]] for g in a.get("gates", [])],
-            "sr": _series_for(a),
+            "sr": _series_for(t, a),
             "s3": _stage3_for(t),
         }
 

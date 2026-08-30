@@ -692,6 +692,15 @@ def yearly(d, is_financial=False, is_utility=False, is_capital_intensive=False):
                            d.get("op_income"), d.get("interest")),
         # Gate 6's years, in $bn. Shown only where gate 6 actually used
         # the 3-year-average test -- see _series_for in build_site.
+        # Gate 3's years. Free cash flow is what the gate sums, so showing
+        # the sum without the shape hides whether a positive total came
+        # from five steady years or one exceptional one.
+        "fcf": series(lambda o, c: round((o - c) / 1e9, 1),
+                      d.get("ocf"), d.get("capex")),
+        # Gate 1's years. Operating income is already implied by margin,
+        # but the bottom line is what gate 1 actually counts.
+        "net_income": series(lambda n: round(n / 1e9, 1),
+                             d.get("net_income")),
         "revenue": series(lambda r: round(r / 1e9, 1) if r else None,
                           d.get("revenue")),
         "return_label": "return on equity" if use_equity else "return on assets",

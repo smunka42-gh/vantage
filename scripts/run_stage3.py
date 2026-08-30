@@ -23,7 +23,8 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import pandas as pd                                        # noqa: E402
 import yfinance as yf                                      # noqa: E402
-from funnel.stage1 import S, _facts, CHAINS as TAG_CHAINS # noqa: E402
+from funnel.stage1 import (S, _facts, _resolve_cik,          # noqa: E402
+                           CHAINS as TAG_CHAINS)
 from funnel.stage3 import cheapness, intact, label         # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -45,16 +46,20 @@ OPINC_TAGS = list(TAG_CHAINS["op_income"])
 
 # A chain also has to REACH THE PRESENT. Taking the freshest chain is not
 # enough when every chain is stale — the result is a confident answer
-# about 2016. 400 days is deliberately generous: a company just past its
-# fiscal year end has no Q4 10-Q, so its newest quarter can legitimately
-# be ~180 days old (§5.3).
-MAX_CHAIN_AGE_DAYS = 400
+# about 2016.
+#
+# The tolerance differs by period, and conflating them was a bug: one
+# 400-day limit rejected Clorox, which has 18 years of EPS but whose
+# newest ANNUAL figure was 426 days old simply because its next 10-K was
+# not filed yet. An annual figure is legitimately 12-18 months old
+# between filings; a quarter is not.
+MAX_CHAIN_AGE = {"annual": 550, "quarter": 400}
 
 ANNUAL = (350, 380)      # 52- and 53-week fiscal years
 QUARTER = (80, 100)
 
 
-def _periods(facts, tags, span, unit="USD"):
+def _periods(facts, tags, span, unit="USD", kind="annual"):
     """Reported figures of a given period LENGTH, keyed by end date.
 
     Length, not form: a 10-K carries quarters inside it too, which is the
@@ -90,7 +95,7 @@ def _periods(facts, tags, span, unit="USD"):
     freshest = max(found.values(), key=lambda b: max(b))
     stale_by = (dt.date.today() - dt.date.fromisoformat(max(freshest))).days
     # No usable series beats a stale one presented as current.
-    return freshest if stale_by <= MAX_CHAIN_AGE_DAYS else {}
+    return freshest if stale_by <= MAX_CHAIN_AGE[kind] else {}
 
 
 def _yoy(periods, tolerance):
@@ -137,9 +142,30 @@ def main() -> None:
         rec = {"tier": s1[t]["tier"]}
         try:
             facts = _facts(cik[t])
+            # Stage 1 resolves filers that moved to a new CIK; Exxon's
+            # 2025 reorganisation left the new ID with almost no history,
+            # so calling _facts directly returned nothing usable and
+            # gate 1 silently reported "no earnings history".
+            _, facts, _ = _resolve_cik(t, cik[t], facts)
 
             # --- gate 1 -------------------------------------------------
             eps = _periods(facts, EPS_TAGS, ANNUAL, unit="USD/shares")
+            if len(eps) < 4:
+                # Monster's EarningsPerShareDiluted stops in 2011 — it
+                # changed how it tags, and it is not alone. Earnings per
+                # share is net income divided by shares, so where the
+                # ready-made figure is missing, divide. Both figures come
+                # from the SAME filed annual period: this derives a ratio
+                # like return on assets, it does not reconstruct a period.
+                ni = (_periods(facts, ["NetIncomeLoss"], ANNUAL)
+                      or _periods(facts, ["ProfitLoss"], ANNUAL))
+                sh = _periods(facts, ["WeightedAverageNumberOfDilutedSharesOutstanding",
+                                      "WeightedAverageNumberOfSharesOutstandingBasic"],
+                              ANNUAL, unit="shares")
+                shared = sorted(set(ni) & set(sh))
+                if len(shared) >= 4:
+                    eps = {e: {"val": ni[e]["val"] / sh[e]["val"], "derived": True}
+                           for e in shared if sh[e]["val"]}
             series = px[t].dropna() if t in px else pd.Series(dtype=float)
             history, now = [], None
             if len(series):
@@ -150,14 +176,24 @@ def main() -> None:
                 if eps:
                     now = eps[max(eps)]["val"] / float(series.iloc[-1])
             rec["cheap"] = cheapness(now, history)
-            if eps:
+            # The fiscal years each median is built from. "its own 0.66%
+            # over three years" is not checkable without them.
+            used = [e for e in sorted(eps)[-6:]
+                    if len(series) and len(series[series.index <= pd.Timestamp(e)])]
+            if used:
+                rec["yield_years"] = {"3": used[-3:], "5": used[-5:]}
+                # The yields themselves, so the five-year record can show
+                # the trend the two medians are drawn from.
+                rec["yield_series"] = [round(v * 100, 2) for v in history[-5:]]
+                rec["yield_ends"] = used[-5:]
                 rec["eps_asof"] = max(eps)
 
             # --- gate 2 -------------------------------------------------
-            quarters = _periods(facts, OPINC_TAGS, QUARTER)
+            quarters = _periods(facts, OPINC_TAGS, QUARTER, kind="quarter")
             yoy = _yoy(quarters, tolerance=20)
             rec["intact"] = intact([v for _, v in yoy])
             if yoy:
+                rec["quarter_ends"] = [q[0] for q in yoy[-2:]]
                 rec["quarter_end"] = yoy[-1][0]
                 rec["quarter_age_days"] = (
                     dt.date.today() - dt.date.fromisoformat(yoy[-1][0])).days
