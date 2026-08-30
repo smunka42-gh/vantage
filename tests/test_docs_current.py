@@ -39,6 +39,47 @@ def check(ok: bool, msg: str) -> None:
         problems.append(msg)
 
 
+def _memory_dir():
+    """Where this project's Claude memory lives, DERIVED not hard-coded.
+
+    The path used to be written out in full. It contains the machine's
+    home-directory name, which is a personal reference, and this repo is
+    public (TENETS.md: assume every repo ships public). Deriving it from
+    the repo's own location keeps the checks working on any machine and
+    puts no one's name in the source.
+
+    Claude Code names a project directory after its absolute path with
+    separators AND underscores turned into dashes, so a sandbox at
+    /Users/someone/Desktop/my_box becomes "-Users-someone-Desktop-my-box".
+    Getting only the slash right yields a path that does not exist, and
+    the caller below then skips every memory check in silence — which is
+    how the first version of this helper passed while seeing no memory
+    at all. Hence _memory_dir_or_fail.
+    """
+    slug = str(ROOT.parent.parent).replace("/", "-").replace("_", "-")
+    return pathlib.Path.home() / ".claude/projects" / slug / "memory"
+
+
+def _memory_available(problems):
+    """The memory directory, or None where there genuinely is no memory.
+
+    A missing directory has two very different causes. On a machine with
+    no Claude Code — CI, a contributor's checkout — there is nothing to
+    check and skipping is right. On a machine that HAS Claude Code, a
+    missing directory means the derivation above is wrong, and skipping
+    would hide every check that depends on it. Tell them apart by asking
+    whether ~/.claude/projects exists at all.
+    """
+    d = _memory_dir()
+    if d.exists():
+        return d
+    if (pathlib.Path.home() / ".claude/projects").exists():
+        problems.append(f"memory directory not found at {d} — the path "
+                        f"derivation in _memory_dir() is wrong, and every "
+                        f"memory check below would skip in silence")
+    return None
+
+
 def main() -> int:
     spec = SPEC.read_text()
     readme = README.read_text()
@@ -290,10 +331,9 @@ def main() -> int:
     # never be read, and a link to a deleted file is a promise the index
     # cannot keep. Both are silent failures — nothing errors, the memory is
     # simply absent when it matters.
-    mem_dir = (pathlib.Path.home() /
-               ".claude/projects/<derived-from-repo-location>/memory")
-    index = mem_dir / "MEMORY.md"
-    if index.exists():
+    mem_dir = _memory_available(problems)
+    if mem_dir and (mem_dir / "MEMORY.md").exists():
+        index = mem_dir / "MEMORY.md"
         linked = set(re.findall(r"\]\(([^)]+\.md)\)", index.read_text()))
         present = {f.name for f in mem_dir.glob("*.md")} - {"MEMORY.md"}
         for orphan in sorted(present - linked):
@@ -311,9 +351,8 @@ def main() -> int:
                           f"memory file")
 
     # 6. Memory must hold no counts — they rot, and pointers do not.
-    mem = (pathlib.Path.home() /
-           ".claude/projects/<derived-from-repo-location>/memory")
-    if mem.exists() and S1.exists():
+    mem = _memory_available(problems)
+    if mem and S1.exists():
         live = {str(len(json.loads(S1.read_text())))}
         if SCAN.exists():
             sc = json.loads(SCAN.read_text())
