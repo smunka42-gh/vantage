@@ -127,6 +127,18 @@ tbody tr.row.open{background:var(--accent-soft)}
 .big{font-size:15px; font-weight:600; letter-spacing:-.01em}
 .dim{color:var(--muted)}
 
+col.c-exp{width:30px}
+/* A per-row affordance rather than a standing instruction above the
+   table: the instruction had to be read once and remembered, this sits
+   at the point of use and shows state. */
+th.exp{padding:0}
+td.exp{padding-left:0; padding-right:0; text-align:center; vertical-align:middle}
+.expmark{
+  font-family:var(--mono); font-size:13px; color:var(--faint);
+  line-height:1; user-select:none;
+}
+tr.row:hover .expmark, tr.row.open .expmark{color:var(--ink)}
+
 col.c-qual{width:8%}
 col.c-read{width:15%}
 
@@ -441,7 +453,6 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
   <section class="sect">
     <div class="sect-head">
       <h2>The List</h2>
-      <div class="note">Click a row to see the working</div>
     </div>
     <p class="sect-lede">
       Sorted by how far each price sits below its own average. Size is
@@ -494,12 +505,13 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
     <div class="scroller">
       <table id="tbl">
         <colgroup>
-          <col class="c-name"><col class="c-qual"><col class="c-main">
+          <col class="c-exp"><col class="c-name"><col class="c-qual"><col class="c-main">
           <col class="c-cap"><col class="c-ma"><col class="c-shape">
           <col class="c-read"><col class="c-links">
         </colgroup>
         <thead>
           <tr>
+            <th class="exp" aria-label="Expand"></th>
             <th class="l sortable" data-k="t">Company<span class="caret">↓</span></th>
             <th class="sortable" data-k="q">Quality<span class="caret">↓</span></th>
             <th class="sortable" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
@@ -946,7 +958,8 @@ function render(){
     return (typeof a==="string"?a.localeCompare(b):a-b)*sortDir;
   });
   body.innerHTML=rows.map((r,i)=>`
-    <tr class="row" data-i="${i}" tabindex="0">
+    <tr class="row" data-i="${i}" tabindex="0" aria-expanded="false">
+      <td class="exp"><span class="expmark" aria-hidden="true">+</span></td>
       <td class="l"><div class="tkr">${r.t}${r.ar?'<span class="flag">AT RISK</span>':""}</div>
         <div class="co">${r.n}</div></td>
       <td><span class="qual q-${r.q||"na"}">${r.q||"—"}</span></td>
@@ -960,11 +973,14 @@ function render(){
         ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google</a>`:""}
       </span></td>
     </tr>
-    <tr class="detail" hidden><td colspan="8">${detail(r)}</td></tr>`).join("");
+    <tr class="detail" hidden><td colspan="9">${detail(r)}</td></tr>`).join("");
   document.querySelectorAll("#body tr.row").forEach(tr=>{
     const toggle=()=>{
       const d=tr.nextElementSibling;
       const open=!d.hidden; d.hidden=open; tr.classList.toggle("open",!open);
+        tr.setAttribute("aria-expanded", String(!open));
+        const mk = tr.querySelector(".expmark");
+        if(mk) mk.textContent = open ? "+" : "\u2212";
     };
     // a link inside the row must not also expand it
     tr.querySelectorAll("a").forEach(a=>
