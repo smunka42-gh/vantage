@@ -263,9 +263,46 @@ jobs:
             exit 0
           fi
 
+          MSG="Refresh scan ($(TZ=America/New_York date '+%Y-%m-%d'))"
           git add docs/index.html docs/simple/index.html docs/scan.json
-          git commit -m "Refresh scan ($(TZ=America/New_York date '+%Y-%m-%d'))"
-          git push
+          git commit -m "$MSG"
+
+          # A scan takes ~8 minutes and main can move while it runs — a push
+          # from a person, or another workflow. The push is then rejected,
+          # the job fails, and an email goes out saying the scan failed when
+          # the scan was fine. That happened three times on 30 Aug 2026.
+          #
+          # It is worth handling rather than tolerating: the plan for
+          # catching a REAL outage (a page quietly going stale behind a
+          # green tick) rests on a failure here meaning something. An alert
+          # that cries wolf is worse than no alert, because it teaches the
+          # reader to ignore it.
+          #
+          # docs/ is GENERATED, so there is nothing to merge: the files this
+          # run just built ARE the ones to publish. Move onto whatever main
+          # has become and re-commit them on top. If the tip changed a
+          # TEMPLATE, these pages were built from the older one and the next
+          # run rebuilds them — a few hours stale, never wrong.
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            echo "push rejected (attempt $attempt) — main moved; re-committing on the new tip"
+            git fetch origin main
+            # MIXED, never --soft: --soft keeps the index from OUR commit,
+            # which has no record of whatever the new tip added, so the next
+            # commit writes a tree with those files deleted. Tested against
+            # a real race — it removed the other push's file and reported
+            # success. Mixed points the index at the new tip, so the `add`
+            # below stages only the generated pages.
+            git reset --mixed origin/main
+            git add docs/index.html docs/simple/index.html docs/scan.json
+            if git diff --cached --quiet; then
+              echo "main already carries these pages — nothing left to publish."
+              exit 0
+            fi
+            git commit -m "$MSG"
+          done
+          echo "::error::scan built cleanly but could not be published after 3 attempts"
+          exit 1
 
       # UNGATED and last, deliberately.
       #

@@ -2,14 +2,16 @@
 
 **Two ways in, one scan behind both:**
 
-| | |
-|---|---|
-| **[/vantage/](https://smunka42-gh.github.io/vantage/)** | the detailed table — every company a row, nine columns, sortable |
-| **[/vantage/simple/](https://smunka42-gh.github.io/vantage/simple/)** | one readable sentence per company, for a reader without a trading background |
+**[smunka42-gh.github.io/vantage](https://smunka42-gh.github.io/vantage/)**
 
-Neither is a reduced version of the other. They are rendered by the same
-build from the same scan, and the expanded panel — every gate, the
-five-year record, the 52-week scale — is one implementation inlined into
+One page, two views of the same list. It opens as a readable statement
+per company; a switch above the list shows the same companies as a
+table, for scanning and comparing. The switch keeps your filters and
+sort, so it changes the arrangement and never which companies are shown.
+
+Neither view is a reduced version of the other. The expanded panel —
+every gate, the five-year record, the 52-week scale — is one
+implementation inlined into
 both, so they cannot drift apart. What differs is the way in, not the
 depth.
 
@@ -65,11 +67,12 @@ reorders, filters or scores it. See §5 of the spec.
   against the year-ago quarter. It annotates the ranking and never
   reorders it. Latest run: **14 of 260 show profit falling**, two of them
   on the published list. See spec §5.
-- **UI — built and published.** Two static pages rebuilt by the daily
-  scan and served by GitHub Pages, at the links above. Every constituent
-  is embedded in both, so any ticker can be looked up, not only the
-  ranked ones. `/simple/` opens with the funnel and one statement per
-  company; `/` opens with the full table.
+- **UI — built and published.** One static page rebuilt by the daily
+  scan and served by GitHub Pages, at the link above. Every constituent
+  is embedded in it, so any ticker can be looked up, not only the ranked
+  ones. It opens with the funnel and one statement per company, and
+  switches to a nine-column table on request. `/simple/`, the address
+  the statement page used to have, redirects to the main page.
 
 ## Running it
 
@@ -106,13 +109,13 @@ funnel/stage3.py     the two Stage 3 gates and the label they produce
 scripts/run_stage1.py  quality gate over the whole index
 scripts/run_stage2.py  below-normal over everything stage 1 assessed
 scripts/run_stage3.py  cheapness and quarterly profit, same coverage
-scripts/build_site.py  renders BOTH pages from the three result files
-site/template.html   the detailed table, with placeholders
-site/template_simple.html  the plain-English page at /simple/
-site/detail.js       the expanded panel, inlined into both pages
+scripts/build_site.py  renders the page from the three result files
+site/template_simple.html  the page — cards, the table view, and the filters
+site/detail.js       the expanded panel, shared by both views
 site/detail.css      its styles, likewise — one source, so they cannot drift
 .githooks/pre-commit  blocks a commit whose docs no longer match the code
-docs/                what GitHub Pages serves — index.html and simple/index.html
+docs/                what GitHub Pages serves — index.html, plus
+                     simple/index.html redirecting to it
 tests/               golden-set regression, Stage 2 validation, doc currency,
                      whole-year guard
 docs/FUNNEL_SPEC.md  the specification

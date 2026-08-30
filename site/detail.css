@@ -1,7 +1,7 @@
 /* Styles for the expanded panel, shared by BOTH pages and inlined at
    build time by scripts/build_site.py. Paired with site/detail.js:
    the markup
-   and the look of the panel are one implementation, so the detailed page
+   and the look of the panel are one implementation, so both views
    and the simple page cannot drift apart.
 
    `tr.detail > td` applies only to the table page; the simple page opens

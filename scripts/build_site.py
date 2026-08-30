@@ -27,7 +27,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 STAGE1 = ROOT / "scripts/stage1_results.json"
 STAGE2 = ROOT / "scripts/stage2_results.json"
 STAGE3 = ROOT / "scripts/stage3_results.json"
-TEMPLATE = ROOT / "site/template.html"
+# ONE page now. The card page with its table toggle is what `/` serves;
+# the separate nine-column table page it replaced is gone (§6.1), and
+# /simple/ — the address that page used to live at — became a redirect so
+# every link already shared keeps working.
+TEMPLATE = ROOT / "site/template_simple.html"
 # The expanded panel — gates, five-year record, the 52-week scale — is
 # ONE implementation inlined into both pages, so they cannot drift.
 DETAIL_JS = ROOT / "site/detail.js"
@@ -36,8 +40,7 @@ OUT = ROOT / "docs/index.html"
 # The same scan rendered a second way, for a reader who does not want
 # nine columns of finance vocabulary on arrival. One build, so the two
 # pages can never disagree about what the funnel found.
-SIMPLE_TEMPLATE = ROOT / "site/template_simple.html"
-SIMPLE_OUT = ROOT / "docs/simple/index.html"
+REDIRECT_OUT = ROOT / "docs/simple/index.html"
 SCAN = ROOT / "docs/scan.json"
 
 ELIGIBLE_TIERS = {"PASS", "BORDERLINE"}
@@ -333,9 +336,29 @@ def build() -> int:
         return page
 
     page = render(TEMPLATE, OUT)
-    simple = render(SIMPLE_TEMPLATE, SIMPLE_OUT)
-    if page is None or simple is None:
+    if page is None:
         return 1
+
+    # GitHub Pages serves static files and cannot issue a real redirect, so
+    # /simple/ is a page whose only job is to leave. The meta refresh is the
+    # part that works with JavaScript off; the script makes it instant and
+    # uses replace() so Back does not bounce the reader straight back here.
+    # rel=canonical tells a search engine which address is the real one.
+    REDIRECT_OUT.parent.mkdir(parents=True, exist_ok=True)
+    REDIRECT_OUT.write_text(
+        '<!doctype html>\n<html lang="en">\n<head>\n'
+        '<meta charset="utf-8">\n'
+        '<title>Vantage moved to the main page</title>\n'
+        '<link rel="canonical" href="../">\n'
+        '<meta http-equiv="refresh" content="0; url=../">\n'
+        '<meta name="robots" content="noindex">\n'
+        '</head>\n<body style="font:16px/1.5 system-ui,sans-serif;'
+        'margin:14vh auto;max-width:32em;padding:0 6vw;color:#1B1A17;'
+        'background:#FCFBF9">\n'
+        '<p>This page is now the main Vantage page.</p>\n'
+        '<p><a href="../">Continue to Vantage</a></p>\n'
+        '<script>location.replace("../")</script>\n'
+        '</body>\n</html>\n')
 
     # The state the daily workflow's gate reads to answer "have we already
     # scanned today?". Written HERE, by the same run that renders the page,
@@ -354,7 +377,7 @@ def build() -> int:
     }, indent=1) + "\n")
 
     print(f"wrote {OUT.relative_to(ROOT)}  ({len(page):,} bytes)")
-    print(f"wrote {SIMPLE_OUT.relative_to(ROOT)}  ({len(simple):,} bytes)")
+    print(f"wrote {REDIRECT_OUT.relative_to(ROOT)}  (redirect to /)")
     print(f"wrote {SCAN.relative_to(ROOT)}")
     print(f"   {n} of {eligible} companies more than "
           f"{stage2.BELOW_NORMAL_BAR:.0%} below normal · prices {as_of_txt}")

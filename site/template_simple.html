@@ -14,7 +14,7 @@
    docs/index.html — a different way in.
 
    Written for someone with savings and no trading background. Two rules
-   separate it from the detailed page:
+   separate it from the table view:
 
      1. One readable STATEMENT per company, not a row of nine cells.
      2. Colour appears only where the funnel already reaches a verdict —
@@ -30,6 +30,9 @@
   --ground:#FCFBF9; --surface:#FFFFFF; --raised:#F4F2EE;
   --ink:#1B1A17; --muted:#5F5B54; --faint:#8C877E;
   --rule:#E7E4DD; --rule-strong:#D3CFC5;
+  /* the banded columns group the MARKET facts (price, range, size,
+     direction) apart from the FILING verdicts either side of them */
+  --band:#F8F6F2; --band-rule:#E2DED6;
   --accent:#175A54; --accent-soft:#E6F0EE; --accent-ink:#0F413D;
   --good:#3D6B4E; --warn:#8A6412; --bad:#9B3F35;
   --good-bg:#EDF3EE; --warn-bg:#F7F0DF; --bad-bg:#F7EAE7;
@@ -177,6 +180,110 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
 }
 
 {{DETAIL_CSS}}
+
+/* ======================================================================
+   TABLE VIEW — the same fourteen companies as the cards, one row each.
+   Structure is v2 "Signal" of the mockups; the theme is this page's.
+
+   Colour rule, and the reason it differs from the mockup: colour appears
+   ONLY where the funnel has actually reached a verdict — the quality
+   marks (Stage 1) and the vs-its-own-history read (Stage 3). It does NOT
+   appear on the price trend. The mockup coloured "falling now" brick and
+   "fell, now rising" moss, which is a judgement on a price move: against
+   §6.1 ("no red or green"), and backwards to the thesis, since a good
+   company falling is the thing this page exists to find. Direction is
+   carried by the FORM of the dot — filled, hollow, outlined — exactly as
+   the deleted detailed table always did.
+   ====================================================================== */
+#tblwrap{overflow-x:auto; margin-bottom:34px}
+table.list{
+  border-collapse:collapse; width:100%; min-width:1160px;
+  table-layout:fixed;   /* so a filter change cannot resize the columns */
+}
+/* Every column is sized except Company, which absorbs whatever is left —
+   it holds the longest and most variable content on the row. */
+col.w-no{width:44px}   col.w-qual{width:120px} col.w-below{width:132px}
+col.w-rng{width:152px} col.w-size{width:86px}  col.w-trend{width:150px}
+col.w-read{width:142px} col.w-src{width:64px}
+
+table.list thead th{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted); font-weight:500;
+  text-align:left; padding:11px 10px; vertical-align:bottom;
+  border-bottom:1px solid var(--rule-strong); background:var(--raised);
+}
+table.list thead th.r{text-align:right}
+table.list th.band, table.list td.band{background:var(--band)}
+table.list th.band-first, table.list td.band-first{border-left:1px solid var(--band-rule)}
+table.list th.band-last,  table.list td.band-last {border-right:1px solid var(--band-rule)}
+
+table.list tbody td{
+  padding:11px 10px; border-bottom:1px solid var(--rule);
+  font-size:13.5px; vertical-align:middle;
+}
+table.list tbody tr.row{cursor:pointer}
+table.list tbody tr.row:hover td{background:var(--raised)}
+table.list tbody tr.row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+table.list tbody tr.row.open td{background:var(--raised)}
+
+td.k-no{font-family:var(--mono); font-size:12px; color:var(--faint); text-align:right}
+.k-tkr{font-family:var(--mono); font-size:13px; font-weight:600}
+.k-co{color:var(--muted); font-size:12.5px; margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+/* Quality — a verdict, so colour is allowed. One mark per check: filled
+   where it passed, outlined where it did not, absent-looking where it
+   could not be read at all, which is not a failure. */
+.k-marks{display:flex; gap:2.5px}
+.k-qm{width:9px; height:9px; border-radius:1px; background:var(--good)}
+.k-qm.off{background:var(--bad-bg); border:1px solid var(--bad)}
+.k-qm.na{background:transparent; border:1px dashed var(--rule-strong)}
+.k-qlab{font-size:12px; color:var(--muted); margin-top:3px}
+
+.k-big{font-family:var(--mono); font-size:19px; font-weight:600;
+  letter-spacing:-.01em; font-variant-numeric:tabular-nums; line-height:1.1}
+.k-track{height:3px; background:var(--rule); margin-top:5px; position:relative; border-radius:2px}
+.k-track i{position:absolute; inset:0 auto 0 0; background:var(--rule-strong); border-radius:2px}
+
+.k-rngb{font-size:12.5px; line-height:1.25}
+.k-rngs{font-size:11.5px; color:var(--faint); margin-top:2px; line-height:1.3}
+.k-size{font-family:var(--mono); font-size:12.5px; color:var(--muted); text-align:right}
+
+/* Direction — NOT a verdict. Form carries it, never colour. */
+.k-pill{display:inline-flex; align-items:center; gap:6px; font-size:12px;
+  color:var(--muted); border:1px solid var(--rule-strong); border-radius:2px;
+  padding:3px 8px; white-space:nowrap}
+.k-dot{width:6px; height:6px; border-radius:50%; background:var(--muted); flex:0 0 auto}
+.k-dot.hollow{background:transparent; border:1px solid var(--muted)}
+.k-dot.ring{background:transparent; border:1px solid var(--muted);
+  box-shadow:0 0 0 2px var(--band)}
+
+/* Vs its own history — a verdict, so colour is allowed. */
+.k-read{font-size:12.5px}
+.k-read.cheap{color:var(--good); font-weight:500}
+.k-warn{display:block; font-size:11.5px; color:var(--warn); margin-top:2px}
+
+.k-srcs{display:flex; gap:5px}
+.k-src{width:22px; height:22px; border:1px solid var(--rule-strong); border-radius:2px;
+  display:inline-flex; align-items:center; justify-content:center;
+  text-decoration:none; color:var(--muted)}
+.k-src:hover{border-color:var(--accent); color:var(--accent)}
+
+/* the shared panel, opened from a row instead of a card */
+tr.k-detail > td{padding:0 0 20px; background:var(--raised);
+  border-bottom:1px solid var(--rule)}
+tr.k-detail .work{padding:4px 12px 0}
+
+/* view toggle */
+.vswitch{display:flex; align-items:center; gap:8px; margin:0 0 18px}
+.vswitch .vname{font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); margin-right:2px}
+.vbtn{font:inherit; font-size:13px; background:var(--surface); color:var(--ink);
+  border:1px solid var(--rule-strong); border-radius:999px; padding:5px 14px;
+  cursor:pointer; display:inline-flex; align-items:center; gap:7px}
+.vbtn:hover{border-color:var(--accent)}
+.vbtn.on{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+.vbtn svg{width:13px; height:13px}
 </style>
 </head>
 <body>
@@ -259,7 +366,20 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
     <span class="count" id="shown"></span></div>
 </section>
 
+<div class="vswitch">
+  <span class="vname">View</span>
+  <button class="vbtn on" id="vCards" aria-pressed="true">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="1.6" y="2.2" width="12.8" height="4.4" rx="1"></rect>
+      <rect x="1.6" y="9.4" width="12.8" height="4.4" rx="1"></rect></svg>Cards</button>
+  <button class="vbtn" id="vTable" aria-pressed="false">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="1.6" y="2.6" width="12.8" height="10.8" rx="1"></rect>
+      <path d="M1.6 6.2h12.8M6.4 6.2v7.2"></path></svg>Table</button>
+</div>
+
 <div id="cards"></div>
+<div id="tblwrap" hidden></div>
 
 <section class="htr">
   <h2>What the words mean</h2>
@@ -316,16 +436,16 @@ function sentence(r){
                + " anything else." : "");
 }
 
-/* The same two defaults the detailed page carries, and for the same
+/* The two defaults the project has always carried, and for the same
    reason: quality first, and only show what has actually moved. Both are
    claims the project already makes (§6 principle 1). */
 const F={q:new Set(["high"]), bar:true, z:new Set(), sh:new Set(), s3:new Set(), q3:new Set()};
 let SORT="b";
-/* Deliberately identical to passes() on the detailed page — it reads the
-   same fields (r.z, r.sh, r.s3.l) rather than recomputing them, so the
-   two pages cannot disagree about which companies match a filter. An
-   earlier version derived size from market cap here and would have
-   drifted the moment a boundary moved. */
+/* One filter function for BOTH views — the cards and the table read the
+   same result, so they cannot disagree about which companies match. It
+   reads the stored fields (r.z, r.sh, r.s3.l) rather than recomputing
+   them; an earlier version derived size from market cap here and would
+   have drifted the moment a boundary moved. */
 function passes(r){
   if(F.q.size && !F.q.has(r.q)) return false;
   if(F.bar && !(r.b != null && r.b >= BAR)) return false;
@@ -415,19 +535,128 @@ function resetAll(){
   draw();
 }
 
+/* ---- TABLE VIEW ---------------------------------------------------------
+   The same list, same filters, same sort, same expanded panel — only the
+   arrangement differs. Every value is read off the row the cards already
+   use; nothing is recomputed here, so the two views cannot disagree.     */
+
+/* Direction is shown by the FORM of the dot, never by colour. Colour on a
+   price move would be a judgement the funnel refuses to make, and would
+   point the wrong way besides: a good company falling is the case this
+   page exists to surface. */
+const TDOT={"falling now":"", "fell, now flat":"hollow", "fell, now rising":"ring"};
+
+function markHtml(r){
+  // one mark per check: filled = cleared, outlined = did not, dashed =
+  // could not be read, which is not a failure and must not look like one
+  const gt=r.gt||[];
+  const marks=gt.map(g=>{
+    const cls = g[1]==null ? "na"
+              : (g[1]==="pass"||g[1]==="near-pass") ? "" : "off";
+    return `<span class="k-qm ${cls}"></span>`;}).join("");
+  const read=gt.filter(g=>g[1]!=null).length;
+  const ok=gt.filter(g=>g[1]==="pass"||g[1]==="near-pass").length;
+  const lab = !gt.length ? "not assessed"
+            : read===0   ? "none could be read"
+            : `${ok} of ${read} checks`;
+  return `<div class="k-marks">${marks}</div><div class="k-qlab">${lab}</div>`;
+}
+
+function rowHtml(r,i){
+  const [tl]=TREND[r.sh]||[r.sh||"—",""];
+  const dot=TDOT[r.sh]??"hollow";
+  const cheap=r.s3 && /cheaper/.test(r.s3.l||"");
+  const fall =r.s3 && /profit falling/.test(r.s3.l||"");
+  const readTxt = !r.s3 ? "—"
+    : cheap ? "cheaper" : /pricier/.test(r.s3.l||"") ? "pricier" : "about as usual";
+  const width = r.b==null ? 0 : Math.max(2, Math.round(r.b/MAXB*100));
+  const src=(href,title,svg)=> !href ? "" :
+    `<a class="k-src" href="${href}" target="_blank" rel="noopener"
+        title="${title}" aria-label="${r.t} on ${title}">${svg}</a>`;
+  return `<tr class="row" data-i="${i}" tabindex="0">
+    <td class="k-no">${i+1}</td>
+    <td><div class="k-tkr">${r.t}</div><div class="k-co">${r.n}</div></td>
+    <td>${markHtml(r)}</td>
+    <td class="band band-first r" style="text-align:right">
+      <div class="k-big">${r.b==null?"—":r.b.toFixed(1)+"%"}</div>
+      <div class="k-track"><i style="width:${width}%"></i></div></td>
+    <td class="band">${r.q3b?`<div class="k-rngb">${r.q3b}</div>
+      ${r.q3s?`<div class="k-rngs">${r.q3s}</div>`:""}`:`<span class="k-rngs">—</span>`}</td>
+    <td class="band k-size">${cap(r.c)}</td>
+    <td class="band band-last"><span class="k-pill">
+      <span class="k-dot ${dot}"></span>${tl}</span></td>
+    <td><div class="k-read${cheap?" cheap":""}">${readTxt}${
+      fall?`<span class="k-warn">profit falling</span>`:""}</div></td>
+    <td><div class="k-srcs">
+      ${src(r.y,"Yahoo Finance",`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11.5 6 8 2.5 4.5M8.5 12h5"/></svg>`)}
+      ${src(r.g,"Google Finance",`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6 14 14" stroke-linecap="round"/></svg>`)}
+    </div></td></tr>`;
+}
+
+function tableHtml(list){
+  return `<table class="list">
+    <colgroup><col class="w-no"><col><col class="w-qual"><col class="w-below">
+      <col class="w-rng"><col class="w-size"><col class="w-trend">
+      <col class="w-read"><col class="w-src"></colgroup>
+    <thead><tr>
+      <th class="r">No.</th><th>Company</th><th>Quality</th>
+      <th class="r band band-first">How far below usual</th>
+      <th class="band">3-year range</th><th class="r band">Size</th>
+      <th class="band band-last">Recent direction</th>
+      <th>Vs its own history</th><th>Read up</th>
+    </tr></thead>
+    <tbody>${list.map(rowHtml).join("")}</tbody></table>`;
+}
+
+/* One row's panel opens beneath it, using the SAME detail() both views
+   share, so the working can never differ between them. */
+function wireRows(list){
+  document.querySelectorAll("#tblwrap tr.row").forEach(tr=>{
+    const go=e=>{
+      if(e.target.closest("a")) return;
+      const nxt=tr.nextElementSibling;
+      if(nxt && nxt.classList.contains("k-detail")){
+        nxt.remove(); tr.classList.remove("open"); return;
+      }
+      const d=document.createElement("tr");
+      d.className="k-detail";
+      d.innerHTML=`<td colspan="9">${detail(list[+tr.dataset.i])}</td>`;
+      tr.after(d); tr.classList.add("open");
+    };
+    tr.addEventListener("click",go);
+    tr.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();go(e);} });
+  });
+}
+
+let VIEW="cards";
+
+const EMPTY = `<div class="quiet"><div class="q1">Nothing is far below its usual price today.</div>
+        <p class="q2">That is the honest answer most days, and it is the point of the page —
+        it stays quiet until something moves. Widen a filter to see the rest.</p></div>`;
+
 function draw(){
   const list=ordered();
   const el=document.getElementById("cards");
-  el.innerHTML = list.length
-    ? list.map(cardHtml).join("")
-    : `<div class="quiet"><div class="q1">Nothing is far below its usual price today.</div>
-        <p class="q2">That is the honest answer most days, and it is the point of the page —
-        it stays quiet until something moves. Widen a filter to see the rest.</p></div>`;
+  const tw=document.getElementById("tblwrap");
+  const table = VIEW==="table";
+  el.hidden = table; tw.hidden = !table;
+  // The empty state REPLACES the list in either view (§6.1) — showing an
+  // empty table with its headings still standing contradicts the headline.
+  if(table){
+    tw.innerHTML = list.length ? tableHtml(list) : EMPTY;
+    el.innerHTML = "";
+    if(list.length) wireRows(list);
+  } else {
+    tw.innerHTML = "";
+    el.innerHTML = list.length ? list.map(cardHtml).join("") : EMPTY;
+  }
   document.getElementById("shown").textContent =
     `${list.length} of ${ROWS.length} shown`;
   const rb=document.getElementById("resetBtn");
   rb.disabled = atDefault();
   rb.textContent = rb.disabled ? "Showing the default view" : "Reset to default view";
+  if(table) return;
   el.querySelectorAll(".co-card").forEach(c=>{
     // A click inside the expanded panel must not close it. The whole card
     // is the toggle, so without this a reader who clicks anything while
@@ -453,6 +682,16 @@ document.querySelectorAll(".chip[data-s]").forEach(b=>b.addEventListener("click"
 document.getElementById("barChip").addEventListener("click",function(){
   F.bar=!F.bar; this.classList.toggle("on",F.bar); draw();
 });
+(function(){
+  const bc=document.getElementById("vCards"), bt=document.getElementById("vTable");
+  const set=v=>{ VIEW=v;
+    bc.classList.toggle("on", v==="cards"); bt.classList.toggle("on", v==="table");
+    bc.setAttribute("aria-pressed", String(v==="cards"));
+    bt.setAttribute("aria-pressed", String(v==="table"));
+    draw(); };
+  bc.addEventListener("click",()=>set("cards"));
+  bt.addEventListener("click",()=>set("table"));
+})();
 document.getElementById("resetBtn").addEventListener("click",resetAll);
 draw();
 </script>

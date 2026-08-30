@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.25 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.26 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -37,14 +37,11 @@ was reopened.
 The result is published as **two pages over one scan**, regenerated from
 each run:
 
-- **[/vantage/](https://smunka42-gh.github.io/vantage/)** — the detailed
-  table, every company a row.
-- **[/vantage/simple/](https://smunka42-gh.github.io/vantage/simple/)** —
-  one readable sentence per company, for a reader without a trading
-  background (§6 principle 10).
-
-Neither withholds anything from the other: the expanded panel is one
-implementation inlined into both.
+- **[/vantage/](https://smunka42-gh.github.io/vantage/)** — one readable
+  statement per company, with a switch to see the same list as a table
+  (§6 principle 10). This is the only address; `/simple/`, which the
+  statement page used to live at, now redirects here so links already
+  shared keep working.
 
 Corrections forced by real data: the original returns bar excluded Amazon
 and Costco; the margin test was unrunnable on 13 of the 20 largest
@@ -58,6 +55,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.26** | 30 Aug 2026 | **One page, two views.** The statement page absorbed the detailed table as a switchable view and became the only address; `site/template.html` is deleted and `/simple/` is a redirect, so every link already shared still lands (§6 principle 10). The table is v2 "Signal" of the eight mockups: the four MARKET facts — how far below usual, 3-year range, size, direction — sit in a tinted band, the FILING verdicts outside it either side. Colour appears only where the funnel reaches a verdict; **the trend chips stay neutral**, carrying direction by the form of a dot. The mockup coloured *falling now* brick and *fell, now rising* moss, which judges a price move — against §6.1, and backwards to the thesis, since Monster tops the list still falling. Sorting by column heading is gone; quality is a filter, which answers the same question better, and the loss is recorded in principle 10 rather than left to be discovered. **Found by rendering all 470 rather than the 14 a default filter shows:** `<col class="k-src">` matched the rule for the link buttons inside it and inherited `display: inline-flex`, which stops a `<col>` being a column — its width was dropped in silence and COMPANY lost half its width. Width classes now have their own `w-` namespace. **CI's push is race-safe**: a scan takes ~8 minutes and three runs on 30 Aug built cleanly, committed, then failed to push because main had moved, mailing a failure for a scan that worked. It now re-commits the generated pages on the new tip and retries — with a MIXED reset, never `--soft`, which was tested against a real race and found to delete the other push's files while reporting success. |
 | **v2.25** | 30 Aug 2026 | **The detailed table trades `vs 10m / 2m avg` for `3-year range`.** The frozen widths total 1030px and an eleventh column makes 1180, so the column had to be bought rather than added. The averages are the arithmetic *behind* the headline number and were already stated in prose one click away — *"it sits 40.3% below its 10-month average and 39.4% below its 2-month"* — while where a price sits in its own 3-year range appeared nowhere. 146px out, 150px in; COMPANY absorbs the 4px, as it absorbs every remainder. Audit finding 2.3 had flagged that column and every v5–v8 mockup had already dropped it. `/simple/` needed no such trade: it is cards, not a fixed-width table. Also: the cell wraps, because `tbody td` is nowrap and *"high in its 3-year range"* overflowed 150px — the same exception Stage 3's read already takes — and "of 3 years" is dropped from the short form, since the column header already says it. Verified across 60 rows and all five bands, nothing clipped, table back to 1030. |
 | **v2.24** | 30 Aug 2026 | **Where today's price sits in its own 3-year range**, added as a shown fact and a filter — **never blended into the ranking**. From pressure-testing an external screening framework against all 470 (TODO 7). The two measures agree on 9 of the top 12 high-quality names but disagree for four: **TJX, WMT, CRH and TPR are 10%+ below their moving averages while sitting in the top half of their own 3-year range** — they fell back from a run rather than toward a floor. Six others (OTIS, AOS, INTU, CHTR, CPRT, TSCO) sit near a 3-year low but under 10% below their averages, so they never appear. **Not put in the ranking** for three reasons: there are no forward returns here, so nothing shows it ranks *better*; it compresses exactly where a ranking must discriminate (p10 is 16, the median 82, so most names crowd the bottom decile); and blending two measures that disagree hides the disagreement, which is the information. The filter carries **no default** — defaulting it would assert "only near a 3-year low counts" (§6 principle 1). Wording states the majority side always: *"97% of the last 3 years traded higher than today's price"*, because TPR's *"22% traded higher"* would be true and would read as cheap. Five bands, not two: CRH at 55 and TPR at 78 are different statements. `prices.fetch` moves from a 2-year to a 5-year window, which the 756-day span needs and which costs nothing on the same request. |
 | **v2.23** | 30 Aug 2026 | **A list of sentences the project has outgrown**, checked against both the spec and the README, and meant to be appended to whenever another is found — the cost is one line and the same sentence never goes stale twice. Seeded from what has actually been hit: *"there is no Stage 3"*, *"both stages are built"*, *"complete at two stages"*, *"build the interface last"*, *"a single page"*. It immediately found a **third** *"both stages are built"*, opening §6, after two had already been fixed today. Also: **§6 carried two principles numbered 9** — one added on top of another — which silently broke every *"see principle 9"* reference; the pages principle becomes 10 and the references are corrected. **TENETS.md said "Five rules" over six**, and the spec summarised five of them. Three checks now hold those together: no duplicate or out-of-order principle numbers, and the tenet count agreeing across TENETS.md's headings, its own opening line, and the spec's summary. All verified to fail when reintroduced. |
@@ -1477,26 +1475,53 @@ rather than a guess — all three stages were built and validated first, and
    entirely rather than appearing with a price and no verdict.
 8. **The tier is always visible.** A BORDERLINE name is never shown as a
    clean pass.
-9. **Column widths are set by hand, then frozen.** They are a design
-   decision, not an outcome of whichever rows a filter happens to show.
-   Left to the browser the table re-sized itself on every click, because
-   auto layout measures only the rows currently on screen. The widths in
-   the stylesheet were chosen by dragging the real table over the real
-   data and reading the numbers off; `table-layout: fixed` then honours
-   them literally.
+9. **A column's width is a decision, not an outcome of whichever rows a
+   filter happens to show.** Left to the browser the table re-sized
+   itself on every click, because auto layout measures only the rows
+   currently on screen. `table-layout: fixed` is what stops that, and it
+   is the part of this principle that has never changed.
 
-10. **There are two pages over one funnel, and neither is a reduced
-   version of the other.** `/` is the detailed table; `/simple/` states
-   one company per readable sentence for a reader with savings and no
-   trading background. They are rendered by the same build from the same
-   scan, so they cannot disagree about what the funnel found.
+   *(Revised v2.26. Until then the widths were frozen to an exact pixel
+   total, arrived at by dragging the real table over the real data. That
+   was right for a page whose only job was the table. The table is now
+   one of two views inside a page that must also hold cards, so the
+   widths are set by judgement against the real content and the table
+   scrolls inside its own container rather than fixing the page to a
+   pixel total. Eight columns are sized; COMPANY takes the remainder,
+   because it holds the longest and most variable content on the row.)*
 
-   **Nothing is withheld from the simple page.** Every gate, the
-   five-year record and the 52-week scale are one click away, from the
-   same `site/detail.js` the detailed page inlines. What differs is the
-   way in, not the depth: the simple page asks for no finance vocabulary
-   before the reader has seen a company, and puts the detail behind a
-   collapsed card instead of in front of them.
+   **Width classes get their own namespace.** Giving a `<col>` the same
+   class as the content inside it is how `<col class="k-src">` picked up
+   `display: inline-flex` from the rule meant for the link buttons — and
+   a `<col>` carrying a display value stops being a column, so its width
+   was dropped in silence and COMPANY lost half its width to a
+   neighbour. Nothing errored; it simply laid out wrong.
+
+10. **One page over one funnel, with two views of the same list.** It
+   opens as a statement per company, for a reader with savings and no
+   trading background, and a switch above the list shows the same
+   companies as a table for a reader who wants to scan and compare.
+
+   *(Revised v2.26. Through v2.25 these were two separate pages at two
+   addresses, `/` and `/simple/`. Two pages meant two answers to "where
+   do I send someone", and the statement page had become the better one
+   to send. Making it a view rather than a second address settles that:
+   the switch keeps the filters and the sort, so it changes the
+   arrangement and never the membership — the same distinction principle
+   1 draws between a filter and a sort.)*
+
+   **Neither view withholds anything.** Every gate, the five-year record
+   and the 52-week scale are one click away in both, from the same
+   `site/detail.js`, and the table's columns are the ones the deleted
+   detailed page carried. What differs is the arrangement: the statement
+   view asks for no finance vocabulary before the reader has seen a
+   company; the table puts nine columns in front of them on purpose.
+
+   **What the table gave up:** the old page let a reader sort by
+   clicking a column heading, including by quality. Quality is a FILTER
+   here, not a sort — ticking "high" removes the rest, which answers the
+   same question better. Recorded because it is a capability the old
+   page had and this one does not.
 
    The simple page also carries **colour where the funnel already reaches
    a verdict** — checks passed, direction, cheaper-than-usual, falling
@@ -1521,13 +1546,13 @@ rather than a guess — all three stages were built and validated first, and
 | **Single theme** | Paper: off-white ground, ink text, hairline rules. A research document, not a trading terminal. |
 | **The panel is one implementation, inlined twice** | `site/detail.js` and `site/detail.css` hold the expanded panel — gates, five-year record, 52-week scale — and `build_site.py` inlines both into each page. Copying the panel into a second template would have guaranteed drift: the two pages would agree on the day they shipped and disagree by the second change. Each page stays a single self-contained document, which is what GitHub Pages serves. |
 | **The simple page states, the detailed page tabulates** | One sentence per company, generated from the same figures the table shows — *"Monster Beverage passes all six quality checks, is priced 39.9% below its own recent average, and is cheaper than its earnings have historically cost."* No clause asserts anything the detailed page does not evidence. |
-| **Frozen column widths, not computed ones** | Three attempts to compute them all failed differently. `table-layout: fixed` with guessed percentages clipped *falling now* mid-word while Research sat twice as wide as two letter badges need. Auto layout fixed the clipping but sized every column to the ~14 rows a filter left on screen, so the whole table shifted on every click. Measuring across all 470 rows at load fixed *that*, and was then redundant the moment the widths were chosen deliberately. The stylesheet is now the single source, and every value in all 470 rows was verified to fit before `fixed` was switched back on. |
+| **Widths judged against the content, not frozen to a total** | Three attempts to COMPUTE them all failed differently. `table-layout: fixed` with guessed percentages clipped *falling now* mid-word; auto layout fixed the clipping but sized every column to the ~14 rows a filter left on screen, so the table shifted on every click; measuring across all 470 rows at load fixed that and was then redundant once the widths were chosen deliberately. `fixed` stays — it is what stops a filter resizing the table. What changed in v2.26 is the total: the table is now one view inside a page that also holds cards, so it scrolls inside its own container instead of pinning the page to an exact pixel width. Eight columns are sized and COMPANY takes the remainder. |
 | **Long headings wrap; values do not** | A heading that cannot wrap sets a floor wider than any number beneath it, so the column ends up sized by its own label. `% below usual` was holding 123px for values needing 67. The two headings that wrap gave that width back. Values stay on one line wherever they fit — the pair of moving averages was briefly wrapped and did not need to be. |
 | **The Stage 3 read may stack** | Its one exception. Three companies show two labels at once (*no earnings history* + *profit falling*), and while the cell was nowrap end to end that pair set a floor no width could get under. Each label still holds together; only the pair breaks. |
 | **A `No.` column** | The row's position in the list as currently sorted and filtered — so it renumbers when either changes. Styled muted, because it is a place in a list, not a fact about the company. |
 | **A label may assert only over a check that passed** | The label above each gate detail is an assertion — *"Margins holding up"*, *"Still growing"*. v2.19 stopped it asserting where a check could not RUN; it still asserted where a check ran and FAILED, so EchoStar read *"Margins holding up"* above *"Lost 118.1 cents per dollar of sales"* — on **243 of 470 companies, 464 gates**. Once the collapsed head began summarising the same gates as *"falls short on margins"*, one panel asserted both. A label now appears only where the grade is pass or near-pass; every other case takes the neutral topic (*Margins*, *Debt*, *Sales growth*), which claims nothing. Gates 4 and 6 pick their label from the test that ran, and that choice is now gated on passing too. |
 | **Each question collapses to its answer** | Opening a company showed six gates, a five-year grid, a price scale and the Stage 3 read at once — every part at the same weight, so nothing read as the answer. Each stage is a native `<details>` whose head carries the question, why it is asked, and the finding; the working is one click further. Native, so it is keyboard-reachable with no script, and `display` is never set on it — doing so disables the built-in show/hide, and every section rendered expanded while reporting `open === false`. Verified by rendering all 470 companies, not the ~14 a default filter leaves on screen: that is what caught a summary claiming *"passes all 0 checks that could be read"* over six checks that never ran. |
-| **The drag tool was removed once it had done its job** | A `?resize=1` mode with drag handles and a read-out panel is how the widths above were arrived at — chosen against the real data rather than argued about in the abstract. It was then deleted rather than left in gated: the widths are settled, so shipping the machinery to every visitor bought nothing. It is in git history at `feb1f97` if a column ever needs re-tuning. |
+| **The drag tool was removed once it had done its job** | A `?resize=1` mode with drag handles is how the deleted detailed table's widths were arrived at — chosen against the real data rather than argued about in the abstract. It was deleted rather than left in gated: shipping the machinery to every visitor bought nothing. In git history at `feb1f97`, and the technique is worth reaching for again, not the code. |
 
 ## 7. Build order
 
