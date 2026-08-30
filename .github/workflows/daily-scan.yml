@@ -22,6 +22,13 @@ on:
     # EDGAR. What it proves is the only thing in question — whether GitHub
     # triggers this workflow at all.
     - cron: "*/15 * * * *"
+    # The */15 probe above only proves GitHub FIRES the workflow — the gate
+    # skips its scan because today's already happened, so the scheduled
+    # path has never run end to end. This one forces a full scan so that
+    # gets tested too. Every 6 hours, not every 15 minutes: a forced run
+    # is ~8 minutes and ~500 EDGAR requests.
+    # REMOVE BOTH BY 31 Aug 2026.
+    - cron: "0 */6 * * *"
   workflow_dispatch:          # manual run from the Actions tab
 
 permissions:
@@ -43,6 +50,9 @@ jobs:
         id: gate
         env:
           EVENT_NAME: ${{ github.event_name }}
+          # which cron fired, so the forced probe can be told apart from
+          # the real schedule. TEMPORARY — goes with the probe crons.
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os, pathlib, sys
@@ -52,6 +62,15 @@ jobs:
 
           if os.environ.get("EVENT_NAME") == "workflow_dispatch":
               log("Manual run — proceeding.")
+              print("proceed=true"); raise SystemExit
+
+          # TEMPORARY, REMOVE BY 31 Aug 2026 with the probe crons above.
+          # Forces a full end-to-end scan from a SCHEDULED trigger, which
+          # the state gate below would otherwise skip on a day already
+          # scanned. Without this the scheduled path is only ever proven
+          # as far as the gate.
+          if os.environ.get("SCHEDULE") == "0 */6 * * *":
+              log("Forced probe scan — proceeding for the end-to-end test.")
               print("proceed=true"); raise SystemExit
 
           # GATE ON STATE, NOT ON THE CLOCK.
