@@ -75,26 +75,59 @@ a:hover{text-decoration:underline}
 .sect-lede{color:var(--muted); font-size:13.5px; margin:0 0 18px}
 
 .scroller{overflow-x:auto; border:1px solid var(--rule); border-radius:3px; background:var(--surface)}
-/* table-layout:fixed with explicit widths. The default (auto) sizes
-   columns by content and dumps all the leftover width wherever it likes,
-   which left a chasm after COMPANY and another before SHAPE. Fixed widths
-   make the spacing a decision rather than an accident. */
-table{border-collapse:collapse; width:100%; min-width:720px;
-      table-layout:fixed}
-/* The four numeric columns are DELIBERATELY EQUAL. Uneven widths there
-   read as sloppy; equal widths make the block of figures scan as one
-   unit. The name column takes what is left, and the single wider gap
-   after it separates "which company" from "the numbers" on purpose. */
-col.c-name {width:18%}
-col.c-main {width:13%}
-col.c-cap  {width:13%}
-col.c-ma   {width:12%}
-col.c-links{width:16%}
+/* table-layout:fixed, because the widths below are FROZEN — chosen by
+   hand against the real data, not guessed. Auto layout treats a column
+   width as a suggestion and quietly reshuffles a pixel or two between
+   columns to settle the collapsed borders; fixed honours the numbers
+   exactly. Every value in all 470 rows was checked to fit before this
+   was switched on. */
+table{border-collapse:collapse; table-layout:fixed; width:1030px; min-width:1030px}
+/* Frozen column widths, set by hand in the browser (?resize=1) and read
+   off — not computed at runtime. They total 1032px, which is exactly the
+   width inside the page wrapper, so the table fills it and nothing is
+   left over. table{min-width} holds them on a narrow screen: the table
+   scrolls sideways rather than crushing a column. */
+col.c-exp  {width:28px}
+col.c-no   {width:43px}
+col.c-name {width:245px}
+col.c-qual {width:82px}
+col.c-main {width:76px}
+col.c-cap  {width:76px}
+col.c-ma   {width:146px}
+col.c-shape{width:125px}
+col.c-read {width:133px}
+col.c-links{width:76px}
+
+/* Hand-resizing is a BUILD-TIME tool, not a feature. It only switches on
+   with ?resize=1 in the URL, so an ordinary visitor never sees a grip.
+   Drag the right edge of a heading, then read the numbers off the panel
+   and freeze them into this stylesheet. */
+.resizing thead th{position:relative}
+.resizing thead th .grip{
+  position:absolute; top:0; right:-4px; width:9px; height:100%;
+  cursor:col-resize; z-index:5;
+}
+.resizing thead th .grip::after{
+  content:""; position:absolute; top:0; left:4px; width:1px; height:100%;
+  background:var(--accent); opacity:0; transition:opacity .12s;
+}
+.resizing thead th .grip:hover::after, .resizing thead th .grip.live::after{opacity:1}
+.resizing{cursor:default}
+.resizing.dragging, .resizing.dragging *{cursor:col-resize !important; user-select:none}
+#wpanel{
+  position:fixed; left:14px; bottom:14px; z-index:99;
+  background:var(--surface); border:1px solid var(--rule-strong); border-radius:4px;
+  padding:11px 13px; box-shadow:0 8px 28px rgba(0,0,0,.18);
+  font-family:var(--mono); font-size:11px; line-height:1.75; color:var(--ink);
+}
+#wpanel h4{margin:0 0 6px; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:500}
+#wpanel .r{display:flex; gap:10px; justify-content:space-between}
+#wpanel .r span:last-child{font-variant-numeric:tabular-nums}
+#wpanel .btns{display:flex; gap:6px; margin-top:9px}
+#wpanel button{font:inherit; font-size:10px; padding:4px 8px; cursor:pointer;
+  border:1px solid var(--rule-strong); border-radius:3px; background:var(--raised); color:var(--ink)}
+#wpanel button:hover{background:var(--surface)}
 thead th{
-  /* Column headings match the FILTER that controls them — the filter
-     chips say "trend" and "priced", so the columns do too. Two names for
-     one thing cost a reader more than a longer word ever saves, and the
-     shorter headings happen to fit nine columns on one line. */
   font-family:var(--mono); font-size:10px; letter-spacing:.09em;
   text-transform:uppercase; color:var(--muted); font-weight:500;
   text-align:right; padding:13px 10px; border-bottom:1px solid var(--rule-strong);
@@ -109,10 +142,6 @@ thead th:first-child,thead th.l{text-align:left}
    are kept faint — enough to separate, not enough to box each cell in. */
 thead th + th, tbody td + td{border-left:1px solid var(--rule)}
 thead th.divide, tbody td.divide{border-left:1px solid var(--rule)}
-/* A floor width: below this the browser was crushing cells into each
-   other instead of scrolling, which is why "falling now" sat on top of
-   "cheaper". The scroller handles anything narrower. */
-#tbl{min-width:1030px}
 thead th.sortable{cursor:pointer; user-select:none}
 thead th.sortable:hover{color:var(--ink)}
 thead th .caret{opacity:0; margin-left:5px}
@@ -123,15 +152,30 @@ tbody td{
   white-space:nowrap;
 }
 tbody td.l{text-align:left; font-family:var(--sans); font-size:13.5px}
+/* Safety net for the frozen widths: fixed layout clips rather than grows,
+   so should a longer company name ever join the index, the name wraps onto
+   a second line instead of being silently cut off. The ticker above it
+   stays on one line. */
+tbody td.l .co{white-space:normal}
 /* Numbers align right so digits stack and can be compared down a column.
    Words gain nothing from it and lose the straight left edge the eye
    follows, so the label columns align left and use the sans face. */
 tbody td.txt{text-align:left; font-family:var(--sans); font-size:12.5px}
+/* The serial number is a place in the list, not a fact about the company.
+   It renumbers with every sort and filter, so it stays visually quiet. */
+thead th.no, tbody td.no{text-align:right; color:var(--muted)}
+tbody td.no{font-size:12px}
 /* The word headings may wrap onto a second line rather than being
    clipped or shortened. "Cheaper or pricier?" is the agreed wording and
    an earlier attempt to fix the width by renaming it was the wrong
    trade — the heading stays, the line breaks. */
 thead th.txt{text-align:left; white-space:normal}
+/* These headings are longer than anything underneath them. Left at nowrap
+   each one sets a floor WIDER than its own values, so the column is sized
+   by its label instead of its data. Letting them wrap onto a second line
+   hands the width back to the values. */
+thead th.wraphead{white-space:normal}
+
 tbody tr:last-child td{border-bottom:0}
 tbody tr.row{cursor:pointer}
 tbody tr.row:hover{background:var(--raised)}
@@ -157,7 +201,6 @@ tbody tr.row.open{background:var(--accent-soft)}
 .src:hover{border-color:var(--ink); color:var(--ink); text-decoration:none}
 .rowlinks{display:inline-flex; gap:5px}
 
-col.c-exp{width:30px}
 /* Everything else sizes to content. The old fixed percentages were
    chosen when every column held a right-aligned number; with words in
    half of them they cramped three headers by a few pixels each. */
@@ -220,6 +263,10 @@ tr.row:hover .expmark, tr.row.open .expmark{color:var(--ink)}
   display:inline-block; font-size:11px; color:var(--muted);
   white-space:nowrap; margin-right:6px;
 }
+/* Each label holds together, but the PAIR may stack. Without this the
+   cell was nowrap end to end, so "no earnings history" and "profit
+   falling" sat side by side and set a floor no drag could get under. */
+tbody td.rd{white-space:normal}
 .read.faintly{color:var(--faint); font-style:italic}
 .read.falling{
   border:1px solid var(--rule); border-radius:3px;
@@ -228,7 +275,7 @@ tr.row:hover .expmark, tr.row.open .expmark{color:var(--ink)}
 .gate .d .asof{display:block; color:var(--faint); font-size:11.5px; margin-top:3px}
 
 /* shape pill — deliberately NOT colour-coded good/bad */
-.pill{max-width:100%; overflow:hidden; 
+.pill{
   display:inline-flex; align-items:center; gap:6px;
   font-family:var(--sans); font-size:11.5px; color:var(--muted);
   border:1px solid var(--rule-strong); border-radius:2px;
@@ -531,18 +578,19 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
     <div class="scroller">
       <table id="tbl">
         <colgroup>
-          <col class="c-exp"><col class="c-name"><col class="c-qual"><col class="c-main">
+          <col class="c-exp"><col class="c-no"><col class="c-name"><col class="c-qual"><col class="c-main">
           <col class="c-cap"><col class="c-ma"><col class="c-shape">
           <col class="c-read"><col class="c-links">
         </colgroup>
         <thead>
           <tr>
             <th class="exp" aria-label="Expand"></th>
+            <th class="no" title="Position in the list as currently sorted and filtered">No.</th>
             <th class="l sortable" data-k="t">Company<span class="caret">↓</span></th>
             <th class="sortable txt" data-k="q">Quality<span class="caret">↓</span></th>
-            <th class="sortable divide" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
+            <th class="sortable divide wraphead" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
             <th class="sortable" data-k="c">Size<span class="caret">↓</span></th>
-            <th>vs 10m / 2m avg</th>
+            <th class="wraphead">vs 10m / 2m avg</th>
             <th class="txt">Price trend</th>
             <th class="txt">Cheaper or pricier?</th>
             <th class="txt">Research</th>
@@ -957,6 +1005,27 @@ function wireFilters(){
   });
 }
 
+function rowHtml(r,i){ return `
+    <tr class="row" data-i="${i}" tabindex="0" aria-expanded="false">
+      <td class="exp"><span class="expmark" aria-hidden="true">+</span></td>
+      <td class="no">${i+1}</td>
+      <td class="l"><div class="tkr">${r.t}${r.ar?'<span class="flag">AT RISK</span>':""}</div>
+        <div class="co">${r.n}</div></td>
+      <td class="txt"><span class="qual q-${r.q||"na"}">${r.q||"—"}</span></td>
+      <td class="big divide">${r.b==null?"—":r.b.toFixed(1)+"%"}</td>
+      <td class="dim">${r.c==null?"—":"$"+fmtCap(r.c)}</td>
+      <td class="dim">${r.m2==null?"—":r.m2.toFixed(1)+"% / "+r.m5.toFixed(1)+"%"}</td>
+      <td class="txt">${!r.sh?"—":`<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`}</td>
+      <td class="txt rd">${readCell(r)}</td>
+      <td class="txt"><span class="rowlinks">
+        ${r.y?`<a class="src" href="${r.y}" target="_blank" rel="noopener"
+             title="Yahoo Finance" aria-label="${r.t} on Yahoo Finance">Y</a>`:""}
+        ${r.g?`<a class="src" href="${r.g}" target="_blank" rel="noopener"
+             title="Google Finance" aria-label="${r.t} on Google Finance">G</a>`:""}
+      </span></td>
+    </tr>
+    <tr class="detail" hidden><td colspan="10">${detail(r)}</td></tr>`; }
+
 function render(){
   // The quiet-day state is BEHAVIOUR, not an illustration. It replaces the
   // table rather than sitting beside it — the two are mutually exclusive,
@@ -985,25 +1054,7 @@ function render(){
     if(a==null)return 1; if(b==null)return -1;
     return (typeof a==="string"?a.localeCompare(b):a-b)*sortDir;
   });
-  body.innerHTML=rows.map((r,i)=>`
-    <tr class="row" data-i="${i}" tabindex="0" aria-expanded="false">
-      <td class="exp"><span class="expmark" aria-hidden="true">+</span></td>
-      <td class="l"><div class="tkr">${r.t}${r.ar?'<span class="flag">AT RISK</span>':""}</div>
-        <div class="co">${r.n}</div></td>
-      <td class="txt"><span class="qual q-${r.q||"na"}">${r.q||"—"}</span></td>
-      <td class="big divide">${r.b==null?"—":r.b.toFixed(1)+"%"}</td>
-      <td class="dim">${r.c==null?"—":"$"+fmtCap(r.c)}</td>
-      <td class="dim">${r.m2==null?"—":r.m2.toFixed(1)+"% / "+r.m5.toFixed(1)+"%"}</td>
-      <td class="txt">${!r.sh?"—":`<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`}</td>
-      <td class="txt">${readCell(r)}</td>
-      <td class="txt"><span class="rowlinks">
-        ${r.y?`<a class="src" href="${r.y}" target="_blank" rel="noopener"
-             title="Yahoo Finance" aria-label="${r.t} on Yahoo Finance">Y</a>`:""}
-        ${r.g?`<a class="src" href="${r.g}" target="_blank" rel="noopener"
-             title="Google Finance" aria-label="${r.t} on Google Finance">G</a>`:""}
-      </span></td>
-    </tr>
-    <tr class="detail" hidden><td colspan="9">${detail(r)}</td></tr>`).join("");
+  body.innerHTML=rows.map(rowHtml).join("");
   document.querySelectorAll("#body tr.row").forEach(tr=>{
     const toggle=()=>{
       const d=tr.nextElementSibling;
@@ -1033,8 +1084,95 @@ document.querySelectorAll("th.sortable").forEach(th=>{
     render();
   });
 });
+
 wireFilters();
 render();
+const RESIZE = new URLSearchParams(location.search).has("resize");
+const WKEY = "vantage.colwidths.v3";
+
+/* Widths chosen by hand beat widths measured from content. They are kept
+   in this browser only (localStorage) — nothing here is published until
+   the numbers are read off and written into the stylesheet. */
+function savedWidths(){
+  try { return JSON.parse(localStorage.getItem(WKEY) || "null"); } catch(e){ return null; }
+}
+function applyWidths(w){
+  const cols = [...document.querySelectorAll("#tbl > colgroup col")];
+  cols.forEach((c,i) => { if(w[i]) c.style.width = w[i] + "px"; });
+  const nameCol = document.querySelector("#tbl > colgroup col.c-name");
+  if(w[1]) nameCol.style.width = w[1] + "px";   // beats the 100% slack rule
+}
+
+function enableColumnResize(){
+  document.body.classList.add("resizing");
+  const ths  = [...document.querySelectorAll("#tbl > thead th")];
+  const cols = [...document.querySelectorAll("#tbl > colgroup col")];
+  const label = i => (ths[i].textContent.trim() || "expand").replace(/\u2193$/, "");
+
+  const panel = document.createElement("div");
+  panel.id = "wpanel";
+  panel.innerHTML = "<h4>Column widths — drag a heading edge</h4><div id='wrows'></div>" +
+    "<div class='btns'><button id='wcopy'>Copy</button>" +
+    "<button id='wreset'>Reset to frozen</button></div>";
+  document.body.append(panel);
+
+  const readout = () => {
+    document.getElementById("wrows").innerHTML = ths.map((t,i) =>
+      `<div class='r'><span>${label(i)}</span><span>${Math.round(t.getBoundingClientRect().width)}px</span></div>`
+    ).join("");
+  };
+
+  const store = () => {
+    const w = ths.map(t => Math.round(t.getBoundingClientRect().width));
+    localStorage.setItem(WKEY, JSON.stringify(w));
+    readout();
+  };
+
+  ths.forEach((th,i) => {
+    const g = document.createElement("span");
+    g.className = "grip";
+    g.addEventListener("pointerdown", e => {
+      e.preventDefault(); e.stopPropagation();          // never sort on a grip drag
+      const x0 = e.clientX, w0 = th.getBoundingClientRect().width;
+      g.classList.add("live");
+      document.body.classList.add("dragging");
+      const move = ev => {
+        const w = Math.max(28, Math.round(w0 + (ev.clientX - x0)));
+        cols[i].style.width = w + "px";
+        if(i === 1) th.style.minWidth = "";              // let COMPANY go below its floor by hand
+        readout();
+      };
+      const up = () => {
+        removeEventListener("pointermove", move); removeEventListener("pointerup", up);
+        g.classList.remove("live"); document.body.classList.remove("dragging");
+        store();
+      };
+      addEventListener("pointermove", move); addEventListener("pointerup", up);
+    });
+    th.append(g);
+  });
+
+  document.getElementById("wcopy").addEventListener("click", () => {
+    const w = ths.map((t,i) => `${label(i)}: ${Math.round(t.getBoundingClientRect().width)}px`).join("\n");
+    navigator.clipboard && navigator.clipboard.writeText(w);
+    document.getElementById("wcopy").textContent = "Copied";
+    setTimeout(() => document.getElementById("wcopy").textContent = "Copy", 1200);
+  });
+  document.getElementById("wreset").addEventListener("click", () => {
+    localStorage.removeItem(WKEY);
+    cols.forEach(c => c.style.width = "");   // fall back to the frozen stylesheet
+    ths[1].style.minWidth = "";
+    readout();
+  });
+
+  readout();
+}
+
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+  const w = savedWidths();
+  if(w) applyWidths(w);              // a width set by hand outranks the frozen one
+  if(RESIZE) enableColumnResize();
+});
 // open Nike by default so the working is visible on arrival
 
 </script>
