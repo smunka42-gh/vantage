@@ -58,6 +58,16 @@ const NEUTRAL={
   "Op margin durable":"Margins",
   "Revenue durability":"Sales growth",
 };
+/* Every verdict rendered in the same grey, so a pass and a fail looked
+   identical and the column could not be scanned. Colour goes on the
+   OUTCOME — green passed, red failed — and closeness is a word, not a
+   third colour, because near-fail IS a fail and amber would imply a
+   middle state that does not exist. A check that could not run is grey:
+   it is not a failure and must never look like one. */
+const VWORD={"pass":"pass", "near-pass":"pass, just",
+             "near-fail":"fail, just", "fail":"fail"};
+const VCLASS={"pass":"v-ok", "near-pass":"v-ok v-just",
+              "near-fail":"v-no v-just", "fail":"v-no"};
 const GATE_LABEL={
   "Sustained profit":"Profitable every year",
   "Return on capital":"Earns well on its assets",
@@ -213,7 +223,7 @@ function detail(r){
     return `<div class="gate${risk?" risk":""}">
       <div class="g">${label}</div>
       <div class="d">${plain(raw, g[2])}</div>
-      <div class="v">${risk?"closest":(g[1]||"n/a")}</div>
+      <div class="v ${VCLASS[g[1]] || "v-na"}">${VWORD[g[1]] || "can't tell"}</div>
     </div>`;}).join("");
 
   const months=Math.round((onDate("{{TODAY}}")-onDate(r.pe))/2629800000);
@@ -233,15 +243,6 @@ function detail(r){
   const upFromLow    = ((r.p - r.lo) / r.lo  * 100).toFixed(1);
   const downFromHigh = ((r.hi - r.p) / r.hi * 100).toFixed(1);
 
-  // The heading has to tell the truth for whatever was looked up. On the
-  // ranked list every row qualified; the lookup can return a company that
-  // failed, or one with too little history to judge.
-  const H = {
-    "PASS":"Why it is on the watchlist",
-    "BORDERLINE":"Why it is on the watchlist — and what it barely cleared",
-    "REJECTED":"Why it did not qualify",
-    "CANNOT ASSESS":"Not enough filing history to judge",
-  }[r.tier] || "Not assessed";
 
   // A REIT note stood here and was unreachable: REITs are excluded from
   // the page entirely (§6 principle 7), so ROWS holds 470 companies and
@@ -256,13 +257,13 @@ function detail(r){
           <span class="tick lo"></span><span class="tick hi"></span>
           <span class="now" style="left:${pos}%"></span>
           <span class="nowlab" style="left:${pos}%;transform:translateX(${shift})"
-            >$${r.p.toFixed(2)}<small>(${upFromLow}%, ${downFromHigh}%)<sup>*</sup></small></span>
+            >$${r.p.toFixed(2)} today</span>
           <span class="endlab lo">$${r.lo.toFixed(2)}</span>
           <span class="endlab hi">$${r.hi.toFixed(2)}</span>
         </div>
       </div>
-      <p class="footnote"><sup>*</sup> above the 52-week low, and below
-        the 52-week high</p>`;
+      <p class="footnote"><b>${upFromLow}%</b> above its 52-week low,
+        <b>${downFromHigh}%</b> below its 52-week high</p>`;
 
   // The years behind the statistics each gate reports. A median hides
   // whether 5% is steady, recovering or collapsing.
@@ -297,14 +298,19 @@ function detail(r){
           so a dollar buys ${s3.y[0] > Math.max(s3.y[1],s3.y[2]) ? "MORE"
             : s3.y[0] <= Math.min(s3.y[1],s3.y[2]) ? "LESS" : "about as much"}
           earnings than usual.</div>
-        <div class="v"></div></div>`}
+        ${(()=>{ const hi=s3.y[0] > Math.max(s3.y[1],s3.y[2]),
+                       lo=s3.y[0] <= Math.min(s3.y[1],s3.y[2]);
+          return `<div class="v ${hi?"v-ok":lo?"v-no":"v-na"}">${
+            hi?"cheaper":lo?"pricier":"as usual"}</div>`;})()}</div>`}
       ${!s3.q ? "" : `<div class="gate">
         <div class="g">Profit still holding?</div>
         <div class="d">${qtr(s3, 1)} ${qtr(s3, 0)}
           <span class="asof">Each compared with the SAME quarter a year
             earlier, so seasonal ups and downs cancel out. Latest filed
             ${s3.qa} days ago.</span></div>
-        <div class="v"></div></div>`}`;
+        ${(()=>{ const falling = /profit falling/.test(s3.l || "");
+          return `<div class="v ${falling?"v-no":"v-ok"}">${
+            falling?"falling":"holding"}</div>`;})()}</div>`}`;
 
 
 
@@ -353,58 +359,61 @@ function detail(r){
     }
   }
   const sum2 = r.b == null ? "" :
-      `${r.b.toFixed(1)}% below its usual price${r.q3b ? ` · ${r.q3b}` : ""}`;
+      `${r.b.toFixed(1)}% below its recent average price${r.q3b ? ` · ${r.q3b}` : ""}`;
   const sum3 = !s3 ? "" : s3.l;
 
-  const head = (q, why, sum) => `<summary class="stage-sum">
+  /* The head carries the dateline too. It used to be a card of its own at
+     the bottom of the section — a whole box for one sentence, stated
+     twice across the panel because two sections read the same filing.
+     It belongs where the reader meets the data, not after it. */
+  const head = (q, why, sum, when) => `<summary class="stage-sum">
       <span class="stage-q">${q}</span>
       <span class="stage-why">${why}</span>
       ${sum ? `<span class="stage-ans">${sum}</span>` : ""}
+      ${when ? `<span class="stage-when">${when}</span>` : ""}
     </summary>`;
 
   const stage1 = (gates || recFor(1)) ? `<details class="stage">
-      ${head("Would I ever want to own this?",
+      ${head("Would I ever want to own this for long?",
              "Six checks on five years of audited accounts — profit, returns, cash, debt, margins, revenue.",
-             sum1)}
+             sum1,
+             !r.pe ? "" : `audited to ${ended} · ${months} months ago, nothing since`)}
       ${!gates ? "" : `<div class="card">
-        <p class="gate-cap">${H}</p>
         ${gates}
       </div>`}
       ${!recFor(1) ? "" : `<div class="card">${recFor(1)}</div>`}
-      ${!r.pe ? "" : `<div class="card stale-card"><p class="stale">These
-        gates read the last annual report, covering the year to
-        <b>${ended}</b> — roughly <b>${months} months</b> of trading ago.
-        Nothing since is reflected here.</p></div>`}
     </details>` : "";
 
   const stage2 = r.b == null ? "" : `<details class="stage">
-      ${head("Has it moved from its own normal?",
+      ${head("Where does the stock price sit against its own history?",
              "How far today's price sits below the average this company has traded at, and where it sits in its own 3-year range.",
-             sum2)}
-      ${!scaleInner ? "" : `<div class="card">${scaleInner}</div>`}
-      <div class="card"><div class="calc">
-        today <b>$${r.p.toFixed(2)}</b><span class="sep">·</span>average over
-        50 days <b>$${a50.toFixed(2)}</b><span class="sep">·</span>over 200 days
-        <b>$${a200.toFixed(2)}</b><br>
-        below normal = 0.60 × <b>${r.m2.toFixed(1)}%</b> + 0.40 ×
-        <b>${r.m5.toFixed(1)}%</b> = <b>${r.b.toFixed(1)}%</b>
-        ${!r.q3l ? "" : `<br>${r.q3l}`}
-      </div></div>
+             sum2, "prices to {{ASOF}} · the only part of this page that is current")}
+      <div class="card">
+        ${scaleInner}
+        <div class="calc">
+          against its own averages — <b>$${a50.toFixed(2)}</b> over 50 days,
+          <b>$${a200.toFixed(2)}</b> over 200 — that is
+          <b>${r.m5.toFixed(1)}%</b> and <b>${r.m2.toFixed(1)}%</b> below,
+          weighted to <b>${r.b.toFixed(1)}%</b>
+          ${!r.q3l ? "" : `<br>${r.q3l}`}
+        </div>
+      </div>
     </details>`;
 
   const stage3 = !s3 ? "" : `<details class="stage">
-      ${head("Opportunity, or warning?",
+      ${head("Is today's stock price an opportunity, or a warning?",
              "Whether today's price is cheaper than this company's own earnings have historically cost, and whether profit is still holding up.",
-             sum3)}
+             sum3,
+             (()=>{ const q = s3 && s3.qq && s3.qq[1];
+               if (!r.pe && !q) return "";
+               const a = r.pe ? `earnings to ${ended}` : "";
+               const b = q ? `profit to ${longDate(q)}` : "";
+               return [a, b].filter(Boolean).join(" · ") +
+                      (a && b ? " — two different ages" : ""); })())}
       <div class="card">
         ${s3Gates}
       </div>
       ${!recFor(3) ? "" : `<div class="card">${recFor(3)}</div>`}
-      <div class="card stale-card"><p class="stale">The cheapness reading
-        divides today's price by the SAME annual earnings Stage 1
-        uses${r.pe ? ` — the year to <b>${ended}</b>` : ""}, so it is only
-        as current as that filing. The profit reading uses the quarter
-        dated above, which is newer.</p></div>
     </details>`;
 
   return `<div class="work">

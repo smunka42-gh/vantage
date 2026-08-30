@@ -131,11 +131,11 @@ def range_band(q: float | None) -> str | None:
     """Plain-language name for where today sits in the 3-year range."""
     if q is None:
         return None
-    if q <= 20: return "near its 3-year low"
-    if q <= 40: return "low in its 3-year range"
+    if q <= 20: return "near 3y low"
+    if q <= 40: return "low in 3y range"
     if q <= 60: return "mid-range"
-    if q <= 80: return "high in its 3-year range"
-    return "near its 3-year high"
+    if q <= 80: return "high in 3y range"
+    return "near 3y high"
 
 
 def range_line(q: float | None) -> str | None:
@@ -148,8 +148,8 @@ def range_line(q: float | None) -> str | None:
     if q is None:
         return None
     if q <= 50:
-        return f"{round(100 - q)}% of the last 3 years traded higher than today's price"
-    return f"{round(q)}% of the last 3 years traded lower than today's price"
+        return f"{round(100 - q)}% of the last 3 years' trading days closed higher than today's price"
+    return f"{round(q)}% of the last 3 years' trading days closed lower than today's price"
 
 
 def range_line_short(q: float | None) -> str | None:

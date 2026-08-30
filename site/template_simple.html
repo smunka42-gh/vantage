@@ -131,8 +131,6 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
 .cbig .v{font-family:var(--mono); font-size:30px; font-weight:600; line-height:1;
          letter-spacing:-.02em; font-variant-numeric:tabular-nums}
 .cbig .l{font-size:12.5px; color:var(--muted); margin-top:3px}
-.cbar{height:5px; background:var(--raised); border-radius:3px; margin-top:8px; overflow:hidden}
-.cbar i{display:block; height:100%; background:var(--accent); border-radius:3px}
 /* The two price facts sit together under the headline number. They answer
    the same question and separating them would invite the reader to weigh
    one without the other. */
@@ -288,6 +286,52 @@ tr.k-detail .work{padding:4px 12px 0}
 .vbtn:hover{border-color:var(--accent)}
 .vbtn.on{background:var(--ink); color:var(--ground); border-color:var(--ink)}
 .vbtn svg{width:13px; height:13px}
+
+/* ---- v10: the card header -------------------------------------------
+   Was four stacked rows with an empty left column beside a five-line
+   right one, plus a whole row for two links. Now two columns: everything
+   a reader READS on the left, the number and its scale on the right. */
+.chead{display:grid; grid-template-columns:1fr minmax(240px,300px); gap:26px;
+  align-items:start}
+.cleft{min-width:0}
+.cleft .csent{margin:14px 0 0}
+.cleft .answers{margin-top:14px}
+/* the two sources become icons on the meta line, next to market cap */
+.csrc{display:inline-flex; align-items:center; justify-content:center;
+  width:20px; height:20px; margin-left:5px; vertical-align:-5px;
+  border:1px solid var(--rule-strong); border-radius:2px;
+  color:var(--muted); text-decoration:none}
+.csrc svg{width:12px; height:12px}
+.csrc:hover{border-color:var(--accent); color:var(--accent)}
+/* the + is the same symbol the panel sections use,
+   so one symbol means "open this" at both levels of the card */
+.cmore{display:block; margin-top:14px; margin-left:auto; width:24px; height:24px;
+  border:1px solid var(--rule-strong); border-radius:2px; color:var(--muted);
+  font-family:var(--mono); font-size:15px; line-height:22px; text-align:center}
+.cmore::after{content:"+"}
+.co-card.open .cmore::after{content:"\2212"}
+.co-card:hover .cmore{border-color:var(--accent); color:var(--accent)}
+@media (max-width:760px){ .chead{grid-template-columns:1fr} }
+
+/* ---- v11 -------------------------------------------------------------
+   The source marks say where they go. A chevron and a magnifier did not. */
+.cmark{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:-.02em}
+.csrc{width:22px; height:20px}
+/* the + joins them: all three are "go somewhere else with this company" */
+.cmore{display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:20px; margin-left:5px; vertical-align:-5px;
+  border:1px solid var(--rule-strong); border-radius:2px; color:var(--muted);
+  font-family:var(--mono); font-size:14px; line-height:1}
+.cmore::after{content:"+"}
+.co-card.open .cmore::after{content:"\2212"}
+.co-card:hover .cmore{border-color:var(--accent); color:var(--accent)}
+/* the number column is three lines now, no gauge */
+.cbig .rangeline{margin-top:10px}
+/* four chips on ONE row: the labels carry the meaning, so they can be
+   tighter than the values they introduce */
+.answers{display:flex; flex-wrap:wrap; gap:7px}
+.ans{white-space:nowrap}
+.ans .k{margin-right:6px}
 </style>
 </head>
 <body>
@@ -358,9 +402,9 @@ tr.k-detail .work{padding:4px 12px 0}
     <div class="fgroup"><span class="fname">Business warning</span><div class="fchips">
       <button class="chip" data-f="s3" data-v="profit falling">profit falling</button></div></div>
     <div class="fgroup"><span class="fname">3-year range</span><div class="fchips">
-      <button class="chip" data-f="q3" data-v="low">near its 3-year low</button>
+      <button class="chip" data-f="q3" data-v="low">near 3y low</button>
       <button class="chip" data-f="q3" data-v="mid">mid-range</button>
-      <button class="chip" data-f="q3" data-v="high">near its 3-year high</button></div></div>
+      <button class="chip" data-f="q3" data-v="high">near 3y high</button></div></div>
   </div>
   <div class="fsort"><span class="fname">Sort order</span>
     <button class="chip on" data-s="b">furthest below usual</button>
@@ -418,8 +462,8 @@ const ROWS={{ROWS}};
 /* ---- the statement. Every clause is generated from figures the detailed
    page also shows; nothing is asserted here that is not evidenced there. */
 const TREND={"falling now":["still falling","warnc"],
-             "fell, now flat":["fell, now steady",""],
-             "fell, now rising":["fell, now recovering","ok"]};
+             "fell, now flat":["now steady",""],
+             "fell, now rising":["now recovering","ok"]};
 const QLAB={high:"high", medium:"medium", low:"low", uncertain:"not enough history"};
 
 /* The filter chips said "fell, now flat" while the card for the same
@@ -498,33 +542,34 @@ function cardHtml(r,i){
   const n=passed(r), tot=(r.gt||[]).length||6;
   return `<div class="co-card${i?"":" open"}" data-t="${r.t}" tabindex="0">
     <div class="chead">
-      <div class="cname">
-        <div class="h">${r.n}</div>
-        <div class="s">${r.t} · ${cap(r.c)}${r.ar?" · one check worth watching":""}</div>
+      <div class="cleft">
+        <div class="cname">
+          <div class="h">${r.n}</div>
+          <div class="s">${r.t} · ${cap(r.c)}${r.ar?" · one check worth watching":""}
+            ${r.y?`<a class="csrc" href="${r.y}" target="_blank" rel="noopener"
+              title="Yahoo Finance" aria-label="${r.t} on Yahoo Finance"><span class="cmark">Y!</span></a>`:""}
+            ${r.g?`<a class="csrc" href="${r.g}" target="_blank" rel="noopener"
+              title="Google Finance" aria-label="${r.t} on Google Finance"><span class="cmark">G</span></a>`:""}
+            <span class="cmore" aria-hidden="true"></span>
+          </div>
+        </div>
+        <p class="csent">${sentence(r)}</p>
+        <div class="answers">
+          <span class="ans ${r.q==="high"?"ok":r.q==="uncertain"?"":"warnc"}">
+            <span class="k">Quality</span>${r.q==="uncertain"?QLAB.uncertain:n+" of "+tot}</span>
+          ${!r.sh?"":`<span class="ans ${tc}"><span class="k">Direction</span>${tl}</span>`}
+          ${!r.s3?"":`<span class="ans ${cheap?"ok":""}"><span class="k">Vs history</span>${
+            cheap?"cheaper":/pricier/.test(r.s3.l)?"pricier":"about as usual"}</span>`}
+          ${!r.q3b?"":`<span class="ans ${r.q3>60?"warnc":r.q3<=40?"ok":""}">
+            <span class="k">3y range</span>${r.q3b}</span>`}
+          ${fall?`<span class="ans badc"><span class="k">Warning</span>profit falling</span>`:""}
+        </div>
       </div>
       <div class="cbig">
         <div class="v">${r.b==null?"—":r.b.toFixed(1)+"%"}</div>
-        <div class="l">below its usual price</div>
-        <div class="cbar"><i style="width:${r.b==null?0:(r.b/MAXB*100).toFixed(0)}%"></i></div>
+        <div class="l">below its recent average price</div>
         ${!r.q3b?"":`<div class="rangeline"><b>${r.q3b}</b>${r.q3l}</div>`}
       </div>
-    </div>
-    <p class="csent">${sentence(r)}</p>
-    <div class="answers">
-      <span class="ans ${r.q==="high"?"ok":r.q==="uncertain"?"":"warnc"}">
-        <span class="k">Quality</span>${r.q==="uncertain"?QLAB.uncertain:n+" of "+tot+" checks"}</span>
-      ${!r.sh?"":`<span class="ans ${tc}"><span class="k">Direction</span>${tl}</span>`}
-      ${!r.s3?"":`<span class="ans ${cheap?"ok":""}"><span class="k">Vs its history</span>${
-        cheap?"cheaper":/pricier/.test(r.s3.l)?"pricier":"about as usual"}</span>`}
-      ${!r.q3b?"":`<span class="ans ${r.q3>60?"warnc":r.q3<=40?"ok":""}">
-        <span class="k">3-year range</span>${r.q3b}</span>`}
-      ${fall?`<span class="ans badc"><span class="k">Warning</span>profit falling</span>`:""}
-    </div>
-    <div class="cnext">
-      <span>Next step — find out <b>why</b> the price fell:</span>
-      ${r.y?`<a href="${r.y}" target="_blank" rel="noopener">Yahoo Finance</a>`:""}
-      ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google Finance</a>`:""}
-      <span class="hint">click for the full working</span>
     </div>
     <div class="cdetail">${detail(r)}</div>
   </div>`;
@@ -603,8 +648,8 @@ function rowHtml(r,i){
     <td><div class="k-read${cheap?" cheap":""}">${readTxt}${
       fall?`<span class="k-warn">profit falling</span>`:""}</div></td>
     <td><div class="k-srcs">
-      ${src(r.y,"Yahoo Finance",`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11.5 6 8 2.5 4.5M8.5 12h5"/></svg>`)}
-      ${src(r.g,"Google Finance",`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6 14 14" stroke-linecap="round"/></svg>`)}
+      ${src(r.y,"Yahoo Finance",`<span class="cmark">Y!</span>`)}
+      ${src(r.g,"Google Finance",`<span class="cmark">G</span>`)}
     </div></td></tr>`;
 }
 

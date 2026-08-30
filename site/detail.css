@@ -52,9 +52,6 @@ tr.detail > td{
 .stage-sum::after{content:"+"; position:absolute; right:15px; top:13px;
   font-family:var(--mono); font-size:15px; color:var(--muted); line-height:1}
 .stage[open] > .stage-sum::after{content:"\2212"}
-/* caption for the gate table — names what the rows below are, per tier */
-.gate-cap{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
-  text-transform:uppercase; color:var(--muted); margin:0 0 12px}
 .stage .card{margin-bottom:10px}
 .stage .card:last-child{margin-bottom:0}
 
@@ -184,3 +181,30 @@ table.rec-t td.bar{
 table.rec-t thead th.bar{border-left:1px solid var(--rule)}
 table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
 
+
+/* ---- v9 -------------------------------------------------------------
+   Colour on the VERDICT only. Green passed, red failed, grey could not
+   be read — an unreadable check is not a failure and must not look like
+   one. Closeness is a WORD ("pass, just"), not a third colour: near-fail
+   is a fail, and amber would invent a middle state the grading has not
+   got. Consistent with §6.1 — colour only where the funnel reaches a
+   verdict, never on a price move. */
+.gate .v{font-family:var(--mono); font-size:10px; letter-spacing:.06em;
+  text-transform:uppercase; text-align:right; white-space:nowrap;
+  padding:2px 7px; border-radius:2px; align-self:start}
+.gate .v-ok{color:var(--good); background:var(--good-bg)}
+.gate .v-no{color:var(--bad);  background:var(--bad-bg)}
+.gate .v-na{color:var(--faint); background:transparent}
+.v-just{font-style:normal; opacity:.92}
+/* the grazing gate keeps its own emphasis without competing for hue */
+.gate.risk .v{box-shadow:inset 0 0 0 1px currentColor}
+
+/* the dateline moved out of a card of its own and into the head */
+.stage-when{display:block; font-family:var(--mono); font-size:10px;
+  letter-spacing:.04em; color:var(--faint); margin-top:8px;
+  padding-right:28px}
+
+/* one box now holds the scale AND the arithmetic, so they need a rule
+   between them rather than a card boundary */
+.stage .card .scale + .calc{margin-top:14px; padding-top:12px;
+  border-top:1px solid var(--rule)}
