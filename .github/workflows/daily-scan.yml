@@ -135,6 +135,22 @@ jobs:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: python scripts/run_stage3.py
 
+      # BEFORE the gate, and if: always(). The results files are gitignored,
+      # so they never leave the runner — when the doc-currency gate below
+      # refuses to publish, an eight-minute scan of 500 companies is
+      # discarded along with the only record of WHICH companies moved.
+      # That happened twice on 30 Aug. The second time was worse than
+      # losing the data: the local copies were stale, so a diff compared
+      # two old files and reported "nothing changed" when five tiers had.
+      - name: Keep the scan output, whatever happens next
+        if: always() && steps.gate.outputs.proceed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-results-${{ github.run_number }}
+          path: scripts/*_results.json
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Refuse to publish a bad scan
         if: steps.gate.outputs.proceed == 'true'
         run: |
