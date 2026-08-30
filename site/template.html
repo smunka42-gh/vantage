@@ -89,17 +89,26 @@ table{border-collapse:collapse; table-layout:fixed; width:1030px; min-width:1030
    scrolls sideways rather than crushing a column. */
 col.c-exp  {width:28px}
 col.c-no   {width:43px}
-col.c-name {width:245px}
+col.c-name {width:241px}
 col.c-qual {width:82px}
 col.c-main {width:76px}
 col.c-cap  {width:76px}
-col.c-ma   {width:146px}
+/* 146px of "vs 10m / 2m avg" became 150px of "3-year range" on 30 Aug.
+   The averages are the arithmetic BEHIND the headline number and were
+   already stated in prose one click away; where today's price sits in
+   its own 3-year range appeared nowhere. COMPANY absorbs the 4px, as it
+   absorbs every remainder. */
+col.c-range{width:150px}
 col.c-shape{width:125px}
 col.c-read {width:133px}
 /* The column is narrow, so the number is abbreviated here and given in
    full on /simple/, where the card has room. Same fact, two lengths --
    the Stage 3 read already works this way. */
-.rng{font-size:12px; color:var(--muted); line-height:1.35; display:block}
+/* tbody td is nowrap so numeric columns stay on one line; this cell is
+   words, and "high in its 3-year range" overflows 150px unless it may
+   wrap. Same exception the Stage 3 read already takes. */
+.rng{font-size:12px; color:var(--muted); line-height:1.35; display:block;
+     white-space:normal}
 .rng b{display:block; color:var(--ink); font-weight:600; font-size:12.5px}
 col.c-links{width:76px}
 
@@ -404,7 +413,7 @@ tbody td.rd{white-space:normal}
       <table id="tbl">
         <colgroup>
           <col class="c-exp"><col class="c-no"><col class="c-name"><col class="c-qual"><col class="c-main">
-          <col class="c-cap"><col class="c-ma"><col class="c-shape">
+          <col class="c-cap"><col class="c-range"><col class="c-shape">
           <col class="c-read"><col class="c-links">
         </colgroup>
         <thead>
@@ -415,7 +424,7 @@ tbody td.rd{white-space:normal}
             <th class="sortable txt" data-k="q">Quality<span class="caret">↓</span></th>
             <th class="sortable divide wraphead" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
             <th class="sortable" data-k="c">Size<span class="caret">↓</span></th>
-            <th class="wraphead">vs 10m / 2m avg</th>
+            <th class="txt">3-year range</th>
             <th class="txt">Price trend</th>
             <th class="txt">Cheaper or pricier?</th>
             <th class="txt">Research</th>
@@ -438,11 +447,13 @@ tbody td.rd{white-space:normal}
         annual filings — profit, returns, cash, debt, margins, revenue.
         <b>Uncertain</b> is not a bad score: it means too little filing
         history to judge at all.</p>
-      <p><b>vs 10m / 2m avg</b> are the two figures the main number is
-        built from. The 2-month average catches up to a new price level in
-        about two months; the 10-month one takes far longer. Both wide
-        means the fall is happening now; only the 10-month wide means it
-        happened months ago.</p>
+      <p><b>3-year range</b> is where today's price sits against every
+        price this company has traded at over the past three years. It
+        answers a different question from the one on the left: a price can
+        be well below its recent averages and still be high for this
+        company — it fell back from a run rather than toward a floor. The
+        two figures the main number is built from moved into each row;
+        open one to see them.</p>
       <p><b>Cheaper or pricier</b> compares today's price against what the
         company's own earnings have historically cost — not against other
         companies. A price can fall a long way and still be pricier than
@@ -557,7 +568,7 @@ function rowHtml(r,i){ return `
       <td class="txt"><span class="qual q-${r.q||"na"}">${r.q||"—"}</span></td>
       <td class="big divide">${r.b==null?"—":r.b.toFixed(1)+"%"}</td>
       <td class="dim">${r.c==null?"—":"$"+fmtCap(r.c)}</td>
-      <td class="dim">${r.m2==null?"—":r.m2.toFixed(1)+"% / "+r.m5.toFixed(1)+"%"}</td>
+      <td class="txt">${!r.q3b?"—":`<span class="rng"><b>${r.q3b}</b>${r.q3s}</span>`}</td>
       <td class="txt">${!r.sh?"—":`<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`}</td>
       <td class="txt rd">${readCell(r)}</td>
       <td class="txt"><span class="rowlinks">

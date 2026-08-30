@@ -160,8 +160,10 @@ def range_line_short(q: float | None) -> str | None:
     """
     if q is None:
         return None
-    return (f"{round(100 - q)}% of 3 years traded higher" if q <= 50
-            else f"{round(q)}% of 3 years traded lower")
+    # "of 3 years" is dropped: the column header already says 3-year
+    # range, and repeating it clipped the cell at 150px.
+    return (f"{round(100 - q)}% traded higher" if q <= 50
+            else f"{round(q)}% traded lower")
 
 
 def effective_weights(scored: dict[str, dict]) -> tuple[float, float]:
