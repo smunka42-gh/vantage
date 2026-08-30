@@ -64,6 +64,11 @@ def build() -> int:
             rows.append(["operating margin", sr["margin"], "70% of 3y avg"])
         if sr.get("coverage") and "interest coverage" in gate.get("4", ""):
             rows.append(["interest coverage", sr["coverage"], "4.0x"])
+        # Only where gate 6 ran the ratio test. Where it passed on growth
+        # the 3-year average was never the bar, and showing it with one
+        # would imply a test that did not happen (tenet 2).
+        if sr.get("revenue") and "3y average" in gate.get("6", ""):
+            rows.append(["revenue ($bn)", sr["revenue"], "own 3y avg"])
         return {"years": sr["years"], "rows": rows} if rows else None
 
     def pack(t, r, a):

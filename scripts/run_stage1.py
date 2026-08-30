@@ -126,7 +126,7 @@ def main() -> None:
     partial = partial_years(data)
     if partial:
         print(f"\nPART-YEAR FIGURES DETECTED ({len(partial)}) — "
-              f"these verdicts are not trustworthy:")
+              f"these verdicts may not be trustworthy:")
         for line in partial:
             print(f"   {line}")
     else:

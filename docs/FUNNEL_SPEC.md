@@ -663,17 +663,17 @@ certain about, or it stops being a reliable alarm.**
 
 ### 3.19 Full-index result
 
-Measured across all 500 from this repository on 29 Aug 2026, with the
-frame-filter, freshest-tag and part-year defects fixed:
+Measured across all 500 from this repository on 30 Aug 2026, with gate 6
+active and the frame-filter, freshest-tag and part-year defects fixed:
 
 | Tier | Count | Share |
 |---|---|---|
-| PASS | 224 | 44.8% |
-| BORDERLINE | 38 | 7.6% |
-| REJECTED | 190 | 38.0% |
-| CANNOT ASSESS | 18 | 3.6% |
+| PASS | 209 | 41.8% |
+| BORDERLINE | 51 | 10.2% |
+| REJECTED | 194 | 38.8% |
+| CANNOT ASSESS | 16 | 3.2% |
 | REIT (not assessed) | 30 | 6.0% |
-| **Eligible for Stage 2** | **262** | **52%** |
+| **Eligible for Stage 2** | **260** | **52%** |
 
 Which gate does the rejecting:
 
@@ -684,24 +684,31 @@ Which gate does the rejecting:
 | 3 · Cumulative 5y FCF | 24 | 0 |
 | 4 · Debt serviceable | 68 | 27 |
 | 5 · Op margin durable | 68 | 13 |
+| 6 · Revenue durability | 12 | 36 |
 
 By sector:
 
 | Sector | Eligible | of | Pass | Borderline | Rejected | Cannot assess |
 |---|---|---|---|---|---|---|
-| Financials | 52 | 76 | 45 | 7 | 23 | 1 |
-| Industrials | 52 | 83 | 47 | 5 | 27 | 4 |
-| Information Technology | 35 | 73 | 32 | 3 | 36 | 2 |
+| Financials | 52 | 76 | 43 | 9 | 23 | 1 |
+| Industrials | 51 | 83 | 42 | 9 | 28 | 4 |
+| Information Technology | 34 | 73 | 31 | 3 | 37 | 2 |
 | Health Care | 31 | 59 | 26 | 5 | 27 | 1 |
-| Consumer Discretionary | 26 | 47 | 26 | 0 | 19 | 2 |
-| Utilities | 19 | 31 | 9 | 10 | 11 | 1 |
-| Consumer Staples | 15 | 34 | 13 | 2 | 17 | 2 |
+| Consumer Discretionary | 26 | 47 | 23 | 3 | 19 | 2 |
+| Utilities | 20 | 31 | 10 | 10 | 11 | 0 |
+| Consumer Staples | 14 | 34 | 9 | 5 | 18 | 2 |
 | Energy | 11 | 21 | 5 | 6 | 9 | 1 |
-| Communication Services | 11 | 21 | 11 | 0 | 7 | 3 |
-| Materials | 10 | 25 | 10 | 0 | 14 | 1 |
+| Communication Services | 11 | 21 | 11 | 0 | 8 | 2 |
+| Materials | 10 | 25 | 9 | 1 | 14 | 1 |
 | Real Estate | — | 30 | — | — | — | — |
 
-**What the data fixes moved.** The frame-filter and freshest-tag fixes
+**What gate 6 moved.** Eligible 262 to 260. CHRW, HPQ and TGT are
+rejected; fifteen more drop from PASS to BORDERLINE. EIX becomes
+*eligible* — a sixth evaluable gate lifts companies over the
+four-gate floor, so adding a gate made two companies assessable rather
+than fewer, and CANNOT ASSESS fell 18 to 16.
+
+**What the earlier data fixes moved.** The frame-filter and freshest-tag fixes
 took eligible from 239 to 258 and CANNOT ASSESS from 29 to 19, because
 the gates finally read the newest filed year. The part-year fix then
 moved four more: D and SO to BORDERLINE, TKO and URI to PASS, for 262

@@ -278,6 +278,10 @@ BORDERLINE = 0.15
 # Exxon was admitted having been measured on ZERO gates, because none of
 # its data was reachable. That silently admits exactly the companies you
 # know least about.
+# Deliberately NOT raised when gate 6 was added. This is an absolute
+# minimum of substantive evidence, not a proportion of however many gates
+# happen to exist; raising it alongside a new gate would reject companies
+# for a reason unrelated to their quality.
 CANNOT_ASSESS_FLOOR = 4
 
 
@@ -470,7 +474,54 @@ def run(ticker, d, is_financial=False, is_utility=False,
     else:
         out.append(("5 Op margin durable", None, "no revenue tag match"))
 
-    # Gate 6 (liquidity, >= $25M median daily dollar volume) was REMOVED.
+    # --- Test 6: revenue durability (CONDITIONAL) --------------------
+    # Gates 1-5 all test whether a business is SOUND. None of them tests
+    # whether it is SHRINKING: 41 of 262 eligible (16%) were flat or
+    # falling and cleared every one of them. Blackstone's revenue had
+    # dropped 10.6% a year for four years and read PASS, because falling
+    # revenue with intact margins, returns, cash flow and coverage
+    # satisfies all five.
+    #
+    # The conditional is the whole design, not a shortcut. Neither view
+    # works alone — their AGREEMENT is the signal:
+    #
+    #            cagr    vs 3y avg   what it is
+    #   EXPD    -9.5%      0.90      genuine decay
+    #   NKE     -0.2%      0.93      real deterioration; CAGR MISSES IT
+    #   BX     -10.6%      1.46      lumpy fees, currently ABOVE its own average
+    #   CVX     +4.3%      0.88      cyclical trough, not decay
+    #
+    # Requiring BOTH to be negative excludes every cyclical in the index
+    # (CVX, XOM, MPC, EOG, COP, PCAR, ODFL, CF, NXPI) automatically.
+    # Divestitures are a known false positive: Kimberly-Clark at 0.91
+    # sold businesses rather than lost them, and no formulation separates
+    # a sale from a fall without reading the filings. See spec 3.14.
+    rev_years = sorted(d.get("revenue") or {})[-5:]
+    rev = [d["revenue"][y] for y in rev_years]
+    if len(rev) >= 4 and rev[0] > 0:
+        n = len(rev) - 1
+        cagr = (rev[-1] / rev[0]) ** (1 / n) - 1
+        if cagr >= 0:
+            # Grew across the window. Being below its own recent average
+            # today is the cycle, and the cycle is not a quality defect.
+            out.append(("6 Revenue durability", "pass",
+                        f"revenue grew {cagr*100:.1f}% a year "
+                        f"over {n+1}y ({rev_years[0]}-{rev_years[-1]})"))
+        else:
+            ref = st.mean(rev[-4:-1])
+            ratio = (rev[-1] / ref) if ref > 0 else 0.0
+            # Bar is 1.00 -- the company's own 3-year average. At 0.95 the
+            # gate rejected nobody: the fail line fell at 0.807 and the
+            # worst name in the index missed it by four thousandths.
+            g, _ = grade(ratio, 1.00)
+            out.append(("6 Revenue durability", g,
+                        f"shrinking {cagr*100:.1f}% a year · latest revenue is "
+                        f"{ratio*100:.0f}% of its own 3y average (100% bar)"))
+    else:
+        out.append(("6 Revenue durability", None, "no usable revenue series"))
+
+    # The ORIGINAL gate 6 (liquidity, >= $25M median daily dollar volume)
+    # was REMOVED.
     # It rejected zero of 500 companies and was kept only "so the universe
     # can widen later" — a check earning its place from a future that has
     # not arrived. TENETS.md 4: a check must change outcomes or be cut;
@@ -492,12 +543,12 @@ def run(ticker, d, is_financial=False, is_utility=False,
 
 
 def decide(gates, ticker=None):
-    """Resolve the five graded gates into a watchlist tier.
+    """Resolve the six graded gates into a watchlist tier.
 
       PASS           every gate cleared (a near-pass IS a pass)
       BORDERLINE     exactly one near-fail, nothing worse
       REJECTED       any outright fail, or two or more near-fails
-      CANNOT ASSESS  fewer than 4 of the 5 gates evaluable
+      CANNOT ASSESS  fewer than 4 gates evaluable (of 6)
 
     PASS and BORDERLINE are both ELIGIBLE for Stage 2 — the tier travels
     with the company rather than being collapsed away, so the page can
@@ -539,7 +590,21 @@ def at_risk(gates):
 
 # A quarter is roughly a quarter of a year, so a part-year figure standing
 # in for an annual one shows up as revenue falling off a cliff.
-PARTIAL_RATIO = 0.45
+#
+# 0.30, and only inside the five years the gates judge. The first version
+# used 0.45 across a company's WHOLE revenue history and fired on 18
+# companies with ZERO real hits: eleven were airlines, cruise lines,
+# casinos and live events in FY2020, where revenue genuinely fell 70-90%;
+# AIG's FY2008 revenue was negative; BX, KKR, COIN, MRNA and WDC were
+# fee, crypto, vaccine and memory collapses. An alarm that cries wolf
+# eighteen times teaches you to ignore it.
+#
+# Measured inside the gate window: 45% fires on 5 (all genuine), 35% on 1
+# (genuine), 30% on none. Accenture's defect read 0.246 — one quarter
+# against a full year — so 0.30 clears every real collapse while still
+# catching the signature.
+PARTIAL_RATIO = 0.30
+PARTIAL_WINDOW = 5
 
 
 def partial_years(loaded):
@@ -560,13 +625,20 @@ def partial_years(loaded):
 
     REVENUE is the test subject rather than profit. Profit legitimately
     collapses — Boeing, Intel and Ford all halve theirs inside the
-    window — but revenue at this size does not, so a fall past
-    PARTIAL_RATIO is a period defect rather than a bad year.
+    window — but revenue at this size rarely does.
+
+    This is a HEURISTIC, not proof, and it is deliberately narrow: see
+    PARTIAL_RATIO for the eighteen false positives the first version
+    produced. The structural guard is the 350-380 day requirement in
+    `_pick`; this exists to notice if that guard is ever weakened. The
+    exact version would assert on the PERIOD LENGTH of the figures
+    actually chosen rather than inferring from their values, and that is
+    the better fix whenever this is next touched.
     """
     bad = []
     for t, d in sorted(loaded.items()):
         rev = d.get("revenue") or {}
-        yrs = sorted(rev)
+        yrs = sorted(rev)[-PARTIAL_WINDOW:]
         for prev, cur in zip(yrs, yrs[1:]):
             before, after = rev[prev], rev[cur]
             if before and before > 0 and after / before < PARTIAL_RATIO:
@@ -618,6 +690,10 @@ def yearly(d, is_financial=False, is_utility=False, is_capital_intensive=False):
                          d.get("op_income"), d.get("revenue")),
         "coverage": series(lambda p, i: round(p / abs(i), 1) if i else None,
                            d.get("op_income"), d.get("interest")),
+        # Gate 6's years, in $bn. Shown only where gate 6 actually used
+        # the 3-year-average test -- see _series_for in build_site.
+        "revenue": series(lambda r: round(r / 1e9, 1) if r else None,
+                          d.get("revenue")),
         "return_label": "return on equity" if use_equity else "return on assets",
     }
     # Drop anything with no usable figures rather than render empty rows

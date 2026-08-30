@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Vantage Screener</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -517,9 +518,17 @@ function detail(r){
     // whether profit covers the interest; where it is not, it falls back
     // to how much of the balance sheet the company owns outright, which
     // is a leverage test. One label cannot honestly describe both.
-    const label = raw !== "Debt serviceable" ? (GATE_LABEL[raw] || raw)
-      : /interest coverage/.test(g[2]) ? "Can cover its interest"
-      : "Not overloaded with debt";
+    // Gates 4 and 6 are each TWO tests, so neither can carry one label.
+    // Gate 4: interest coverage, or the equity/assets fallback.
+    // Gate 6: grew across the window, or held its own 3-year average.
+    // "Still growing" beside a detail reading "shrinking 9.5% a year"
+    // is the same defect "Debt under control" had.
+    let label = GATE_LABEL[raw] || raw;
+    if (raw === "Debt serviceable")
+      label = /interest coverage/.test(g[2]) ? "Can cover its interest"
+                                             : "Not overloaded with debt";
+    if (raw === "Revenue durability")
+      label = /grew/.test(g[2]) ? "Still growing" : "Revenue holding up";
     return `<div class="gate${risk?" risk":""}">
       <div class="g">${label}</div>
       <div class="d">${plain(raw, g[2])}</div>
@@ -596,9 +605,9 @@ function detail(r){
   const gatesCard = r.gt.length === 0 ? "" :
    `<div class="card">
       <h4>${H}</h4>
-      <p class="pillars">Five gates, one per pillar, in this order:
+      <p class="pillars">Six gates, one per pillar, in this order:
         <b>profit</b>, <b>returns</b>, <b>cash</b>, <b>debt</b>,
-        <b>margins</b>.</p>
+        <b>margins</b>, <b>revenue</b>.</p>
       ${gates}
     </div>`;
 
