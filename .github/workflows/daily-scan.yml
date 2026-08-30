@@ -124,6 +124,15 @@ jobs:
       - name: Stage 3 — opportunity or warning
         if: steps.gate.outputs.proceed == 'true'
         continue-on-error: true
+        env:
+          # Stage 3 reads EDGAR exactly as Stage 1 does and needs the same
+          # contact header. It was missing here from the day Stage 3
+          # shipped, so run_stage3.py died on its first request in EVERY
+          # CI run. Nobody noticed because scripts/*_results.json are
+          # gitignored and the page was being rebuilt locally, where the
+          # variable is set — so the committed page always carried Stage 3
+          # data that CI had never produced.
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: python scripts/run_stage3.py
 
       - name: Refuse to publish a bad scan
@@ -137,6 +146,13 @@ jobs:
           # so check the SHAPE of the result, not just that a file exists.
           s1 = json.loads(pathlib.Path("scripts/stage1_results.json").read_text())
           s2 = json.loads(pathlib.Path("scripts/stage2_results.json").read_text())
+          # Stage 3 is continue-on-error, so a crash there is silent by
+          # design. The guard is what makes it loud: on 30 Aug a missing
+          # SEC_USER_AGENT emptied Stage 3 for all 470 companies and this
+          # check did not exist, so a page with one column entirely blank
+          # was published.
+          s3p = pathlib.Path("scripts/stage3_results.json")
+          s3 = json.loads(s3p.read_text()) if s3p.exists() else {}
 
           # Must match funnel ELIGIBLE_TIERS. This also counted an
           # EXCEPTION tier that spec v2.3 removed from the funnel; no
@@ -151,10 +167,21 @@ jobs:
           if eligible > 400: problems.append(f"{eligible} eligible — gate is not gating")
           if priced < 450:   problems.append(f"only {priced} companies priced")
 
+          # Six eligible companies legitimately have no cheapness reading
+          # (spec §5.3), so this floors on coverage rather than demanding
+          # every one. Zero means the stage did not run.
+          elig_t = {t for t, r in s1.items()
+                    if r["tier"] in {"PASS","BORDERLINE"}}
+          read = sum(1 for t in elig_t if (s3.get(t) or {}).get("cheap"))
+          if read < eligible * 0.80:
+              problems.append(f"only {read} of {eligible} eligible have a "
+                              f"Stage 3 reading — the stage looks broken")
+
           for p in problems: print("FAIL:", p)
           if problems:
               sys.exit("Refusing to publish. Previous page left in place.")
-          print(f"ok — {len(s1)} gated, {eligible} eligible, {priced} priced")
+          print(f"ok — {len(s1)} gated, {eligible} eligible, {priced} priced, "
+                f"{read} read for cheapness")
           PY
 
       - name: Rebuild the page
