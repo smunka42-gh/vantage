@@ -283,6 +283,33 @@ def main() -> int:
     # region between the table and section 1, which is precisely where
     # the second instance of this had been sitting undisturbed.
 
+    # 5h. The memory index must actually index the memory.
+    #
+    # MEMORY.md is loaded every session; the individual files are pulled in
+    # only when judged relevant. So a file nobody links is a file that may
+    # never be read, and a link to a deleted file is a promise the index
+    # cannot keep. Both are silent failures — nothing errors, the memory is
+    # simply absent when it matters.
+    mem_dir = (pathlib.Path.home() /
+               ".claude/projects/<derived-from-repo-location>/memory")
+    index = mem_dir / "MEMORY.md"
+    if index.exists():
+        linked = set(re.findall(r"\]\(([^)]+\.md)\)", index.read_text()))
+        present = {f.name for f in mem_dir.glob("*.md")} - {"MEMORY.md"}
+        for orphan in sorted(present - linked):
+            check(False, f"memory/{orphan} exists but MEMORY.md never links it — "
+                         f"it may never be recalled")
+        for dangling in sorted(linked - present):
+            check(False, f"MEMORY.md links memory/{dangling}, which does not exist")
+
+        # cross-references between memories must resolve too
+        stems = {f.stem for f in mem_dir.glob("*.md")}
+        for f in sorted(mem_dir.glob("*.md")):
+            for link in re.findall(r"\[\[([^\]]+)\]\]", f.read_text()):
+                ok = link in stems or link.replace("-", "_") in stems
+                check(ok, f"memory/{f.name} references [[{link}]], which is not a "
+                          f"memory file")
+
     # 6. Memory must hold no counts — they rot, and pointers do not.
     mem = (pathlib.Path.home() /
            ".claude/projects/<derived-from-repo-location>/memory")
