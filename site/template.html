@@ -96,6 +96,11 @@ col.c-cap  {width:76px}
 col.c-ma   {width:146px}
 col.c-shape{width:125px}
 col.c-read {width:133px}
+/* The column is narrow, so the number is abbreviated here and given in
+   full on /simple/, where the card has room. Same fact, two lengths --
+   the Stage 3 read already works this way. */
+.rng{font-size:12px; color:var(--muted); line-height:1.35; display:block}
+.rng b{display:block; color:var(--ink); font-weight:600; font-size:12.5px}
 col.c-links{width:76px}
 
 thead th{
@@ -367,6 +372,12 @@ tbody td.rd{white-space:normal}
         ><button data-v="fell, now flat">now flat</button
         ><button data-v="fell, now rising">now rising</button>
       </div>
+      <div class="fgroup" data-f="q3">
+        <span class="flab">3-year range</span>
+        <button data-v="low">near its low</button
+        ><button data-v="mid">mid-range</button
+        ><button data-v="high">near its high</button>
+      </div>
       <div class="fgroup" data-f="s3">
         <span class="flab">Priced</span>
         <button data-v="cheaper">cheaper</button
@@ -478,13 +489,18 @@ let sortKey="b",sortDir=-1;
 // refuses both. Measured: a trend default drops MNST, the biggest faller
 // on the page; a pricing default drops WMT, the fell-but-not-cheap case
 // Stage 3 exists to surface.
-const F = {q:new Set(["high"]), bar:true, sh:new Set(), s3:new Set(), z:new Set(), text:""};
+const F = {q:new Set(["high"]), bar:true, sh:new Set(), s3:new Set(), z:new Set(),
+           q3:new Set(), text:""};
 
 function passes(r){
   if(F.q.size && !F.q.has(r.q)) return false;
   if(F.bar && !(r.b != null && r.b >= BAR)) return false;
   if(F.sh.size && !F.sh.has(r.sh)) return false;
   if(F.z.size && !F.z.has(r.z)) return false;
+  if(F.q3.size){
+    if(r.q3 == null) return false;
+    if(!F.q3.has(r.q3<=20 ? "low" : r.q3<=60 ? "mid" : "high")) return false;
+  }
   if(F.s3.size){
     const l = (r.s3 && r.s3.l) || "";
     let hit = false;
@@ -524,7 +540,7 @@ function wireFilters(){
   });
   document.getElementById("reset").addEventListener("click", () => {
     F.q = new Set(["high"]); F.bar = true;
-    F.sh.clear(); F.s3.clear(); F.z.clear(); F.text = "";
+    F.sh.clear(); F.s3.clear(); F.z.clear(); F.q3.clear(); F.text = "";
     q.value = "";
     document.querySelectorAll(".fgroup button").forEach(b =>
       b.classList.toggle("on", b.dataset.v === "high" || b.dataset.v === "bar"));

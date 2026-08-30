@@ -118,7 +118,50 @@ def score(p: dict) -> dict:
         "below_normal": below_normal,
         "far_below_normal": bool(below_normal >= BELOW_NORMAL_BAR),
         "shape": shape(c["d_ma200"], c["d_ma50"]),
+        # Carried, never blended. See range_band() for why.
+        "q3y": p.get("q3y"),
     }
+
+
+# Five bands, not two. Measured on 30 Aug 2026, CRH sat at the 55th
+# percentile and TPR at the 78th: both are "above the midpoint" and they
+# are not the same statement, so a two-way split would flatten a real
+# difference.
+def range_band(q: float | None) -> str | None:
+    """Plain-language name for where today sits in the 3-year range."""
+    if q is None:
+        return None
+    if q <= 20: return "near its 3-year low"
+    if q <= 40: return "low in its 3-year range"
+    if q <= 60: return "mid-range"
+    if q <= 80: return "high in its 3-year range"
+    return "near its 3-year high"
+
+
+def range_line(q: float | None) -> str | None:
+    """The percentile, said so it can be read without the word.
+
+    Always the MAJORITY side. Phrasing TPR's 78th as "22% traded higher"
+    would be true and would read as cheap, which is the opposite of what
+    it means.
+    """
+    if q is None:
+        return None
+    if q <= 50:
+        return f"{round(100 - q)}% of the last 3 years traded higher than today's price"
+    return f"{round(q)}% of the last 3 years traded lower than today's price"
+
+
+def range_line_short(q: float | None) -> str | None:
+    """The same statement for a 150px table column.
+
+    The detailed page cannot fit the full sentence; /simple/ can. Both
+    are generated from one number here so they can never disagree.
+    """
+    if q is None:
+        return None
+    return (f"{round(100 - q)}% of 3 years traded higher" if q <= 50
+            else f"{round(q)}% of 3 years traded lower")
 
 
 def effective_weights(scored: dict[str, dict]) -> tuple[float, float]:

@@ -251,6 +251,13 @@ def build() -> int:
             "s3": _stage3_for(t),
             "q": QUALITY.get(a.get("tier")),
             "z": _size_of(r.get("market_cap")),
+            # Where today sits in its own 3-year range. The wording is
+            # built HERE, from stage2, so both pages say the same thing
+            # and neither reimplements the bands.
+            "q3": None if r.get("q3y") is None else round(r["q3y"], 1),
+            "q3b": stage2.range_band(r.get("q3y")),
+            "q3l": stage2.range_line(r.get("q3y")),
+            "q3s": stage2.range_line_short(r.get("q3y")),
         }
 
     # ONE list: every company Stage 1 assessed, ranked by how far below its

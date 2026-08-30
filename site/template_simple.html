@@ -130,6 +130,11 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
 .cbig .l{font-size:12.5px; color:var(--muted); margin-top:3px}
 .cbar{height:5px; background:var(--raised); border-radius:3px; margin-top:8px; overflow:hidden}
 .cbar i{display:block; height:100%; background:var(--accent); border-radius:3px}
+/* The two price facts sit together under the headline number. They answer
+   the same question and separating them would invite the reader to weigh
+   one without the other. */
+.rangeline{margin-top:7px; font-size:12px; color:var(--muted); line-height:1.4}
+.rangeline b{display:block; color:var(--ink); font-weight:600; font-size:12.5px}
 .csent{margin:14px 0 0; font-size:15.5px; line-height:1.55; max-width:70ch}
 .csent b{font-weight:600}
 .answers{display:flex; gap:8px; margin-top:13px; flex-wrap:wrap}
@@ -241,6 +246,10 @@ h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.0
       <button class="chip" data-f="s3" data-v="pricier">pricier</button></div></div>
     <div class="fgroup"><span class="fname">Business warning</span><div class="fchips">
       <button class="chip" data-f="s3" data-v="profit falling">profit falling</button></div></div>
+    <div class="fgroup"><span class="fname">3-year range</span><div class="fchips">
+      <button class="chip" data-f="q3" data-v="low">near its 3-year low</button>
+      <button class="chip" data-f="q3" data-v="mid">mid-range</button>
+      <button class="chip" data-f="q3" data-v="high">near its 3-year high</button></div></div>
   </div>
   <div class="fsort"><span class="fname">Sort order</span>
     <button class="chip on" data-s="b">furthest below usual</button>
@@ -310,7 +319,7 @@ function sentence(r){
 /* The same two defaults the detailed page carries, and for the same
    reason: quality first, and only show what has actually moved. Both are
    claims the project already makes (§6 principle 1). */
-const F={q:new Set(["high"]), bar:true, z:new Set(), sh:new Set(), s3:new Set()};
+const F={q:new Set(["high"]), bar:true, z:new Set(), sh:new Set(), s3:new Set(), q3:new Set()};
 let SORT="b";
 /* Deliberately identical to passes() on the detailed page — it reads the
    same fields (r.z, r.sh, r.s3.l) rather than recomputing them, so the
@@ -322,6 +331,10 @@ function passes(r){
   if(F.bar && !(r.b != null && r.b >= BAR)) return false;
   if(F.sh.size && !F.sh.has(r.sh)) return false;
   if(F.z.size && !F.z.has(r.z)) return false;
+  if(F.q3.size){
+    if(r.q3 == null) return false;
+    if(!F.q3.has(r.q3<=20 ? "low" : r.q3<=60 ? "mid" : "high")) return false;
+  }
   if(F.s3.size){
     const l = (r.s3 && r.s3.l) || "";
     let hit = false;
@@ -358,6 +371,7 @@ function cardHtml(r,i){
         <div class="v">${r.b==null?"—":r.b.toFixed(1)+"%"}</div>
         <div class="l">below its usual price</div>
         <div class="cbar"><i style="width:${r.b==null?0:(r.b/MAXB*100).toFixed(0)}%"></i></div>
+        ${!r.q3b?"":`<div class="rangeline"><b>${r.q3b}</b>${r.q3l}</div>`}
       </div>
     </div>
     <p class="csent">${sentence(r)}</p>
@@ -367,6 +381,8 @@ function cardHtml(r,i){
       ${!r.sh?"":`<span class="ans ${tc}"><span class="k">Direction</span>${tl}</span>`}
       ${!r.s3?"":`<span class="ans ${cheap?"ok":""}"><span class="k">Vs its history</span>${
         cheap?"cheaper":/pricier/.test(r.s3.l)?"pricier":"about as usual"}</span>`}
+      ${!r.q3b?"":`<span class="ans ${r.q3>60?"warnc":r.q3<=40?"ok":""}">
+        <span class="k">3-year range</span>${r.q3b}</span>`}
       ${fall?`<span class="ans badc"><span class="k">Warning</span>profit falling</span>`:""}
     </div>
     <div class="cnext">
@@ -381,15 +397,15 @@ function cardHtml(r,i){
 
 /* The default view is a CLAIM the page makes (§6 principle 1), so this is
    what "reset" returns to — not an empty filter set. */
-const DEFAULTS={q:["high"], bar:true, z:[], sh:[], s3:[], sort:"b"};
+const DEFAULTS={q:["high"], bar:true, z:[], sh:[], s3:[], q3:[], sort:"b"};
 function atDefault(){
   return F.bar===DEFAULTS.bar && SORT===DEFAULTS.sort
-      && F.z.size===0 && F.sh.size===0 && F.s3.size===0
+      && F.z.size===0 && F.sh.size===0 && F.s3.size===0 && F.q3.size===0
       && F.q.size===1 && F.q.has("high");
 }
 function resetAll(){
   F.q=new Set(DEFAULTS.q); F.bar=true;
-  F.z.clear(); F.sh.clear(); F.s3.clear();
+  F.z.clear(); F.sh.clear(); F.s3.clear(); F.q3.clear();
   SORT=DEFAULTS.sort;
   document.querySelectorAll(".chip[data-f]").forEach(b=>
     b.classList.toggle("on", b.dataset.f==="q" && b.dataset.v==="high"));

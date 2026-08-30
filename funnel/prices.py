@@ -21,6 +21,15 @@ import yfinance as yf
 SMA_LONG = 200
 SMA_SHORT = 50
 WINDOW_52W = 252
+# Three calendar years of trading. Where today's price sits in THIS span
+# is a different question from how far it is below its moving averages,
+# and the two disagree often enough to be worth asking separately: on
+# 30 Aug 2026, four of the fourteen names on the page were 10%+ below
+# their averages while sitting in the top half of this range.
+WINDOW_3Y = 756
+# Below this the window is too short to call anything a "3-year" range.
+# ~1.6 years still supports the statement honestly; less does not.
+MIN_BARS_3Y = 400
 
 # A company needs at least a full long window before it can be compared
 # to its own long-run normal. Below this it is reported as insufficient
@@ -39,12 +48,13 @@ class PriceDataError(RuntimeError):
     """Raised when the fetched data is not fit to publish."""
 
 
-def fetch(tickers: list[str], period: str = "2y") -> dict[str, pd.DataFrame]:
+def fetch(tickers: list[str], period: str = "5y") -> dict[str, pd.DataFrame]:
     """Download daily bars for many tickers in one request.
 
     `auto_adjust=True` is the load-bearing argument — see the module
-    docstring. `period` defaults to two years so that a 252-day window
-    still has room after holidays and halts.
+    docstring. `period` defaults to FIVE years: the 3-year percentile
+    needs 756 bars, and two years cannot supply them. The extra history
+    costs nothing — it is the same single request.
     """
     raw = yf.download(tickers, period=period, interval="1d",
                       group_by="ticker", auto_adjust=True,
@@ -87,8 +97,26 @@ def derive(frame: pd.DataFrame) -> dict:
         # inversion, which only works because the score never touches it.
         "high52": float(close.tail(WINDOW_52W).max()),
         "low52": float(close.tail(WINDOW_52W).min()),
+        # Where today sits in its own 3-year distribution, as the share
+        # of closes AT OR BELOW today. Deliberately NOT blended into the
+        # score: the two measures disagree for a meaningful minority, and
+        # that disagreement is the information a reader needs. See §4.8.
+        "q3y": _quantile_3y(close),
         "as_of": close.index[-1].date().isoformat(),
     }
+
+
+def _quantile_3y(close) -> float | None:
+    """Share of the last three years' closes at or below today's.
+
+    None when the series is too short to make the claim — a percentile
+    computed over eight months is not a three-year range, and saying so
+    would be worse than saying nothing.
+    """
+    window = close.tail(WINDOW_3Y)
+    if len(window) < MIN_BARS_3Y:
+        return None
+    return float((window <= close.iloc[-1]).sum()) / len(window) * 100.0
 
 
 def validate(frames: dict[str, pd.DataFrame], requested: list[str]) -> list[str]:
