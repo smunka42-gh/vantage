@@ -346,7 +346,10 @@ def main() -> int:
         tail = log.read_text()[-4000:]
         # Its "Next" section pointed at Stage 2 for weeks after Stage 3
         # shipped. If it names a stage, that stage should not be built.
-        for m in re.finditer(r"##\s*Next(.*)$", tail, re.S):
+        # `(.*)$` with re.S swallowed every section BELOW the heading too,
+        # so a later entry merely mentioning a stage failed the check. Stop
+        # at the next heading: only the "Next" section itself is the claim.
+        for m in re.finditer(r"##\s*Next\b(.*?)(?=\n##\s|\Z)", tail, re.S):
             nxt = m.group(1)
             for stage, module in (("Stage 2", "funnel/stage2.py"),
                                   ("Stage 3", "funnel/stage3.py")):
