@@ -588,64 +588,6 @@ def at_risk(gates):
     return [n for n, g, _ in gates if g == "near-pass"]
 
 
-# A quarter is roughly a quarter of a year, so a part-year figure standing
-# in for an annual one shows up as revenue falling off a cliff.
-#
-# 0.30, and only inside the five years the gates judge. The first version
-# used 0.45 across a company's WHOLE revenue history and fired on 18
-# companies with ZERO real hits: eleven were airlines, cruise lines,
-# casinos and live events in FY2020, where revenue genuinely fell 70-90%;
-# AIG's FY2008 revenue was negative; BX, KKR, COIN, MRNA and WDC were
-# fee, crypto, vaccine and memory collapses. An alarm that cries wolf
-# eighteen times teaches you to ignore it.
-#
-# Measured inside the gate window: 45% fires on 5 (all genuine), 35% on 1
-# (genuine), 30% on none. Accenture's defect read 0.246 — one quarter
-# against a full year — so 0.30 clears every real collapse while still
-# catching the signature.
-PARTIAL_RATIO = 0.30
-PARTIAL_WINDOW = 5
-
-
-def partial_years(loaded):
-    """Companies whose revenue collapses like a quarter standing in for a year.
-
-    The guard against a defect that outcome tests cannot see. A 10-K
-    carries the QUARTERS inside it as well as the year, and some filers
-    tag those `fp=FY` too. `_pick` grouped facts by the year in their
-    end-date and kept the newest-FILED one, so where a quarter and the
-    year were filed the same day the tie broke on JSON ordering and the
-    QUARTER could win. Accenture's return on assets read 2.7% instead of
-    12.4% — one quarter's profit over a full year's balance sheet.
-
-    `_pick` now requires 350-380 days, so this is the assertion that the
-    requirement is still holding. It runs over the WHOLE INDEX because
-    the golden set cannot do this job: not one of the seventeen anchors
-    was affected, so all seventeen passed both before and after the fix.
-
-    REVENUE is the test subject rather than profit. Profit legitimately
-    collapses — Boeing, Intel and Ford all halve theirs inside the
-    window — but revenue at this size rarely does.
-
-    This is a HEURISTIC, not proof, and it is deliberately narrow: see
-    PARTIAL_RATIO for the eighteen false positives the first version
-    produced. The structural guard is the 350-380 day requirement in
-    `_pick`; this exists to notice if that guard is ever weakened. The
-    exact version would assert on the PERIOD LENGTH of the figures
-    actually chosen rather than inferring from their values, and that is
-    the better fix whenever this is next touched.
-    """
-    bad = []
-    for t, d in sorted(loaded.items()):
-        rev = d.get("revenue") or {}
-        yrs = sorted(rev)[-PARTIAL_WINDOW:]
-        for prev, cur in zip(yrs, yrs[1:]):
-            before, after = rev[prev], rev[cur]
-            if before and before > 0 and after / before < PARTIAL_RATIO:
-                bad.append(f"{t} FY{cur} revenue {after/1e9:.1f}B "
-                           f"vs FY{prev} {before/1e9:.1f}B")
-                break
-    return bad
 
 
 def yearly(d, is_financial=False, is_utility=False, is_capital_intensive=False):

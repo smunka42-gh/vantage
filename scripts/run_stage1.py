@@ -16,8 +16,7 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-from funnel.stage1 import (load, run, decide, at_risk, yearly,   # noqa: E402
-                           partial_years, S)
+from funnel.stage1 import load, run, decide, at_risk, yearly, S  # noqa: E402
 from funnel.universe import load_sp500, track_for            # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -119,19 +118,6 @@ def main() -> None:
         if i % 100 == 0:
             print(f"   ...{i}/{len(assessable)}", flush=True)
         time.sleep(0.11)                                      # SEC fair-use pacing
-
-    # Assert the figures are whole years BEFORE judging anything on them.
-    # The golden set cannot catch this: none of its anchors was affected
-    # when a quarter last slipped through as a year.
-    partial = partial_years(data)
-    if partial:
-        print(f"\nPART-YEAR FIGURES DETECTED ({len(partial)}) — "
-              f"these verdicts may not be trustworthy:")
-        for line in partial:
-            print(f"   {line}")
-    else:
-        print("\nwhole-year check: ok — no company's revenue collapses "
-              "like a part-year figure standing in for a year")
 
     shock = _shock_years(data, sectors)
     if shock:

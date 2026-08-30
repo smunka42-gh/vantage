@@ -75,6 +75,7 @@ git config core.hooksPath .githooks
 .venv/bin/python tests/test_golden_set.py   # Stage 1 regression, ~20s
 .venv/bin/python tests/test_stage2.py       # Stage 2 validation, ~30s
 .venv/bin/python tests/test_docs_current.py  # do the docs match the code, instant
+.venv/bin/python tests/test_whole_years.py   # a quarter is never a year, instant
 .venv/bin/python scripts/run_stage1.py      # quality gate, ~9 min
 .venv/bin/python scripts/run_stage2.py      # below-normal, ~4 min
 .venv/bin/python scripts/run_stage3.py      # cheap or deteriorating, ~9 min
@@ -96,7 +97,8 @@ scripts/build_site.py  renders docs/index.html from the three result files
 site/template.html   the page layout, with placeholders
 .githooks/pre-commit  blocks a commit whose docs no longer match the code
 docs/                what GitHub Pages serves
-tests/               golden-set regression, Stage 2 validation, doc currency
+tests/               golden-set regression, Stage 2 validation, doc currency,
+                     whole-year guard
 docs/FUNNEL_SPEC.md  the specification
 ```
 
