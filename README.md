@@ -79,7 +79,7 @@ git config core.hooksPath .githooks
 .venv/bin/python scripts/run_stage1.py      # quality gate, ~9 min
 .venv/bin/python scripts/run_stage2.py      # below-normal, ~4 min
 .venv/bin/python scripts/run_stage3.py      # cheap or deteriorating, ~9 min
-.venv/bin/python scripts/build_site.py      # rebuild docs/index.html
+.venv/bin/python scripts/build_site.py      # rebuild both pages
 ```
 
 ## Layout
@@ -93,10 +93,13 @@ funnel/stage3.py     the two Stage 3 gates and the label they produce
 scripts/run_stage1.py  quality gate over the whole index
 scripts/run_stage2.py  below-normal over everything stage 1 assessed
 scripts/run_stage3.py  cheapness and quarterly profit, same coverage
-scripts/build_site.py  renders docs/index.html from the three result files
-site/template.html   the page layout, with placeholders
+scripts/build_site.py  renders BOTH pages from the three result files
+site/template.html   the detailed table, with placeholders
+site/template_simple.html  the plain-English page at /simple/
+site/detail.js       the expanded panel, inlined into both pages
+site/detail.css      its styles, likewise — one source, so they cannot drift
 .githooks/pre-commit  blocks a commit whose docs no longer match the code
-docs/                what GitHub Pages serves
+docs/                what GitHub Pages serves — index.html and simple/index.html
 tests/               golden-set regression, Stage 2 validation, doc currency,
                      whole-year guard
 docs/FUNNEL_SPEC.md  the specification

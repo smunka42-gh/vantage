@@ -209,11 +209,14 @@ jobs:
           # so comparing it would commit daily even on market holidays when
           # nothing actually moved. Judge on the PAGE instead: if the
           # rendered table is identical, there is nothing to publish.
-          if git diff --quiet -- docs/index.html; then
-            echo "Page is unchanged (holiday, or prices did not move) — nothing to commit."
+          # Both pages are rendered from the same scan by the same run, so
+          # either one moving means the day produced something new.
+          if git diff --quiet -- docs/index.html docs/simple/index.html \
+             && [ -z "$(git status --porcelain -- docs/simple/index.html)" ]; then
+            echo "Pages are unchanged (holiday, or prices did not move) — nothing to commit."
             exit 0
           fi
 
-          git add docs/index.html docs/scan.json
+          git add docs/index.html docs/simple/index.html docs/scan.json
           git commit -m "Refresh scan ($(TZ=America/New_York date '+%Y-%m-%d'))"
           git push

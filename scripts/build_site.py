@@ -28,7 +28,16 @@ STAGE1 = ROOT / "scripts/stage1_results.json"
 STAGE2 = ROOT / "scripts/stage2_results.json"
 STAGE3 = ROOT / "scripts/stage3_results.json"
 TEMPLATE = ROOT / "site/template.html"
+# The expanded panel — gates, five-year record, the 52-week scale — is
+# ONE implementation inlined into both pages, so they cannot drift.
+DETAIL_JS = ROOT / "site/detail.js"
+DETAIL_CSS = ROOT / "site/detail.css"
 OUT = ROOT / "docs/index.html"
+# The same scan rendered a second way, for a reader who does not want
+# nine columns of finance vocabulary on arrival. One build, so the two
+# pages can never disagree about what the funnel found.
+SIMPLE_TEMPLATE = ROOT / "site/template_simple.html"
+SIMPLE_OUT = ROOT / "docs/simple/index.html"
 SCAN = ROOT / "docs/scan.json"
 
 ELIGIBLE_TIERS = {"PASS", "BORDERLINE"}
@@ -272,8 +281,7 @@ def build() -> int:
     as_of_txt = (dt.date.fromisoformat(as_of).strftime("%a %-d %b %Y")
                  if as_of else "unknown")
 
-    page = TEMPLATE.read_text()
-    for k, v in {
+    fills = {
         "ROWS": json.dumps(rows, separators=(",", ":")),
         "COUNT": str(n),
         # the page must read correctly when the answer is 1, or 0
@@ -291,15 +299,36 @@ def build() -> int:
         # is the one thing that cannot be wrong, and makes it obvious at a
         # glance whether the daily scan ran.
         "BUILT": _built(),
-    }.items():
-        page = page.replace("{{" + k + "}}", v)
+        "DETAIL_JS": DETAIL_JS.read_text(),
+        "DETAIL_CSS": DETAIL_CSS.read_text(),
+        # The funnel bars on the simple page are drawn to scale, so the
+        # widths are computed here rather than hand-set in the template
+        # where they would go stale the moment a REIT joined or left.
+        "PCT_TESTED": f"{(len(s1) - reits) / len(s1) * 100:.1f}",
+        "PCT_ELIGIBLE": f"{eligible / len(s1) * 100:.1f}",
+    }
 
-    if "{{" in page:
-        print("error: unfilled placeholder remains — refusing to write")
+    def render(tpl, out):
+        page = tpl.read_text()
+        # The shared blocks go in FIRST: detail.js carries {{TODAY}} of its
+        # own, and filling values before inlining left it unresolved.
+        for k in ("DETAIL_CSS", "DETAIL_JS"):
+            page = page.replace("{{" + k + "}}", fills[k])
+        for k, v in fills.items():
+            if k in ("DETAIL_CSS", "DETAIL_JS"):
+                continue
+            page = page.replace("{{" + k + "}}", v)
+        if "{{" in page:
+            print(f"error: unfilled placeholder in {tpl.name} — refusing to write")
+            return None
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(page)
+        return page
+
+    page = render(TEMPLATE, OUT)
+    simple = render(SIMPLE_TEMPLATE, SIMPLE_OUT)
+    if page is None or simple is None:
         return 1
-
-    OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(page)
 
     # The state the daily workflow's gate reads to answer "have we already
     # scanned today?". Written HERE, by the same run that renders the page,
@@ -318,6 +347,7 @@ def build() -> int:
     }, indent=1) + "\n")
 
     print(f"wrote {OUT.relative_to(ROOT)}  ({len(page):,} bytes)")
+    print(f"wrote {SIMPLE_OUT.relative_to(ROOT)}  ({len(simple):,} bytes)")
     print(f"wrote {SCAN.relative_to(ROOT)}")
     print(f"   {n} of {eligible} companies more than "
           f"{stage2.BELOW_NORMAL_BAR:.0%} below normal · prices {as_of_txt}")

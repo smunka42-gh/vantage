@@ -27,6 +27,7 @@ SPEC = ROOT / "docs/FUNNEL_SPEC.md"
 README = ROOT / "README.md"
 SCAN = ROOT / "docs/scan.json"
 PAGE = ROOT / "docs/index.html"
+SIMPLE = ROOT / "docs/simple/index.html"
 S1 = ROOT / "scripts/stage1_results.json"
 
 problems: list[str] = []
@@ -120,10 +121,14 @@ def main() -> int:
             check(int(m.group(1)) == gates,
                   f"{name} says '{m.group(0)}' but stage1.py implements {gates}")
 
-    # 5. The built page must have no unfilled placeholders.
-    if PAGE.exists():
-        left = set(re.findall(r"\{\{[A-Z_]+\}\}", PAGE.read_text()))
-        check(not left, f"built page still contains placeholders: {sorted(left)}")
+    # 5. Neither built page may carry an unfilled placeholder. The simple
+    #    page is checked too: it inlines site/detail.js, which carries a
+    #    {{TODAY}} of its own, so a change to the substitution ORDER in
+    #    build_site.py can leave it unresolved on one page and not the other.
+    for path, name in ((PAGE, "built page"), (SIMPLE, "simple page")):
+        if path.exists():
+            left = set(re.findall(r"\{\{[A-Z_]+\}\}", path.read_text()))
+            check(not left, f"{name} still contains placeholders: {sorted(left)}")
 
     # 6. Memory must hold no counts — they rot, and pointers do not.
     mem = (pathlib.Path.home() /

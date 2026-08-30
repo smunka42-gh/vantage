@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vantage — good companies, below their usual price</title>
+<meta name="description" content="S&P 500 companies that pass six checks on their audited accounts and are trading below their own recent average.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ------------------------------------------------------------------
+   The SIMPLE page. Same data, same funnel, same expanded panel as
+   docs/index.html — a different way in.
+
+   Written for someone with savings and no trading background. Two rules
+   separate it from the detailed page:
+
+     1. One readable STATEMENT per company, not a row of nine cells.
+     2. Colour appears only where the funnel already reaches a verdict —
+        checks passed, direction, cheaper-than-usual, falling profit —
+        and NEVER on a price move. §6 refuses to say whether a fall is
+        good or bad, and colouring one would say it in CSS.
+
+   Nothing is withheld. The five-year record, every gate and the 52-week
+   scale are all one click away, from the same detail.js the detailed
+   page uses.
+   ------------------------------------------------------------------ */
+:root{
+  --ground:#FCFBF9; --surface:#FFFFFF; --raised:#F4F2EE;
+  --ink:#1B1A17; --muted:#5F5B54; --faint:#8C877E;
+  --rule:#E7E4DD; --rule-strong:#D3CFC5;
+  --accent:#175A54; --accent-soft:#E6F0EE; --accent-ink:#0F413D;
+  --good:#3D6B4E; --warn:#8A6412; --bad:#9B3F35;
+  --good-bg:#EDF3EE; --warn-bg:#F7F0DF; --bad-bg:#F7EAE7;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--ground); color:var(--ink); font-family:var(--sans);
+     font-size:16.5px; line-height:1.55; margin:0; padding:0 0 80px;
+     -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px}
+
+.mast{border-bottom:1px solid var(--rule); background:var(--surface)}
+.mast .wrap{display:flex; align-items:baseline; gap:20px; padding:18px 24px; flex-wrap:wrap}
+.mark{font-family:var(--serif); font-size:20px; letter-spacing:.20em}
+.mast .meta{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted)}
+
+section{padding-top:34px}
+h1{font-family:var(--serif); font-size:31px; font-weight:400; letter-spacing:-.015em;
+   margin:0 0 10px; text-wrap:balance}
+.lede{font-size:16.5px; max-width:64ch; margin:0 0 6px; line-height:1.6}
+.sub{color:var(--muted); max-width:64ch; margin:0 0 22px; font-size:14.5px}
+.sub strong{color:var(--ink)}
+
+/* The funnel is read DOWNWARD, and each bar's fill is its share of 500 —
+   an honest scale rather than a shape that narrows for effect. */
+.f5{margin:22px 0 6px; border:1px solid var(--rule); border-radius:4px;
+    background:var(--surface); overflow:hidden}
+.f5row{display:flex; align-items:center; gap:14px; padding:11px 16px; position:relative}
+.f5row + .f5row{border-top:1px solid var(--rule)}
+.f5row .bar{position:absolute; inset:0 auto 0 0; background:var(--accent-soft); z-index:0}
+.f5row:last-child .bar{background:var(--accent)}
+.f5row > *{position:relative; z-index:1}
+.f5n{font-family:var(--mono); font-size:23px; font-weight:600; min-width:66px;
+     font-variant-numeric:tabular-nums}
+.f5t{font-size:15px}
+.f5t b{font-weight:600}
+.f5row:last-child .f5n, .f5row:last-child .f5t{color:#fff}
+.f5sub{color:var(--muted); font-size:13.5px}
+.f5row:last-child .f5sub{color:rgba(255,255,255,.82)}
+
+.qs{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:26px 0 8px}
+.q{border-top:2px solid var(--ink); padding-top:10px}
+.q .qn{font-family:var(--mono); font-size:10px; letter-spacing:.09em; color:var(--faint);
+       text-transform:uppercase; display:block; margin-bottom:5px}
+.q .qt{font-family:var(--serif); font-size:17px; line-height:1.3; margin:0 0 4px}
+.q .qd{font-size:13px; color:var(--muted); line-height:1.45; margin:0}
+
+/* Padding, not margin: the last row's margin would collapse out of the
+   section and the gap below would not match the 18px above it. */
+.filters{margin:28px 0 0; border-top:1px solid var(--rule); padding:18px 0 11px}
+.frow{display:flex; align-items:center; gap:7px; margin-bottom:8px; flex-wrap:wrap}
+.fname{font-family:var(--mono); font-size:9.5px; letter-spacing:.09em; text-transform:uppercase;
+       color:var(--faint); width:126px; flex:none}
+.chip{font:inherit; font-size:12.5px; padding:4px 11px; border-radius:12px; cursor:pointer;
+      border:1px solid var(--rule-strong); background:var(--surface); color:var(--muted)}
+.chip:hover{border-color:var(--accent); color:var(--accent)}
+.chip.on{background:var(--ink); border-color:var(--ink); color:var(--ground)}
+.count{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--muted)}
+
+/* NOT .card — detail.js uses that name for the boxes inside the expanded
+   panel, and a bare .card here styled those as clickable company cards
+   and bound the click handler to all 126 of them. */
+.co-card{background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+      padding:18px 20px; margin-bottom:12px; cursor:pointer}
+.co-card:hover{border-color:var(--rule-strong)}
+.co-card.open{border-color:var(--accent)}
+.chead{display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap}
+.cname{flex:1; min-width:190px}
+.cname .h{font-family:var(--serif); font-size:21px; line-height:1.2}
+.cname .s{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:3px}
+.cbig{text-align:right; min-width:132px}
+.cbig .v{font-family:var(--mono); font-size:30px; font-weight:600; line-height:1;
+         letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.cbig .l{font-size:12.5px; color:var(--muted); margin-top:3px}
+.cbar{height:5px; background:var(--raised); border-radius:3px; margin-top:8px; overflow:hidden}
+.cbar i{display:block; height:100%; background:var(--accent); border-radius:3px}
+.csent{margin:14px 0 0; font-size:15.5px; line-height:1.55; max-width:70ch}
+.csent b{font-weight:600}
+.answers{display:flex; gap:8px; margin-top:13px; flex-wrap:wrap}
+.ans{display:inline-flex; align-items:center; gap:7px; font-size:13px; padding:5px 11px;
+     border-radius:14px; border:1px solid var(--rule-strong); color:var(--muted); background:var(--ground)}
+.ans .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
+.ans.ok{color:var(--good); border-color:var(--good); background:var(--good-bg)}
+.ans.warnc{color:var(--warn); border-color:var(--warn); background:var(--warn-bg)}
+.ans.badc{color:var(--bad); border-color:var(--bad); background:var(--bad-bg)}
+.cnext{margin-top:14px; padding-top:13px; border-top:1px solid var(--rule);
+       display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:13.5px; color:var(--muted)}
+.cnext a{color:var(--accent); font-weight:500; text-decoration:none;
+         border-bottom:1px solid var(--accent-soft)}
+.cnext a:hover{border-bottom-color:var(--accent)}
+.cnext .hint{margin-left:auto; color:var(--faint); font-size:12.5px}
+.cdetail{display:none; margin:14px -20px -18px; border-top:1px solid var(--rule)}
+.co-card.open .cdetail{display:block}
+/* detail.js emits .work with its own padding; the card supplies none */
+.cdetail .work{padding:22px 20px 26px}
+
+.quiet{background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+       padding:48px 30px; text-align:center}
+.quiet .q1{font-family:var(--serif); font-weight:300; font-size:25px; margin-bottom:10px}
+.quiet .q2{color:var(--muted); font-size:14px; max-width:48ch; margin:0 auto}
+
+.htr{margin-top:42px; border-top:1px solid var(--rule); padding-top:24px}
+.htr h2{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+        color:var(--muted); font-weight:500; margin:0 0 16px}
+.defs{display:grid; grid-template-columns:repeat(2,1fr); gap:16px 30px}
+.def{font-size:13.5px; color:var(--muted); line-height:1.5; margin:0}
+.def b{color:var(--ink)}
+.foot{margin-top:34px; padding-top:16px; border-top:1px solid var(--rule);
+      font-size:12.5px; color:var(--faint)}
+.foot .stamp{font-family:var(--mono); font-size:11px; margin-top:6px; display:block}
+@media (max-width:720px){
+  .qs,.defs{grid-template-columns:1fr}
+  .fname{width:100%}
+  .cbig{text-align:left; min-width:0}
+}
+
+{{DETAIL_CSS}}
+</style>
+</head>
+<body>
+
+<div class="mast"><div class="wrap">
+  <span class="mark">VANTAGE</span>
+  <span class="meta">S&amp;P 500 · last close {{ASOF}} · filings via SEC EDGAR</span>
+</div></div>
+
+<div class="wrap">
+<section>
+  <h1>Good companies, trading below what they usually cost</h1>
+  <p class="lede">This page finds companies that pass six checks on their audited accounts, then
+    shows which of them are priced well below their own recent average.</p>
+  <p class="sub"><strong>It is not a buy list.</strong> It gets you to a short list — then you go
+    and read about the business. Nothing here knows why a price fell.</p>
+
+  <div class="f5">
+    <div class="f5row"><span class="bar" style="width:100%"></span>
+      <span class="f5n">{{UNIVERSE}}</span><span class="f5t">companies in the S&amp;P 500
+        <span class="f5sub">— the biggest listed businesses in America</span></span></div>
+    <div class="f5row"><span class="bar" style="width:{{PCT_TESTED}}%"></span>
+      <span class="f5n">{{TESTED}}</span><span class="f5t">we can judge
+        <span class="f5sub">— {{REITS}} are property trusts, whose accounts these checks cannot read</span></span></div>
+    <div class="f5row"><span class="bar" style="width:{{PCT_ELIGIBLE}}%"></span>
+      <span class="f5n">{{ELIGIBLE}}</span><span class="f5t">pass all six quality checks
+        <span class="f5sub">— profitable, well run, not over-borrowed, still growing</span></span></div>
+    <div class="f5row"><span class="bar" style="width:100%"></span>
+      <span class="f5n">{{COUNT}}</span><span class="f5t"><b>and cost at least {{BAR}}% less than usual</b>
+        <span class="f5sub">— these are below. Read them; do not buy them on this page alone.</span></span></div>
+  </div>
+
+  <div class="qs">
+    <div class="q"><span class="qn">Question 1</span>
+      <p class="qt">Would I ever want to own this?</p>
+      <p class="qd">Six checks on five years of audited accounts — profit, returns, cash, debt,
+        margins, revenue.</p></div>
+    <div class="q"><span class="qn">Question 2</span>
+      <p class="qt">Has it moved from its own normal?</p>
+      <p class="qd">How far today's price sits below the average this company has traded at.</p></div>
+    <div class="q"><span class="qn">Question 3</span>
+      <p class="qt">Opportunity, or warning?</p>
+      <p class="qd">Is it cheaper than its own history — and is profit still holding up?</p></div>
+  </div>
+</section>
+
+<section class="filters">
+  <div class="frow"><span class="fname">Quality</span>
+    <button class="chip on" data-f="q" data-v="high">high</button>
+    <button class="chip" data-f="q" data-v="medium">medium</button>
+    <button class="chip" data-f="q" data-v="low">low</button>
+    <button class="chip" data-f="q" data-v="uncertain">not enough history</button></div>
+  <div class="frow"><span class="fname">Price vs usual</span>
+    <button class="chip on" id="barChip">{{BAR}}%+ below usual</button>
+    <span class="count" id="shown"></span></div>
+  <div class="frow"><span class="fname">Size</span>
+    <button class="chip" data-f="z" data-v="big">over $500bn</button>
+    <button class="chip" data-f="z" data-v="mid">$100–500bn</button>
+    <button class="chip" data-f="z" data-v="small">under $100bn</button></div>
+  <div class="frow"><span class="fname">Sort order</span>
+    <button class="chip on" data-s="b">furthest below usual</button>
+    <button class="chip" data-s="c">biggest company</button>
+    <button class="chip" data-s="n">A–Z</button></div>
+</section>
+
+<div id="cards"></div>
+
+<section class="htr">
+  <h2>What the words mean</h2>
+  <div class="defs">
+    <p class="def"><b>Below its usual price</b> compares a price against its own recent history,
+      not against other companies. It is <b>not</b> a discount: a business worth 40% less, priced
+      40% lower, reads exactly like an unchanged business priced 40% lower.</p>
+    <p class="def"><b>Quality</b> is this year's verdict from six checks on audited annual filings
+      — profit, returns, cash, debt, margins, revenue. <i>Not enough history</i> is not a bad
+      score; it means too little filed record to judge at all.</p>
+    <p class="def"><b>Cheaper than usual</b> compares today's price against what this company's own
+      earnings have historically cost — never against other companies. A price can fall a long way
+      and still be pricier than this company usually is.</p>
+    <p class="def"><b>How current this is.</b> The quality checks read annual filings, so a verdict
+      can be two to twelve months old. Prices are from the last close. The quarterly figures behind
+      "profit still holding" carry their own date inside each card.</p>
+  </div>
+  <p class="foot">Not investment advice. This encodes one person's screening rules in software; it
+    is not from a licensed advisor. Company figures from SEC filings; prices from Yahoo Finance.
+    <span class="stamp">Built {{BUILT}}</span></p>
+</section>
+</div>
+
+<script>
+const BAR={{BAR}};
+const ROWS={{ROWS}};
+
+{{DETAIL_JS}}
+
+/* ---- the statement. Every clause is generated from figures the detailed
+   page also shows; nothing is asserted here that is not evidenced there. */
+const TREND={"falling now":["still falling","warnc"],
+             "fell, now flat":["fell, now steady",""],
+             "fell, now rising":["fell, now recovering","ok"]};
+const QLAB={high:"high", medium:"medium", low:"low", uncertain:"not enough history"};
+const sizeOf=r=>r.c==null?"small":r.c>=500?"big":r.c>=100?"mid":"small";
+const cap=v=>v==null?"—":v>=1000?"$"+(v/1000).toFixed(1)+"T":"$"+v.toFixed(1)+"B";
+const passed=r=>(r.gt||[]).filter(g=>g[1]==="pass"||g[1]==="near-pass").length;
+
+function sentence(r){
+  const n=passed(r), tot=(r.gt||[]).length||6;
+  const q = r.q==="uncertain" ? "has too little filing history to judge"
+          : n===tot ? `passes <b>all ${tot===6?"six":tot}</b> quality checks`
+          : `passes <b>${n} of ${tot}</b> quality checks`;
+  const cheap=r.s3 && /cheaper/.test(r.s3.l||"");
+  const fall =r.s3 && /profit falling/.test(r.s3.l||"");
+  const h = !r.s3 ? ""
+    : cheap ? ", and is <b>cheaper</b> than its earnings have historically cost"
+            : ", and costs <b>about what it usually does</b> for the earnings you get";
+  return `${r.n} ${q}, is priced <b>${r.b==null?"—":r.b.toFixed(1)+"% below"}</b> its own recent `
+       + `average${h}.`
+       + (fall ? " But its profit has fallen for two quarters running — worth understanding before"
+               + " anything else." : "");
+}
+
+const F={q:new Set(["high"]), bar:true, z:new Set()};
+let SORT="b";
+function passes(r){
+  if(F.q.size && !F.q.has(r.q)) return false;
+  if(F.bar && !(r.b != null && r.b >= BAR)) return false;
+  if(F.z.size && !F.z.has(sizeOf(r))) return false;
+  return true;
+}
+function ordered(){
+  const k=ROWS.filter(passes);
+  const by={b:(x,y)=>(y.b??-1e9)-(x.b??-1e9), c:(x,y)=>(y.c??-1)-(x.c??-1),
+            n:(x,y)=>x.n.localeCompare(y.n)}[SORT];
+  return k.slice().sort(by);
+}
+
+const MAXB=Math.max(...ROWS.map(r=>r.b==null?0:r.b), 1);
+
+function cardHtml(r,i){
+  const [tl,tc]=TREND[r.sh]||[r.sh||"—",""];
+  const cheap=r.s3 && /cheaper/.test(r.s3.l||"");
+  const fall =r.s3 && /profit falling/.test(r.s3.l||"");
+  const n=passed(r), tot=(r.gt||[]).length||6;
+  return `<div class="co-card${i?"":" open"}" data-t="${r.t}" tabindex="0">
+    <div class="chead">
+      <div class="cname">
+        <div class="h">${r.n}</div>
+        <div class="s">${r.t} · ${cap(r.c)}${r.ar?" · one check worth watching":""}</div>
+      </div>
+      <div class="cbig">
+        <div class="v">${r.b==null?"—":r.b.toFixed(1)+"%"}</div>
+        <div class="l">below its usual price</div>
+        <div class="cbar"><i style="width:${r.b==null?0:(r.b/MAXB*100).toFixed(0)}%"></i></div>
+      </div>
+    </div>
+    <p class="csent">${sentence(r)}</p>
+    <div class="answers">
+      <span class="ans ${r.q==="high"?"ok":r.q==="uncertain"?"":"warnc"}">
+        <span class="k">Quality</span>${r.q==="uncertain"?QLAB.uncertain:n+" of "+tot+" checks"}</span>
+      ${!r.sh?"":`<span class="ans ${tc}"><span class="k">Direction</span>${tl}</span>`}
+      ${!r.s3?"":`<span class="ans ${cheap?"ok":""}"><span class="k">Vs its history</span>${
+        cheap?"cheaper":/pricier/.test(r.s3.l)?"pricier":"about as usual"}</span>`}
+      ${fall?`<span class="ans badc"><span class="k">Warning</span>profit falling</span>`:""}
+    </div>
+    <div class="cnext">
+      <span>Next step — find out <b>why</b> the price fell:</span>
+      ${r.y?`<a href="${r.y}" target="_blank" rel="noopener">Yahoo Finance</a>`:""}
+      ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google Finance</a>`:""}
+      <span class="hint">click for the full working</span>
+    </div>
+    <div class="cdetail">${detail(r)}</div>
+  </div>`;
+}
+
+function draw(){
+  const list=ordered();
+  const el=document.getElementById("cards");
+  el.innerHTML = list.length
+    ? list.map(cardHtml).join("")
+    : `<div class="quiet"><div class="q1">Nothing is far below its usual price today.</div>
+        <p class="q2">That is the honest answer most days, and it is the point of the page —
+        it stays quiet until something moves. Widen a filter to see the rest.</p></div>`;
+  document.getElementById("shown").textContent =
+    `${list.length} of ${ROWS.length} shown`;
+  el.querySelectorAll(".co-card").forEach(c=>{
+    // A click inside the expanded panel must not close it. The whole card
+    // is the toggle, so without this a reader who clicks anything while
+    // reading the five-year record collapses the thing they are reading.
+    const go=e=>{ if(e.target.closest("a") || e.target.closest(".cdetail")) return;
+      c.classList.toggle("open"); };
+    c.addEventListener("click",go);
+    c.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();go(e);} });
+  });
+}
+
+document.querySelectorAll(".chip[data-f]").forEach(b=>b.addEventListener("click",()=>{
+  const set=F[b.dataset.f], v=b.dataset.v;
+  set.has(v)?set.delete(v):set.add(v);
+  b.classList.toggle("on", set.has(v));
+  draw();
+}));
+document.querySelectorAll(".chip[data-s]").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".chip[data-s]").forEach(o=>o.classList.toggle("on",o===b));
+  SORT=b.dataset.s; draw();
+}));
+document.getElementById("barChip").addEventListener("click",function(){
+  F.bar=!F.bar; this.classList.toggle("on",F.bar); draw();
+});
+draw();
+</script>
+</body>
+</html>

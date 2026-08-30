@@ -1,0 +1,168 @@
+/* Styles for the expanded panel, shared by BOTH pages and inlined at
+   build time by scripts/build_site.py. Paired with site/detail.js:
+   the markup
+   and the look of the panel are one implementation, so the detailed page
+   and the simple page cannot drift apart.
+
+   `tr.detail > td` applies only to the table page; the simple page opens
+   the same panel inside a card. Harmless to both — a selector that
+   matches nothing costs nothing. */
+.gate .d .asof{display:block; color:var(--faint); font-size:11.5px; margin-top:3px}
+
+/* ---------- expanded working ---------- */
+/* The detail cell must reset THREE things it inherits from tbody td:
+   text-align (right, for numbers), white-space (nowrap, so table cells
+   stay on one line) and the mono font. Without the nowrap reset none of
+   the prose below can wrap, and long sentences run off the page. */
+tr.detail > td{
+  padding:0; text-align:left; white-space:normal;
+  font-family:var(--sans); background:var(--raised);
+  border-bottom:1px solid var(--rule);
+}
+.work{
+  padding:26px 22px 30px;
+  /* No width cap. Overflow is prevented at the source instead: the gate
+     grid uses minmax(0,1fr) and .calc wraps, so long monospace lines can
+     no longer push the table past the page the way they once did. */
+}
+/* Each part of the working sits in its own bordered card, so the eye can
+   tell "why it qualifies" from "how the number was reached" without
+   reading the headings. */
+/* A stage groups several boxes under one question. The heading sits
+   OUTSIDE the boxes so the question reads as a section, not a card. */
+.stage{margin-bottom:26px}
+.stage:last-of-type{margin-bottom:0}
+.stage-h{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink); font-weight:600;
+  margin:0 0 10px;
+}
+.stage .card{margin-bottom:10px}
+.stage .card:last-child{margin-bottom:0}
+
+.card{
+  background:var(--surface); border:1px solid var(--rule);
+  border-radius:3px; padding:18px 20px 20px; margin-bottom:14px;
+}
+.card:last-child{margin-bottom:0}
+.work h4{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink); font-weight:600;
+  margin:0 0 14px;
+}
+
+/* Names the five pillars in the order the gates appear, so the structure
+   reads as deliberate rather than as five unrelated checks. */
+.pillars{
+  margin:-6px 0 15px; max-width:80ch;
+  color:var(--faint); font-size:12px; line-height:1.6;
+}
+.pillars b{color:var(--muted); font-weight:600}
+
+.gate{
+  display:grid; grid-template-columns:minmax(120px,168px) minmax(0,1fr) 62px;
+  gap:18px; align-items:baseline; padding:9px 0;
+  border-bottom:1px solid var(--rule);
+}
+.gate>*{min-width:0}
+.gate:last-of-type{border-bottom:0}
+.gate .g{font-size:12.5px; color:var(--muted); line-height:1.45}
+.gate .d{
+  font-size:13px; color:var(--ink); line-height:1.55;
+}
+/* figures stay mono inside the sentences, so they still read as reported */
+.gate .d b{font-family:var(--mono); font-weight:600}
+.gate .v{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); text-align:right;
+}
+.gate.risk .d{color:var(--ink)}
+.gate.risk .v{color:var(--accent); font-weight:600}
+
+.calc{
+  font-family:var(--mono); font-size:12px; line-height:2;
+  color:var(--muted); overflow-wrap:anywhere;
+}
+.calc b{color:var(--ink); font-weight:600}
+.calc .sep{color:var(--rule-strong); padding:0 8px}
+
+.card.stale-card{background:var(--raised)}
+.stale{font-size:13px; color:var(--muted); line-height:1.6; margin:0}
+.stale b{color:var(--ink); font-weight:600}
+.links{display:flex; gap:8px; margin-top:24px; flex-wrap:wrap}
+.links a{
+  font-family:var(--sans); font-size:12.5px; color:var(--ink);
+  border:1px solid var(--rule-strong); border-radius:2px;
+  padding:7px 13px; background:var(--surface);
+}
+.links a:hover{border-color:var(--accent); color:var(--accent); text-decoration:none}
+
+/* ---------- 52-week scale ---------- */
+/* Endpoints label BELOW the track, today's price ABOVE it. That vertical
+   separation is not decoration: three of one day's sixteen names sat
+   EXACTLY at their 52-week low, so the price marker lands on the endpoint
+   marker regularly. Labels on the same side would collide constantly. */
+.scale{position:relative; margin:6px 0 0; padding:44px 0 34px}
+.track{
+  position:relative; height:3px; border-radius:2px;
+  background:linear-gradient(to right,var(--rule-strong),var(--rule));
+}
+.tick{position:absolute; top:-4px; width:1px; height:11px; background:var(--rule-strong)}
+.tick.lo{left:0} .tick.hi{right:0}
+
+.now{position:absolute; top:-7px; width:3px; height:17px; background:var(--accent); border-radius:1px}
+.nowlab{
+  position:absolute; bottom:calc(100% + 9px); white-space:nowrap;
+  font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--accent);
+}
+/* Deliberately NOT red/green. These two numbers have no good or bad
+   direction — the page never says whether a fall is one or the other,
+   and colouring them would assert it. Kept quiet on purpose: they are
+   context beneath the price, not a second headline. */
+.nowlab small{
+  display:block; font-family:var(--sans); font-size:10.5px; font-weight:400;
+  color:var(--muted); margin-top:2px;
+}
+.nowlab sup{font-size:9px; vertical-align:super; line-height:0}
+.footnote{
+  margin:18px 0 0; font-size:11.5px; color:var(--muted); line-height:1.5;
+}
+.footnote sup{font-size:9px; vertical-align:super; line-height:0}
+.endlab{
+  position:absolute; top:calc(100% + 10px); font-family:var(--mono);
+  font-size:12px; color:var(--ink); white-space:nowrap;
+}
+.endlab.lo{left:0} .endlab.hi{right:0; text-align:right}
+
+/* ---------- five-year record ---------- */
+/* Its own card rather than numbers crammed under each gate row: the gate
+   rows are sentences and this is a grid, and mixing the two made both
+   harder to read. Scrolls rather than wrapping — a year column that
+   reflows stops being a series. */
+.rec{overflow-x:auto; margin:0 -2px}
+/* the question each group of rows answers */
+.recq{
+  margin:16px 0 6px; font-size:12px; color:var(--muted);
+  letter-spacing:.01em;
+}
+.recq:first-of-type{margin-top:0}
+table.rec-t{border-collapse:collapse; width:100%; min-width:430px}
+table.rec-t th, table.rec-t td{
+  font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums;
+  text-align:right; padding:7px 10px; white-space:nowrap;
+}
+table.rec-t thead th{
+  font-size:10px; letter-spacing:.08em; color:var(--faint); font-weight:500;
+  border-bottom:1px solid var(--rule); padding-bottom:9px;
+}
+table.rec-t th.lbl, table.rec-t td.lbl{
+  text-align:left; font-family:var(--sans); font-size:12.5px;
+  color:var(--muted); padding-left:0; white-space:normal;
+}
+table.rec-t td.bar{
+  color:var(--muted); font-size:11px; padding-right:0;
+  border-left:1px solid var(--rule);
+}
+table.rec-t thead th.bar{border-left:1px solid var(--rule)}
+table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
+
