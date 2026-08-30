@@ -785,7 +785,7 @@ active and the frame-filter, freshest-tag and part-year defects fixed:
 | REJECTED | 194 | 38.8% |
 | CANNOT ASSESS | 16 | 3.2% |
 | REIT (not assessed) | 30 | 6.0% |
-| **Eligible for Stage 2** | **260** | **52%** |
+| **Eligible for Stage 2** | **259** | **52%** |
 
 Which gate does the rejecting:
 

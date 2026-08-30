@@ -43,7 +43,7 @@ reorders, filters or scores it. See §5 of the spec.
   posing as one. The gates do not run on REITs, so the scan covers
   **470 of the 500** constituents. Latest full run: 209 pass,
   51 borderline, 194 rejected, 16 without enough filing history —
-  **260 eligible**.
+  **259 eligible**.
 - **Stage 2 — built.** Two moving-average components blended as real
   percentages, with an absolute 10% bar so the honest answer on a calm
   day is an empty list. 13-check validation suite passing. Latest run:
