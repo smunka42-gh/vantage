@@ -108,6 +108,18 @@ def main() -> int:
                 check(words[word] == gates,
                       f"{name} says '{m.group(0)}' but stage1.py implements {gates}")
 
+        # Digits slipped past that: the tier table read "4 of the 5 gates
+        # evaluable" for two versions after gate 6 landed, because the map
+        # holds only spelled-out numbers. Adding digits to the pattern
+        # above produced false positives on real phrases — "the two Stage
+        # 3 gates", "Intel fails 4 gates" — so the digit form gets a
+        # tighter anchor instead. A TOTAL is written "the N gates" or
+        # "all N gates"; a count of some subset is not.
+        for m in re.finditer(r"\b(?:all|the) (\d+) (?:quality )?gates\b",
+                             doc, re.I):
+            check(int(m.group(1)) == gates,
+                  f"{name} says '{m.group(0)}' but stage1.py implements {gates}")
+
     # 5. The built page must have no unfilled placeholders.
     if PAGE.exists():
         left = set(re.findall(r"\{\{[A-Z_]+\}\}", PAGE.read_text()))

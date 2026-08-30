@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.12 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.13 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,6 +45,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.13** | 30 Aug 2026 | **No minimum years of history — decided and recorded** (§3.5). TKO Group passes on a four-year series whose coverage ran 3.9x, 1.6x, 0.1x, 4.1x, which raised the question of a minimum record length. Measured, both candidate instruments fail: a minimum-years rule would reject **Honeywell, Ross Stores and CRH**, whose short *series* is a tag-chain artifact rather than youth (Honeywell's own gates read `net income positive 5/5`), and a volatility rule would flag **PNC, USB, BAC and JPM** at 14-24x coverage swings, where coverage is a rate-cycle artifact. TKO is already graded near-pass on gate 4 and carries an `at_risk` flag naming it; 48 PASS companies rest on at least one near-pass. Recorded rather than left as a decision taken in conversation — the failure mode §3.12's utility bar is still an open item for. Also fixes the tier table, which said "4 of the 5 gates evaluable" and has read 4 of **6** since gate 6 landed in v2.8. |
 | **v2.12** | 30 Aug 2026 | **`partial_years()` removed, replaced by `tests/test_whole_years.py`** (§3.17). The guard against a quarter posing as a fiscal year inferred the defect from a REVENUE COLLAPSE — any year under 30% of the one before. That was a guess about values standing in for a fact about periods, and the corridor it worked in was narrower than it looked: measured across all 1,766 consecutive-year revenue pairs in the index, Accenture's quarter posing as its year was 0.22 of the prior year while Western Digital's entirely real FY2023 collapse was 0.34, leaving four points between a threshold and a false alarm — and a seasonally concentrated quarter above 30% of its year would have passed unnoticed, which is the case the guard existed for. The structural rule (350-380 days, in `_pick`) is unchanged and was always the real fix; it is now pinned by a unit test replaying the exact Accenture filing rather than by a heuristic re-run over 500 companies on every scan. The test was verified to fail — reproducing the original 2.24B-beats-10.23B result — with the rule removed. |
 | **v2.11** | 30 Aug 2026 | **The `?resize=1` drag tool removed.** It existed to let the column widths be chosen against real data; once they were frozen in v2.10 it was ~115 lines of CSS and JS shipped to every visitor for no remaining purpose, so it is deleted rather than left gated behind a flag. Recoverable from `feb1f97`. The `localStorage` override went with it, so the stylesheet is now the only thing that can set a column width. |
 | **v2.10** | 30 Aug 2026 | **Column widths frozen** (§6 principle 9, §6.1). Computing them failed three ways in succession — fixed layout with guessed widths clipped values, auto layout re-sized the table on every filter click because it measures only the rows on screen, and measuring across all 470 at load became redundant once the widths were chosen deliberately. They are now set by hand through a build-time `?resize=1` drag mode and read off into the stylesheet, with `table-layout: fixed` honouring them literally; every value in all 470 rows was checked to fit first. **Long headings wrap, values do not**: a nowrap heading sets a floor wider than its own data, and `% below usual` was holding 123px for values needing 67. The one value exception is Stage 3's read, where *no earnings history* and *profit falling* appear together and, kept on one line, set a floor no width could get under. **A `No.` column** gives each row its position in the list as currently sorted and filtered. Removed: a stray duplicate `col.c-exp` rule later in the stylesheet that had been silently overriding the width above it. |
@@ -285,12 +286,47 @@ are now fixed.**
 | **PASS** | Every gate cleared. A near-pass counts as a pass. | yes |
 | **BORDERLINE** | Exactly one near-fail, nothing worse. | yes |
 | **REJECTED** | Any outright fail, or two or more near-fails. | no |
-| **CANNOT ASSESS** | Fewer than 4 of the 5 gates evaluable. | no |
+| **CANNOT ASSESS** | Fewer than 4 of the 6 gates evaluable. | no |
 
 The tier travels with the company rather than being collapsed away, so
 the interface can always show whether a name is on the list cleanly,
 barely, or by override — and Stage 2 still gets the definite list it
 needs to run on.
+
+#### There is no minimum number of YEARS
+
+The floor counts gates, not years of filings. Considered on 30 Aug 2026
+and deliberately left alone.
+
+The case for a minimum was TKO Group: PASS on a four-year series whose
+interest coverage ran 3.9x, 1.6x, **0.1x**, 4.1x, with return on equity
+negative in that same third year. A company clearing on the strength of
+its newest year is exactly what a durability screen should be suspicious
+of.
+
+Both instruments that would catch it catch better companies first.
+
+**Years of filings is not company age.** Eleven companies carry a
+four-year series; five of them PASS, and three are Honeywell, Ross Stores
+and CRH. Honeywell is not a young company — its *series* is short because
+of which tag chain its coverage figures come from, while its own gates
+read `net income positive 5/5` and `revenue grew 2.1% a year over 5y`. A
+minimum-years rule measures **tag coverage, not history**, and rejects
+Honeywell and Ross Stores for a filing quirk.
+
+**Volatility catches the banks.** TKO's coverage does swing hardest, a
+41x range. Immediately behind it sit PNC, USB, BAC and JPM at 14-24x —
+where interest coverage is a rate-cycle artifact and close to meaningless,
+which is why §3.16 puts them on the financial track in the first place.
+
+**What already catches TKO.** Gate 4 grades it **near-pass**, not a clean
+pass — 4.1x against a 4.0x bar — and it carries `at_risk` naming that
+gate, so the page shows it flagged with the gate to watch. Resting on one
+near-pass is not itself unusual: 48 PASS companies do.
+
+Revisit if the screen ever admits a company whose short record is *not*
+already marked near-pass or at-risk on the gate that its newest year
+carries. That would be the case this reasoning does not cover.
 
 #### There is no exceptions mechanism
 
