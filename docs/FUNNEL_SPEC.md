@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.22 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.23 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -22,6 +22,7 @@ doesn't. Full text and the evidence behind each is in
 3. **Measure before deciding.** Every threshold comes from real data, never intuition.
 4. **A check must change outcomes, or be cut.** If removing it changes nothing, it stays removed.
 5. **Thresholds never move to admit a company.** A named exception, or it stays out.
+6. **Every file must earn its place, and keep earning it.** A file stays only if something breaks when it goes.
 
 ## What this version is
 
@@ -40,7 +41,7 @@ each run:
   table, every company a row.
 - **[/vantage/simple/](https://smunka42-gh.github.io/vantage/simple/)** —
   one readable sentence per company, for a reader without a trading
-  background (§6 principle 9).
+  background (§6 principle 10).
 
 Neither withholds anything from the other: the expanded panel is one
 implementation inlined into both.
@@ -57,12 +58,13 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.23** | 30 Aug 2026 | **A list of sentences the project has outgrown**, checked against both the spec and the README, and meant to be appended to whenever another is found — the cost is one line and the same sentence never goes stale twice. Seeded from what has actually been hit: *"there is no Stage 3"*, *"both stages are built"*, *"complete at two stages"*, *"build the interface last"*, *"a single page"*. It immediately found a **third** *"both stages are built"*, opening §6, after two had already been fixed today. Also: **§6 carried two principles numbered 9** — one added on top of another — which silently broke every *"see principle 9"* reference; the pages principle becomes 10 and the references are corrected. **TENETS.md said "Five rules" over six**, and the spec summarised five of them. Three checks now hold those together: no duplicate or out-of-order principle numbers, and the tenet count agreeing across TENETS.md's headings, its own opening line, and the spec's summary. All verified to fail when reintroduced. |
 | **v2.22** | 30 Aug 2026 | **Coverage checks, and tenet 6.** Every documentation miss this project has had was the same shape: a list that must cover something, with nothing checking that it does. `GATE_LABEL` held five entries for six gates; `plain()` held the shapes already seen; the pre-commit risk map held the files that existed when it was written. Each was correct about its entries and silent about what was absent. Three checks now assert completeness rather than correctness — every gate has a label and wording, every source file is covered by the risk map, and no prose denies a stage whose module exists. All three were verified to fail when the gap is reintroduced. They immediately found four uncovered source files and **a second "There is no Stage 3"**, which had survived because check 4's slicing discards the exact region between the changelog and §1 where it sat. **`CONTRIBUTING.md` deleted** under the new tenet: one section was a rule about an archived private repository a reader cannot see, the other two restated the spec. |
 | **v2.21** | 30 Aug 2026 | **"What this version is" was two versions stale and said so in the present tense** — *"Both stages are built"* and *"There is no Stage 3"*, thirteen versions after Stage 3 shipped in v2.8. It also pointed only at the detailed page. Rewritten, and both pages are now named here and in the README. The doc-currency test did not catch it: it checks counts, gate numbers and placeholders, not prose about which stages exist. Worth knowing about the guard's shape — it catches numbers that drift, not sentences that were true once. Also teaches the pre-commit risk map about `site/detail.js`, `site/detail.css` and `site/template_simple.html`, added earlier today: the panel is inlined into BOTH pages, so a change there is the most warning-worthy kind, and it was triggering nothing. |
 | **v2.20** | 30 Aug 2026 | **A page that has quietly stopped updating now fails something.** Measured 30 Aug: GitHub fires the schedule but unreliably — one firing in ~22 opportunities, 4h 18m late. A single miss is harmless (16.5h of slack before the next open, and the state gate keeps a late run correct), but consecutive silent days would leave the page stale behind a green tick, because a run that never happens cannot fail. Two guards, both keyed on `scan.json`'s `generated_utc`: the doc-currency test fails locally, and an **ungated** final workflow step fails on any firing — including one that skipped the scan, which is the state this failure actually produces. **Five days, not three**: the workflow commits only when the page changes, so a market holiday produces no commit, and Thu→Tue closures make 5 the longest real gap. Three would fire every ordinary weekend, which is how a check earns being ignored. Verified at 3, 5, 6 and 9 days. **What neither catches**: a period where the workflow never fires at all — nothing inside GitHub can, and that needs an external check. |
 | **v2.19** | 30 Aug 2026 | **Every gate detail is now written for a reader**, on both pages — the wording lives in the shared `site/detail.js`. Measured before: **628 of them reached the reader as backend strings**; after: none. Gate 6 had no `plain()` case and no `GATE_LABEL` entry at all, so ~470 companies showed *"revenue grew 10.6% a year over 5y (2021-2025)"* raw. Four more shapes fell through their regexes: **negative** cumulative cash flow (`$-1.1B`, which assumed a `+`), **negative** operating margin (EchoStar's −118.1%), four-year windows, and `operating cash (no capex tag)`. **Labels no longer assert over a check that never ran**: where the filings contain nothing to measure, the label drops to a neutral topic — *Profit record*, *Debt*, *Sales growth* — instead of *"Profitable every year"* above *"insufficient history"*. §3.5 already said CANNOT ASSESS is not REJECTED; the wording now says it too. **The REIT note is deleted as dead code** — REITs are excluded from the page entirely (§6 principle 7), so no row could ever reach it. The build stamp now says why staleness matters rather than printing a bare timestamp. |
 | **v2.18** | 30 Aug 2026 | **`/simple/` carries the same six filters as the detailed page**, laid out side by side in a three-column grid rather than stacked. It shipped with three of them removed on the argument that a fourteen-row list states each one on the face of every card; laid out horizontally the whole set costs 211px, so the argument for dropping them was really an argument about vertical space. Sorting sits below a rule, separated from the filters, because it changes the ORDER and never the membership. **`passes()` is now identical on both pages** and reads the same stored fields — `r.z`, `r.sh`, `r.s3.l`. The simple page had been deriving size from market cap itself, which would have drifted the moment a boundary moved. |
-| **v2.17** | 30 Aug 2026 | **A second page at `/simple/`** (§6 principle 9, §6.1), for a reader with savings and no trading background. The detailed table at `/` is untouched. One company per readable sentence, a funnel read downward, and colour only where the funnel already reaches a verdict — never on a price move. **Nothing is withheld**: the expanded card opens the same panel the table does, five-year record included. The panel was extracted to `site/detail.js` and `site/detail.css` and is inlined into both pages by `build_site.py`, so the two cannot drift; the extraction was verified to leave `docs/index.html` byte-identical. The daily workflow now renders and publishes both from one scan. Found while building: `detail.js` emits `<div class="card">` for each stage box, so the new page's own `.card` captured 126 of them — the company card is `.co-card`. |
+| **v2.17** | 30 Aug 2026 | **A second page at `/simple/`** (§6 principle 10, §6.1), for a reader with savings and no trading background. The detailed table at `/` is untouched. One company per readable sentence, a funnel read downward, and colour only where the funnel already reaches a verdict — never on a price move. **Nothing is withheld**: the expanded card opens the same panel the table does, five-year record included. The panel was extracted to `site/detail.js` and `site/detail.css` and is inlined into both pages by `build_site.py`, so the two cannot drift; the extraction was verified to leave `docs/index.html` byte-identical. The daily workflow now renders and publishes both from one scan. Found while building: `detail.js` emits `<div class="card">` for each stage box, so the new page's own `.card` captured 126 of them — the company card is `.co-card`. |
 | **v2.16** | 30 Aug 2026 | **Stage 3 had never run in CI** (§3.17). Its workflow step was missing the `SEC_USER_AGENT` block Stage 1 has, so it died on its first EDGAR request in every scheduled and dispatched run since the stage shipped, while `continue-on-error` painted the step green. The defect was masked by local rebuilds: the results files are gitignored, so every published page carrying Stage 3 data had been built by hand rather than by the pipeline. The first CI-built page after Stage 3 existed published with the cheapness column empty for all 470 rows. Fixed, and the publish guard extended to check Stage 3's output rather than its exit code — it had validated only Stages 1 and 2. Re-run clean: 500 gated, 259 eligible, 468 priced, 253 read for cheapness. |
 | **v2.15** | 30 Aug 2026 | **Stage 3 gate 1's four-year minimum documented as structural** (§5.3). It had read as an arbitrary constant, which is how it became an open item. At three years the 3y and 5y windows are the same list, so the medians are identical and *"priced about as usual"* — 52 of 450 companies today — becomes unreachable; four years is where the two windows first differ. A (3y, 4y) pairing was considered and changes nothing, being equally identical at three years. **The six eligible companies without gate 1 are closed as unfixable**, with the cause corrected: it is three companies whose data the API does not carry (V, BRK-B, ERIE file EPS per share-class, behind a dimension `companyfacts` omits) and three with genuinely three years (GDDY — which does file the tag, contrary to the earlier note — plus TKO and VLTO). Verified against EDGAR. Also corrects v2.14's predicted outcome to the measured one: five tiers moved, not three. |
 | **v2.14** | 30 Aug 2026 | **Gate 4's coverage discount is earned, not assigned** (§3.12). The 2.5x bar was given to utilities as a sector — bar-fitting, which §3.2 forbids, and v0.5's changelog records the pass-rate origin ("utilities went from 1/31 to 17/31 eligible"). It now goes to any company whose **operating income has not fallen more than 10% year-on-year** across the window, on any track. The justification was always real and simply misattached: measured, the median utility's worst year is **−0.3%** against **−15.2%** for standard companies, and 16% have ever fallen >25% against 36%. Utilities still qualify most often (66% vs 34%) but through the property. **Measured on the live scan, five tiers moved**, not the three predicted: FISV and GEN BORDERLINE → PASS and OKE REJECTED → BORDERLINE as expected, and **D (Dominion) and ED (Con Edison) BORDERLINE → REJECTED** — both had genuine double-digit operating-income falls (Dominion's margin 17.1% → 9.9% in 2022, Con Edison's 22.1% → 17.3% in 2024), so neither qualifies as stable and both moved to the 4.0x bar. NRG also loses the discount it held purely by label. Eligible utilities **20 → 18**; eligible overall 260 → 259, and Utilities is the only sector to fall. The −10% line is not a new constant: Stage 3 gate 2 already uses it for this quantity across 11,536 quarter pairs. Measured annually over four comparisons, which is thin and said so; the quarterly alternative is rejected because Stage 1 rests on audited filings and quarterlies are reviewed. The sector-value count drops from four across three gates to **three across two**. The 4.0x base bar's own lack of derivation is left open rather than fixed here. |
@@ -1401,10 +1403,10 @@ quarter comparison does not depend on where a window starts.
 
 ## 6. Interface principles
 
-**The detailed UI specification is a separate document, written after
-both stages are built and validated.** This section records only the
-principles that constrain it, so that the interface is designed around
-real numbers rather than a guess.
+**These are the principles the interface is held to, not a specification
+of it.** They were written to constrain a UI designed around real numbers
+rather than a guess — all three stages were built and validated first, and
+§7 records that the order was kept.
 
 1. **The page is one filterable table, and its DEFAULTS carry the
    thesis.** *(Revised v2.9. Through v2.8 this principle read: "It opens
@@ -1473,7 +1475,15 @@ real numbers rather than a guess.
    entirely rather than appearing with a price and no verdict.
 8. **The tier is always visible.** A BORDERLINE name is never shown as a
    clean pass.
-9. **There are two pages over one funnel, and neither is a reduced
+9. **Column widths are set by hand, then frozen.** They are a design
+   decision, not an outcome of whichever rows a filter happens to show.
+   Left to the browser the table re-sized itself on every click, because
+   auto layout measures only the rows currently on screen. The widths in
+   the stylesheet were chosen by dragging the real table over the real
+   data and reading the numbers off; `table-layout: fixed` then honours
+   them literally.
+
+10. **There are two pages over one funnel, and neither is a reduced
    version of the other.** `/` is the detailed table; `/simple/` states
    one company per readable sentence for a reader with savings and no
    trading background. They are rendered by the same build from the same
@@ -1491,13 +1501,6 @@ real numbers rather than a guess.
    profit — and never on a price move, because §6.1 refuses to say
    whether a fall is good or bad and a coloured price would say it in
    CSS.
-9. **Column widths are set by hand, then frozen.** They are a design
-   decision, not an outcome of whichever rows a filter happens to show.
-   Left to the browser the table re-sized itself on every click, because
-   auto layout measures only the rows currently on screen. The widths in
-   the stylesheet were chosen by dragging the real table over the real
-   data and reading the numbers off; `table-layout: fixed` then honours
-   them literally.
 
 ---
 
@@ -1526,14 +1529,15 @@ real numbers rather than a guess.
 
 Agreed and not to be reordered:
 
-1. **Stage 1 as a research script — done.** Built, running against live
-   EDGAR, 17-company regression test passing.
-2. **Run all 500 through Stage 1 — done.** 238 of 500 eligible.
-3. **Stage 2** — the below-normal figure.
-4. **Stage 3 — cancelled**, see §5.
-5. **Write the UI specification and mockups.**
-6. **Build the interface last**, once all three stages produce real
-   numbers.
+1. **Stage 1 as a research script — done.** Running against live EDGAR,
+   with a 17-company regression test and two assertions on the data.
+2. **Run all 500 through Stage 1 — done.**
+3. **Stage 2 — done.** The below-normal figure, with a 13-check suite.
+4. **Stage 3 — done.** Cancelled in v1.0, reopened in v2.8 when its own
+   stated revisit condition was met (§5.1, §5.2).
+5. **Interface — done.** Built after all three stages produced real
+   numbers, exactly as this order required. Two pages, one scan (§6
+   principle 10).
 
 **Why the full runs come before any UI.** Every layout decision assumes a
 watchlist size. If the real number is 40, the watchlist is a single list

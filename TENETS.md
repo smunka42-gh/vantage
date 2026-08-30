@@ -1,6 +1,6 @@
 # Project tenets
 
-Five rules that govern every stage of this project. Each was earned by
+Six rules that govern every stage of this project. Each was earned by
 something that actually went wrong here, and each is written to be
 testable rather than aspirational — a proposal either violates one or it
 doesn't.

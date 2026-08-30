@@ -200,21 +200,88 @@ def main() -> int:
                   f"{rel} matches no pattern in .githooks/pre-commit — a change "
                   f"there will flag no documentation for re-reading")
 
-    # 5e. Prose that denies something the code contains.
-    #     "There is no Stage 3" sat in the spec for THIRTEEN versions after
-    #     stage3.py shipped, because every other check compares numbers and
-    #     this is a sentence. Deliberately narrow: it catches this shape,
-    #     not the class.
+    # 5f. Numbered lists must not repeat or skip a number.
+    #     §6 carried TWO principles numbered 9 for a day, because a tenth
+    #     was added without reading what was already there. A duplicate
+    #     number also silently breaks every "see principle N" reference.
+    for heading in ("### 6.", "## 6."):
+        pass
+    body = spec.split("## 6. Interface principles", 1)[-1].split("### 6.1", 1)[0]
+    nums = [int(n) for n in re.findall(r"^(\d+)\. \*\*", body, re.M)]
+    dupes = sorted({n for n in nums if nums.count(n) > 1})
+    check(not dupes, f"§6 has more than one principle numbered {dupes} — "
+                     f"a duplicate silently breaks every reference to it")
+    check(nums == sorted(nums),
+          f"§6's principles are numbered out of order: {nums}")
+
+    # 5g. The tenets are counted in three places and were consistent in two.
+    tenets = ROOT / "TENETS.md"
+    if tenets.exists():
+        t = tenets.read_text()
+        n_head = len(re.findall(r"^## \d+ · ", t, re.M))
+        words = {"Four":4, "Five":5, "Six":6, "Seven":7, "Eight":8}
+        m = re.search(r"^(\w+) rules that govern", t, re.M)
+        if m and m.group(1) in words:
+            check(words[m.group(1)] == n_head,
+                  f"TENETS.md says '{m.group(1)} rules' but contains {n_head}")
+        n_spec = len(re.findall(r"^\d+\. \*\*[^*]+\.\*\* ", spec[:spec.index("## What this version is")], re.M))
+        check(n_spec == n_head,
+              f"the spec summarises {n_spec} tenets but TENETS.md has {n_head}")
+
+    # 5e. Sentences the project has already outgrown.
+    #
+    # Every other check compares a NUMBER. These are claims in prose, and
+    # prose that was true once reads exactly like prose that still is —
+    # which is how "There is no Stage 3" survived thirteen versions, in
+    # two separate places.
+    #
+    # This is deliberately a LIST, not a clever general check. It cannot
+    # catch a sentence nobody has written yet, and pretending otherwise
+    # would be worse than the honest version. APPEND TO IT whenever a
+    # stale claim is found: the cost is one line, and the same sentence
+    # never gets to go stale twice.
+    #
+    # Each entry: (pattern, is-wrong-when, what to say instead)
+    claims = [
+        (r"[Tt]here is no Stage 3",
+         (ROOT / "funnel/stage3.py").exists(),
+         "Stage 3 shipped in v2.8 — see §5.2"),
+        (r"[Bb]oth stages are (built|running)",
+         (ROOT / "funnel/stage3.py").exists(),
+         "there are three stages, not two"),
+        (r"complete at two stages",
+         (ROOT / "funnel/stage3.py").exists(),
+         "the funnel runs to three stages"),
+        (r"[Nn]o Stage 3 (is|and none is) planned",
+         (ROOT / "funnel/stage3.py").exists(),
+         "Stage 3 was reopened in v2.8"),
+        (r"UI (is )?not started|[Nn]o UI yet|interface is not built",
+         PAGE.exists(),
+         "the interface is built and published"),
+        (r"[Bb]uild the interface last",
+         PAGE.exists(),
+         "the interface is built — this reads as a plan, not a record"),
+        (r"a single (static )?page(?! at)",
+         SIMPLE.exists(),
+         "there are two pages: / and /simple/"),
+    ]
+    # Changelog ROWS legitimately quote what a document used to say, so
+    # they are dropped — but only the rows. Check 4 drops the whole region
+    # between the table and section 1, which is precisely where the second
+    # instance of "There is no Stage 3" had been sitting undisturbed.
+    for doc, name in ((spec, "the spec"), (readme, "the README")):
+        prose = "\n".join(l for l in doc.splitlines() if not l.startswith("|"))
+        for pattern, wrong_now, instead in claims:
+            if not wrong_now:
+                continue
+            hit = re.search(pattern, prose)
+            check(not hit,
+                  f"{name} still says \"{hit.group(0)}\" — {instead}"
+                  if hit else "")
     # Changelog ROWS legitimately quote what a document used to say, so
     # they are dropped -- but only the rows. Check 4 drops the whole
     # region between the table and section 1, which is precisely where
     # the second instance of this had been sitting undisturbed.
-    spec_prose = "\n".join(l for l in spec.splitlines() if not l.startswith("|"))
-    for n in (1, 2, 3):
-        if (ROOT / f"funnel/stage{n}.py").exists():
-            check(not re.search(rf"[Tt]here is no Stage {n}\b", spec_prose),
-                  f"the spec says 'there is no Stage {n}' but "
-                  f"funnel/stage{n}.py exists")
 
     # 6. Memory must hold no counts — they rot, and pointers do not.
     mem = (pathlib.Path.home() /
