@@ -30,13 +30,31 @@ tr.detail > td{
    reading the headings. */
 /* A stage groups several boxes under one question. The heading sits
    OUTSIDE the boxes so the question reads as a section, not a card. */
-.stage{margin-bottom:26px}
+/* NO display property here. Overriding `display` on a <details> element
+   disables its built-in show/hide, so every section rendered fully
+   expanded while reporting open === false. */
+.stage{margin-bottom:10px}
 .stage:last-of-type{margin-bottom:0}
-.stage-h{
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.12em;
-  text-transform:uppercase; color:var(--ink); font-weight:600;
-  margin:0 0 10px;
-}
+/* The collapsed head IS the section: question, why it is asked, and the
+   answer. Everything below it is the working. */
+.stage-sum{list-style:none; cursor:pointer; padding:14px 16px; border-radius:3px;
+  background:var(--surface); border:1px solid var(--rule); display:block; position:relative}
+.stage-sum::-webkit-details-marker{display:none}
+.stage-sum:hover{border-color:var(--rule-strong)}
+.stage[open] > .stage-sum{border-color:var(--accent); margin-bottom:10px}
+.stage-q{display:block; font-family:var(--serif); font-size:17px; line-height:1.25;
+  padding-right:28px}
+.stage-why{display:block; font-size:12.5px; color:var(--muted); margin-top:3px;
+  line-height:1.45; padding-right:28px}
+.stage-ans{display:block; font-size:13.5px; font-weight:600; margin-top:7px}
+/* the +/- sits on the head, not in the flow, so a long question wraps
+   under it rather than colliding with it */
+.stage-sum::after{content:"+"; position:absolute; right:15px; top:13px;
+  font-family:var(--mono); font-size:15px; color:var(--muted); line-height:1}
+.stage[open] > .stage-sum::after{content:"\2212"}
+/* caption for the gate table — names what the rows below are, per tier */
+.gate-cap{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 12px}
 .stage .card{margin-bottom:10px}
 .stage .card:last-child{margin-bottom:0}
 

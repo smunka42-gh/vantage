@@ -308,12 +308,59 @@ function detail(r){
   // A stage is a SECTION containing separate boxes, not one large box.
   // Gates, the historical record and the currency note are different
   // kinds of thing and each now has its own frame.
-  const stage1 = (gates || recFor(1)) ? `<section class="stage">
-      <h4 class="stage-h">Stage 1 — would I ever want to own this?</h4>
+  /* Each stage collapses to its ANSWER. Opening a company used to dump
+     six gates, a five-year grid, a price scale and Stage 3 at once —
+     everything at the same weight, so nothing read as the answer. The
+     summary line carries the finding; the working is one click further.
+     Native <details>, so it is keyboard-reachable with no script. */
+  // A gate the filings could not answer carries grade null. It is not a
+  // gate that failed, so it is never folded into "passes N of M" — it is
+  // counted and named apart. `ar` is "gate|detail", and that detail is
+  // backend wording: split it, and take the neutral TOPIC of the gate,
+  // never the assertion label, which would claim a result of its own.
+  const topic = name => {
+    const raw = String(name).replace(/^\d+\s+/, "");
+    return (NEUTRAL[raw] || raw).toLowerCase();
+  };
+  const gt     = r.gt || [];
+  const totN   = gt.length;
+  const unmN   = gt.filter(g => g[1] == null).length;
+  const passN  = gt.filter(g => g[1] === "pass" || g[1] === "near-pass").length;
+  const failed = gt.filter(g => g[1] === "fail" || g[1] === "near-fail");
+  const readN  = totN - unmN;
+  let sum1 = "";
+  if (totN){
+    if (passN === readN){
+      // readN === 0 is the trap: "passes all 0 checks" reads as a pass
+      // where NOTHING was measured. Say what happened instead.
+      sum1 = readN === 0
+        ? `None of the ${totN === 6 ? "six" : totN} checks could be read`
+        : unmN ? `Passes the ${readN} checks that could be read — ${unmN} could not be`
+               : `Passes all ${readN === 6 ? "six" : readN} checks`;
+      // grazing a gate it still passes: the one worth knowing about
+      if (r.ar) sum1 += ` — closest to failing: ${topic(r.ar.split("|")[0])}`;
+    } else {
+      sum1 = `Passes ${passN} of ${readN}`;
+      if (failed.length) sum1 += ` — falls short on ${failed.map(g => topic(g[0])).join(", ")}`;
+      if (unmN) sum1 += `${failed.length ? ";" : " —"} ${unmN} could not be read`;
+    }
+  }
+  const sum2 = r.b == null ? "" :
+      `${r.b.toFixed(1)}% below its usual price${r.q3b ? ` · ${r.q3b}` : ""}`;
+  const sum3 = !s3 ? "" : s3.l;
+
+  const head = (q, why, sum) => `<summary class="stage-sum">
+      <span class="stage-q">${q}</span>
+      <span class="stage-why">${why}</span>
+      ${sum ? `<span class="stage-ans">${sum}</span>` : ""}
+    </summary>`;
+
+  const stage1 = (gates || recFor(1)) ? `<details class="stage">
+      ${head("Would I ever want to own this?",
+             "Six checks on five years of audited accounts — profit, returns, cash, debt, margins, revenue.",
+             sum1)}
       ${!gates ? "" : `<div class="card">
-        <p class="pillars">${H}. Six gates, one per pillar, in this order:
-          <b>profit</b>, <b>returns</b>, <b>cash</b>, <b>debt</b>,
-          <b>margins</b>, <b>revenue</b>.</p>
+        <p class="gate-cap">${H}</p>
         ${gates}
       </div>`}
       ${!recFor(1) ? "" : `<div class="card">${recFor(1)}</div>`}
@@ -321,10 +368,12 @@ function detail(r){
         gates read the last annual report, covering the year to
         <b>${ended}</b> — roughly <b>${months} months</b> of trading ago.
         Nothing since is reflected here.</p></div>`}
-    </section>` : "";
+    </details>` : "";
 
-  const stage2 = r.b == null ? "" : `<section class="stage">
-      <h4 class="stage-h">Stage 2 — has it moved from its own normal?</h4>
+  const stage2 = r.b == null ? "" : `<details class="stage">
+      ${head("Has it moved from its own normal?",
+             "How far today's price sits below the average this company has traded at, and where it sits in its own 3-year range.",
+             sum2)}
       ${!scaleInner ? "" : `<div class="card">${scaleInner}</div>`}
       <div class="card"><div class="calc">
         today <b>$${r.p.toFixed(2)}</b><span class="sep">·</span>average over
@@ -332,13 +381,15 @@ function detail(r){
         <b>$${a200.toFixed(2)}</b><br>
         below normal = 0.60 × <b>${r.m2.toFixed(1)}%</b> + 0.40 ×
         <b>${r.m5.toFixed(1)}%</b> = <b>${r.b.toFixed(1)}%</b>
+        ${!r.q3l ? "" : `<br>${r.q3l}`}
       </div></div>
-    </section>`;
+    </details>`;
 
-  const stage3 = !s3 ? "" : `<section class="stage">
-      <h4 class="stage-h">Stage 3 — opportunity or warning?</h4>
+  const stage3 = !s3 ? "" : `<details class="stage">
+      ${head("Opportunity, or warning?",
+             "Whether today's price is cheaper than this company's own earnings have historically cost, and whether profit is still holding up.",
+             sum3)}
       <div class="card">
-        <p class="pillars">${s3.l}</p>
         ${s3Gates}
       </div>
       ${!recFor(3) ? "" : `<div class="card">${recFor(3)}</div>`}
@@ -347,7 +398,7 @@ function detail(r){
         uses${r.pe ? ` — the year to <b>${ended}</b>` : ""}, so it is only
         as current as that filing. The profit reading uses the quarter
         dated above, which is newer.</p></div>
-    </section>`;
+    </details>`;
 
   return `<div class="work">
     ${stage1}

@@ -342,13 +342,31 @@ tr.detail > td{
    reading the headings. */
 /* A stage groups several boxes under one question. The heading sits
    OUTSIDE the boxes so the question reads as a section, not a card. */
-.stage{margin-bottom:26px}
+/* NO display property here. Overriding `display` on a <details> element
+   disables its built-in show/hide, so every section rendered fully
+   expanded while reporting open === false. */
+.stage{margin-bottom:10px}
 .stage:last-of-type{margin-bottom:0}
-.stage-h{
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.12em;
-  text-transform:uppercase; color:var(--ink); font-weight:600;
-  margin:0 0 10px;
-}
+/* The collapsed head IS the section: question, why it is asked, and the
+   answer. Everything below it is the working. */
+.stage-sum{list-style:none; cursor:pointer; padding:14px 16px; border-radius:3px;
+  background:var(--surface); border:1px solid var(--rule); display:block; position:relative}
+.stage-sum::-webkit-details-marker{display:none}
+.stage-sum:hover{border-color:var(--rule-strong)}
+.stage[open] > .stage-sum{border-color:var(--accent); margin-bottom:10px}
+.stage-q{display:block; font-family:var(--serif); font-size:17px; line-height:1.25;
+  padding-right:28px}
+.stage-why{display:block; font-size:12.5px; color:var(--muted); margin-top:3px;
+  line-height:1.45; padding-right:28px}
+.stage-ans{display:block; font-size:13.5px; font-weight:600; margin-top:7px}
+/* the +/- sits on the head, not in the flow, so a long question wraps
+   under it rather than colliding with it */
+.stage-sum::after{content:"+"; position:absolute; right:15px; top:13px;
+  font-family:var(--mono); font-size:15px; color:var(--muted); line-height:1}
+.stage[open] > .stage-sum::after{content:"\2212"}
+/* caption for the gate table — names what the rows below are, per tier */
+.gate-cap{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 12px}
 .stage .card{margin-bottom:10px}
 .stage .card:last-child{margin-bottom:0}
 
@@ -642,7 +660,7 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
       Not investment advice. This encodes one person's screening rules in
       software; it is not from a licensed advisor. Company figures from
       SEC filings; prices from Yahoo Finance.
-      <span class="built">Rebuilt 30 Aug 2026 20:07 UTC · a79e816 · prices from the last market close;
+      <span class="built">Rebuilt 30 Aug 2026 20:43 UTC · 94ddee7 · prices from the last market close;
         the quality checks read annual filings, so they can be up to a year old.
         If this date is more than a few days behind, the daily scan has stopped.</span>
     </div>
@@ -970,12 +988,59 @@ function detail(r){
   // A stage is a SECTION containing separate boxes, not one large box.
   // Gates, the historical record and the currency note are different
   // kinds of thing and each now has its own frame.
-  const stage1 = (gates || recFor(1)) ? `<section class="stage">
-      <h4 class="stage-h">Stage 1 — would I ever want to own this?</h4>
+  /* Each stage collapses to its ANSWER. Opening a company used to dump
+     six gates, a five-year grid, a price scale and Stage 3 at once —
+     everything at the same weight, so nothing read as the answer. The
+     summary line carries the finding; the working is one click further.
+     Native <details>, so it is keyboard-reachable with no script. */
+  // A gate the filings could not answer carries grade null. It is not a
+  // gate that failed, so it is never folded into "passes N of M" — it is
+  // counted and named apart. `ar` is "gate|detail", and that detail is
+  // backend wording: split it, and take the neutral TOPIC of the gate,
+  // never the assertion label, which would claim a result of its own.
+  const topic = name => {
+    const raw = String(name).replace(/^\d+\s+/, "");
+    return (NEUTRAL[raw] || raw).toLowerCase();
+  };
+  const gt     = r.gt || [];
+  const totN   = gt.length;
+  const unmN   = gt.filter(g => g[1] == null).length;
+  const passN  = gt.filter(g => g[1] === "pass" || g[1] === "near-pass").length;
+  const failed = gt.filter(g => g[1] === "fail" || g[1] === "near-fail");
+  const readN  = totN - unmN;
+  let sum1 = "";
+  if (totN){
+    if (passN === readN){
+      // readN === 0 is the trap: "passes all 0 checks" reads as a pass
+      // where NOTHING was measured. Say what happened instead.
+      sum1 = readN === 0
+        ? `None of the ${totN === 6 ? "six" : totN} checks could be read`
+        : unmN ? `Passes the ${readN} checks that could be read — ${unmN} could not be`
+               : `Passes all ${readN === 6 ? "six" : readN} checks`;
+      // grazing a gate it still passes: the one worth knowing about
+      if (r.ar) sum1 += ` — closest to failing: ${topic(r.ar.split("|")[0])}`;
+    } else {
+      sum1 = `Passes ${passN} of ${readN}`;
+      if (failed.length) sum1 += ` — falls short on ${failed.map(g => topic(g[0])).join(", ")}`;
+      if (unmN) sum1 += `${failed.length ? ";" : " —"} ${unmN} could not be read`;
+    }
+  }
+  const sum2 = r.b == null ? "" :
+      `${r.b.toFixed(1)}% below its usual price${r.q3b ? ` · ${r.q3b}` : ""}`;
+  const sum3 = !s3 ? "" : s3.l;
+
+  const head = (q, why, sum) => `<summary class="stage-sum">
+      <span class="stage-q">${q}</span>
+      <span class="stage-why">${why}</span>
+      ${sum ? `<span class="stage-ans">${sum}</span>` : ""}
+    </summary>`;
+
+  const stage1 = (gates || recFor(1)) ? `<details class="stage">
+      ${head("Would I ever want to own this?",
+             "Six checks on five years of audited accounts — profit, returns, cash, debt, margins, revenue.",
+             sum1)}
       ${!gates ? "" : `<div class="card">
-        <p class="pillars">${H}. Six gates, one per pillar, in this order:
-          <b>profit</b>, <b>returns</b>, <b>cash</b>, <b>debt</b>,
-          <b>margins</b>, <b>revenue</b>.</p>
+        <p class="gate-cap">${H}</p>
         ${gates}
       </div>`}
       ${!recFor(1) ? "" : `<div class="card">${recFor(1)}</div>`}
@@ -983,10 +1048,12 @@ function detail(r){
         gates read the last annual report, covering the year to
         <b>${ended}</b> — roughly <b>${months} months</b> of trading ago.
         Nothing since is reflected here.</p></div>`}
-    </section>` : "";
+    </details>` : "";
 
-  const stage2 = r.b == null ? "" : `<section class="stage">
-      <h4 class="stage-h">Stage 2 — has it moved from its own normal?</h4>
+  const stage2 = r.b == null ? "" : `<details class="stage">
+      ${head("Has it moved from its own normal?",
+             "How far today's price sits below the average this company has traded at, and where it sits in its own 3-year range.",
+             sum2)}
       ${!scaleInner ? "" : `<div class="card">${scaleInner}</div>`}
       <div class="card"><div class="calc">
         today <b>$${r.p.toFixed(2)}</b><span class="sep">·</span>average over
@@ -994,13 +1061,15 @@ function detail(r){
         <b>$${a200.toFixed(2)}</b><br>
         below normal = 0.60 × <b>${r.m2.toFixed(1)}%</b> + 0.40 ×
         <b>${r.m5.toFixed(1)}%</b> = <b>${r.b.toFixed(1)}%</b>
+        ${!r.q3l ? "" : `<br>${r.q3l}`}
       </div></div>
-    </section>`;
+    </details>`;
 
-  const stage3 = !s3 ? "" : `<section class="stage">
-      <h4 class="stage-h">Stage 3 — opportunity or warning?</h4>
+  const stage3 = !s3 ? "" : `<details class="stage">
+      ${head("Opportunity, or warning?",
+             "Whether today's price is cheaper than this company's own earnings have historically cost, and whether profit is still holding up.",
+             sum3)}
       <div class="card">
-        <p class="pillars">${s3.l}</p>
         ${s3Gates}
       </div>
       ${!recFor(3) ? "" : `<div class="card">${recFor(3)}</div>`}
@@ -1009,7 +1078,7 @@ function detail(r){
         uses${r.pe ? ` — the year to <b>${ended}</b>` : ""}, so it is only
         as current as that filing. The profit reading uses the quarter
         dated above, which is newer.</p></div>
-    </section>`;
+    </details>`;
 
   return `<div class="work">
     ${stage1}
