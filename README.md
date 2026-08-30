@@ -69,6 +69,9 @@ python3 -m venv .venv
 
 export SEC_USER_AGENT="vantage you@example.com"
 
+# documentation staleness blocks a commit; enable the hook once per clone
+git config core.hooksPath .githooks
+
 .venv/bin/python tests/test_golden_set.py   # Stage 1 regression, ~20s
 .venv/bin/python tests/test_stage2.py       # Stage 2 validation, ~30s
 .venv/bin/python tests/test_docs_current.py  # do the docs match the code, instant
@@ -91,6 +94,7 @@ scripts/run_stage2.py  below-normal over everything stage 1 assessed
 scripts/run_stage3.py  cheapness and quarterly profit, same coverage
 scripts/build_site.py  renders docs/index.html from the three result files
 site/template.html   the page layout, with placeholders
+.githooks/pre-commit  blocks a commit whose docs no longer match the code
 docs/                what GitHub Pages serves
 tests/               golden-set regression, Stage 2 validation, doc currency
 docs/FUNNEL_SPEC.md  the specification

@@ -1,0 +1,46 @@
+#!/bin/sh
+# Runs before every commit. Two different jobs, deliberately treated
+# differently:
+#
+#   BLOCK on things a machine can verify. A stale count is a fact, and
+#   there is no judgement in it.
+#
+#   WARN on things only a person can judge. Blocking on judgement trains
+#   people to reach for --no-verify, and then the blocking checks stop
+#   running too.
+#
+# Enable with:  git config core.hooksPath .githooks
+
+fail=0
+
+# --- public docs: blocking -------------------------------------------
+if [ -f tests/test_docs_current.py ]; then
+  PY=.venv/bin/python
+  [ -x "$PY" ] || PY=python3
+  if ! "$PY" tests/test_docs_current.py >/tmp/vantage_docs.$$ 2>&1; then
+    cat /tmp/vantage_docs.$$
+    echo
+    echo "  Documentation no longer matches the code. Fix it, or use"
+    echo "  --no-verify if you genuinely mean to commit it stale."
+    fail=1
+  fi
+  rm -f /tmp/vantage_docs.$$
+fi
+
+# --- private docs: advisory ------------------------------------------
+# BUILD_LOG and TODO are outside the repo, so CI can never see them. They
+# went 25 commits stale once, which is what this exists to notice.
+code_changed=$(git diff --cached --name-only | grep -cE '^(funnel|scripts|site|tests)/' || true)
+if [ "$code_changed" -gt 0 ]; then
+  last=$(git log -1 --format=%ct 2>/dev/null || echo 0)
+  for doc in ../vantage-private/BUILD_LOG.md ../vantage-private/TODO.md; do
+    [ -f "$doc" ] || continue
+    touched=$(stat -f %m "$doc" 2>/dev/null || stat -c %Y "$doc" 2>/dev/null || echo 0)
+    if [ "$touched" -lt "$last" ]; then
+      echo "  note: $(basename "$doc") has not been touched since the last commit,"
+      echo "        and this one changes code. Decisions and open items live there."
+    fi
+  done
+fi
+
+exit $fail
