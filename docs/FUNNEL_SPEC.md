@@ -1,6 +1,6 @@
 # The Quality and Price Funnel
 
-**Vantage · Funnel Spec v2.13 · 30 Aug 2026**
+**Vantage · Funnel Spec v2.14 · 30 Aug 2026**
 
 Find durably excellent companies, then watch for one of them to trade
 well below where it usually trades. Two stages, every calculation stated
@@ -45,6 +45,7 @@ Each is documented below with the measurement that caught it.
 
 | Version | Date | What changed |
 |---|---|---|
+| **v2.14** | 30 Aug 2026 | **Gate 4's coverage discount is earned, not assigned** (§3.12). The 2.5x bar was given to utilities as a sector — bar-fitting, which §3.2 forbids, and v0.5's changelog records the pass-rate origin ("utilities went from 1/31 to 17/31 eligible"). It now goes to any company whose **operating income has not fallen more than 10% year-on-year** across the window, on any track. The justification was always real and simply misattached: measured, the median utility's worst year is **−0.3%** against **−15.2%** for standard companies, and 16% have ever fallen >25% against 36%. Utilities still qualify most often (66% vs 34%) but through the property. **NRG loses the discount** (operating income −80% in 2023, held it purely by label); **FISV, GEN and OKE** gain it — FISV and GEN move BORDERLINE → PASS, OKE REJECTED → BORDERLINE. The −10% line is not a new constant: Stage 3 gate 2 already uses it for this quantity across 11,536 quarter pairs. Measured annually over four comparisons, which is thin and said so; the quarterly alternative is rejected because Stage 1 rests on audited filings and quarterlies are reviewed. The sector-value count drops from four across three gates to **three across two**. The 4.0x base bar's own lack of derivation is left open rather than fixed here. |
 | **v2.13** | 30 Aug 2026 | **No minimum years of history — decided and recorded** (§3.5). TKO Group passes on a four-year series whose coverage ran 3.9x, 1.6x, 0.1x, 4.1x, which raised the question of a minimum record length. Measured, both candidate instruments fail: a minimum-years rule would reject **Honeywell, Ross Stores and CRH**, whose short *series* is a tag-chain artifact rather than youth (Honeywell's own gates read `net income positive 5/5`), and a volatility rule would flag **PNC, USB, BAC and JPM** at 14-24x coverage swings, where coverage is a rate-cycle artifact. TKO is already graded near-pass on gate 4 and carries an `at_risk` flag naming it; 48 PASS companies rest on at least one near-pass. Recorded rather than left as a decision taken in conversation — the failure mode §3.12's utility bar is still an open item for. Also fixes the tier table, which said "4 of the 5 gates evaluable" and has read 4 of **6** since gate 6 landed in v2.8. |
 | **v2.12** | 30 Aug 2026 | **`partial_years()` removed, replaced by `tests/test_whole_years.py`** (§3.17). The guard against a quarter posing as a fiscal year inferred the defect from a REVENUE COLLAPSE — any year under 30% of the one before. That was a guess about values standing in for a fact about periods, and the corridor it worked in was narrower than it looked: measured across all 1,766 consecutive-year revenue pairs in the index, Accenture's quarter posing as its year was 0.22 of the prior year while Western Digital's entirely real FY2023 collapse was 0.34, leaving four points between a threshold and a false alarm — and a seasonally concentrated quarter above 30% of its year would have passed unnoticed, which is the case the guard existed for. The structural rule (350-380 days, in `_pick`) is unchanged and was always the real fix; it is now pinned by a unit test replaying the exact Accenture filing rather than by a heuristic re-run over 500 companies on every scan. The test was verified to fail — reproducing the original 2.24B-beats-10.23B result — with the rule removed. |
 | **v2.11** | 30 Aug 2026 | **The `?resize=1` drag tool removed.** It existed to let the column widths be chosen against real data; once they were frozen in v2.10 it was ~115 lines of CSS and JS shipped to every visitor for no remaining purpose, so it is deleted rather than left gated behind a flag. Recoverable from `feb1f97`. The `localStorage` override went with it, so the stylesheet is now the only thing that can set a column width. |
@@ -168,14 +169,17 @@ read the code, not a summary of it.
 | **2 · Return on capital** | Median 5y return on **assets** ≥ 8% | Median 5y return on **equity** ≥ 10% | Median 5y return on **equity** ≥ 8% | Median 5y return on **equity** ≥ 10% |
 | | …or latest ≥ (bar − 1 point) **and** above its own median — the improvement clause, universal to all tracks. This is what admits Amazon. | | | |
 | **3 · Cash generation** | Sum of (operating cash flow − capex) over 5 years > 0 | Same as standard | Operating cash flow positive every year — capex excluded entirely | Same as standard |
-| **4 · Debt serviceable** | Coverage ≥ 4×, fallback equity/assets ≥ 10% | Coverage ≥ 4×, fallback ≥ 8% | Coverage ≥ 2.5×, fallback ≥ 10% | Same as standard |
+| **4 · Debt serviceable** | Coverage ≥ 4×, or **≥ 2.5× where operating income has not fallen more than 10% in a year**; fallback equity/assets ≥ 10% | Same, fallback ≥ 8% | Same as standard | Same as standard |
 | **5 · Margin durable** | Latest operating margin ≥ 70% of its trailing 3-year average | Same | Same | Same |
 | **6 · Revenue durability** | Passes outright if 5y revenue CAGR ≥ 0; otherwise latest revenue ≥ its own trailing 3-year average | Same | Same | Same |
 
 Sector-wide shock years are excluded from Gate 1 on **every** track.
 
-Four sector-specific values in total, across three gates. Everything else
-is universal.
+Three sector-specific values in total, across two gates. Everything else
+is universal. Each of the three changes **what is measured** to fit how a
+business works, which §3.2 permits. A fourth — the utility coverage bar —
+was removed in v2.14 because it changed the **pass line** instead; the
+discount it granted is now earned by measured stability, on any track.
 
 ```
 return on assets  = operating income x 0.79 / total assets
@@ -517,11 +521,79 @@ so the test becomes operating cash flow positive every year.
 ### 3.12 Gate 4 — Debt serviceable
 
 ```python
+stable = operating income never fell more than 10% year-on-year
+         across the window (needs 4+ years, every one positive)
+
 if InterestExpense present:
-    PASS if OperatingIncomeLoss / |InterestExpense| >= 4     # 2.5 utilities
+    PASS if OperatingIncomeLoss / |InterestExpense| >= (2.5 if stable else 4)
 else:
     PASS if StockholdersEquity / Assets >= 0.10              # 0.08 financials
 ```
+
+**The discount is earned, not assigned.** Until v2.14 the lower bar was
+given to utilities as a sector. That was **bar-fitting**, which §3.2
+forbids, and its origin says so plainly: v0.5 lowered the bar from 4.0x
+to 2.5x when 30 of 31 utilities were failing. Measured on the figure the
+gate actually uses — the latest year — 4.0x sits at the 90th percentile
+of utilities against the 20th of standard companies.
+
+The lower bar has a real justification; it was simply attached to the
+wrong thing. Earnings that do not fall need less headroom to service
+debt, and that is a claim about a business model, which §3.2 permits.
+Measured across the index:
+
+| Track | median swing (CoV) | median worst 1-year fall | ever fell >25% |
+|---|---|---|---|
+| capital-intensive | 32.0% | −11.2% | 38% |
+| financial | 20.0% | −13.6% | 38% |
+| standard | 22.8% | −15.2% | 36% |
+| **utility** | **16.5%** | **−0.3%** | **16%** |
+
+The median utility has effectively never had a down year — so utilities
+still take the discount, but **through the property rather than instead
+of it**: 66% of them qualify against 34% of standard companies. NRG,
+whose operating income fell 80% in 2023, no longer gets one for its
+label; FISV, GEN, OKE and IQV now can.
+
+Of 392 companies filing an interest tag, 34 sit in the 2.5–4.0x band
+where the rule decides anything, and 12 of those take the discount.
+
+**The −10% threshold is not new.** Stage 3 gate 2 already uses it for
+this exact quantity, measured across 11,536 year-on-year quarter pairs
+(§5.3). It is anchored between the two populations above: the standard
+track's median worst year is −15.2%, the utility track's −0.3%. It is
+still a judgement, and the data has no natural break — companies newly
+passing gate 4 climb 3 → 4 → 5 → 7 → 9 as the line loosens from −5% to
+−25%. Recorded so the next reader can see what the choice bought.
+
+**Measured annually, over the gate window — four comparisons.** That is
+thin, and stated rather than hidden. Stage 1 reads 10-Ks only: a
+quarterly version would give ~16 observations and be far more current,
+but quarterlies are reviewed rather than audited, and a Stage 1 verdict
+says what the **audited** record shows. Revisit if four comparisons prove
+too few to separate steady earnings from lucky ones.
+
+**It fails safe.** Fewer than four years, a missing series, or any loss
+year means not stable, so the strict 4.0x applies. The discount is never
+granted on absent evidence.
+
+**Why the other gates do not already cover this.** Operating income is
+read by three of the six gates and none of them sees a fall. Gate 1 tests its
+**sign** — NRG's collapse to $0.40bn stayed positive and passed. Gate 5
+tests the **latest year's margin** against a 3-year average, so income
+and revenue falling together leaves it flat, and a collapse in the middle
+of the window that has since recovered is invisible. Gate 4 tests a
+**single year's** ability to pay interest. Gate 5 asks *is profitability
+holding up now*; this asks *did earnings ever fall hard*. Same input,
+different questions.
+
+**The 4.0x base bar itself has no recorded derivation.** It appears in
+v0.3 as "coverage-first solvency" with no measurement behind it in this
+document, the build log, or the code. It means interest consumes at most
+25% of operating income, which is defensible, but it was inherited rather
+than chosen. Raising it to hit a target percentile would be the same
+error this section just removed — a bar fitted to a population rather
+than to what is safe. Open question, tracked separately.
 
 **Why coverage leads.** It asks the question that matters — can earnings
 pay the interest? — rather than merely how much is owed. Equity-to-assets

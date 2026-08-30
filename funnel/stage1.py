@@ -284,6 +284,45 @@ BORDERLINE = 0.15
 # for a reason unrelated to their quality.
 CANNOT_ASSESS_FLOOR = 4
 
+# Gate 4's coverage bars. The discount is earned by a MEASURED property —
+# operating income that does not fall — not by a sector label. Under §3.2
+# adjusting the metric to fit a business model is legitimate; adjusting
+# the bar to fit a sector's average quality is not, and the utility bar
+# this replaces was set the second way: v0.5 lowered it from 4.0x when 30
+# of 31 utilities were failing.
+#
+# Utilities still benefit, because 66% of them qualify against 34% of
+# standard companies — but they benefit THROUGH the property. NRG, whose
+# operating income fell 80% in 2023, no longer gets a discount for its
+# label.
+COVERAGE_BAR = 4.0
+COVERAGE_BAR_STABLE = 2.5
+# A year-on-year fall worse than this means earnings are not the steady
+# kind the discount is for. Not a new number: Stage 3 gate 2 already uses
+# -10% for this exact quantity, measured across 11,536 quarter pairs.
+# Anchored between the two populations — the standard track's median
+# worst year is -15.2%, the utility track's is -0.3%.
+STABLE_FALL = -0.10
+# Four comparisons is thin, and stated as such in §3.12. Stage 1 reads
+# 10-Ks only and that boundary is deliberate: quarterlies are reviewed,
+# not audited, and a Stage 1 verdict says what the audited record shows.
+STABLE_MIN_YEARS = 4
+
+
+def stable_op_income(op_income, yrs):
+    """Has operating income avoided a hard fall across the window?
+
+    True only on evidence: at least four years, every one positive, and
+    no year-on-year fall worse than STABLE_FALL. Anything missing, short
+    or loss-making returns False, so the discount is never granted where
+    the record cannot support it.
+    """
+    v = [op_income[y] for y in yrs if y in op_income]
+    if len(v) < STABLE_MIN_YEARS or any(x <= 0 for x in v):
+        return False
+    return all((b - a) / a >= STABLE_FALL for a, b in zip(v, v[1:]))
+
+
 
 def grade(value, bar, higher_is_better=True):
     """Classify a measurement against its threshold.
@@ -435,12 +474,19 @@ def run(ticker, d, is_financial=False, is_utility=False,
     ie = d["interest"].get(y) if y else None
     if y and ie and d["op_income"].get(y):
         cov = d["op_income"][y] / abs(ie)
-        # Regulated utilities carry more debt against far more predictable
-        # cash flows, so 2.5x there is the equivalent of 4x elsewhere.
-        cov_bar = 2.5 if is_utility else 4.0
+        # Earnings that do not fall need less headroom to service debt.
+        # That is a claim about a business model, which §3.2 permits; the
+        # sector bar it replaces was a claim about a sector's average
+        # quality, which §3.2 forbids.
+        steady = stable_op_income(d["op_income"], yrs)
+        cov_bar = COVERAGE_BAR_STABLE if steady else COVERAGE_BAR
         g, _ = grade(cov, cov_bar)
+        # The reader must be able to see WHICH bar applied and why, or the
+        # two-bar rule is a black box (§6 principle 4).
+        why = (" · operating income never fell more than 10% in a year"
+               if steady else "")
         out.append(("4 Debt serviceable", g,
-                    f"interest coverage {cov:.1f}x vs {cov_bar}x bar"))
+                    f"interest coverage {cov:.1f}x vs {cov_bar}x bar{why}"))
     elif y and d["equity"].get(y) and d["assets"].get(y):
         ratio = d["equity"][y] / d["assets"][y]
         # Deliberately loose: this is a crude proxy used ONLY when the
