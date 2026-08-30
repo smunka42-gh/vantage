@@ -64,17 +64,10 @@ a:hover{text-decoration:underline}
   font-family:var(--mono); font-size:11px; letter-spacing:.14em;
   text-transform:uppercase; color:var(--muted); margin-bottom:20px;
 }
-.headline{
-  font-family:var(--serif); font-weight:300;
-  font-size:clamp(30px,5.2vw,52px); line-height:1.12; letter-spacing:-.02em;
-  max-width:19ch;
-}
-.headline b{font-weight:500; font-variant-numeric:tabular-nums}
-.headline .of{color:var(--muted)}
 /* margin-top removed: .sub used to sit BELOW the headline and now leads
    the section, so its top margin was stacking with .answer's padding. */
 .sub{
-  margin:0; color:var(--muted); max-width:62ch; font-size:14.5px;
+  margin:0; color:var(--muted); font-size:14.5px;
 }
 
 /* ---------- table ---------- */
@@ -88,7 +81,7 @@ a:hover{text-decoration:underline}
   letter-spacing:-.01em;
 }
 .sect-head .note{font-size:13px; color:var(--muted); margin-left:auto}
-.sect-lede{color:var(--muted); font-size:13.5px; max-width:62ch; margin:0 0 18px}
+.sect-lede{color:var(--muted); font-size:13.5px; margin:0 0 18px}
 
 .scroller{overflow-x:auto; border:1px solid var(--rule); border-radius:3px; background:var(--surface)}
 /* table-layout:fixed with explicit widths. The default (auto) sizes
