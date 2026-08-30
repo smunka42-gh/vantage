@@ -721,6 +721,10 @@ function detail(r){
         <b>margins</b>, <b>revenue</b>.</p>
       ${gates}
       ${recFor(1)}
+      ${!r.pe ? "" : `<p class="stale">These gates read the last annual
+        report, covering the year to <b>${ended}</b> — roughly
+        <b>${months} months</b> of trading ago. Nothing since is
+        reflected here.</p>`}
     </div>` : "";
 
   const stage2 = r.b == null ? "" : `<div class="card">
@@ -740,6 +744,11 @@ function detail(r){
       <p class="pillars">${s3.l}</p>
       ${s3Gates}
       ${recFor(3)}
+      <p class="stale">The cheapness reading divides today's price by the
+        SAME annual earnings Stage 1 uses${r.pe ? ` — the year to
+        <b>${ended}</b>` : ""}, so it is only as current as that filing.
+        The profit reading uses the quarter dated above, which is
+        newer.</p>
     </div>`;
 
   return `<div class="work">
@@ -748,13 +757,7 @@ function detail(r){
     ${stage2}
     ${stage3}
 
-    ${r.pe ? `<div class="card stale-card">
-      <h4>How current this is</h4>
-      <p class="stale">Stage 1 reads the company's last annual report,
-        covering the year to <b>${ended}</b>. Roughly <b>${months} months</b>
-        of trading have happened since. Stage 2 is today's price; Stage 3's
-        quarterly figures carry their own date above.</p>
-    </div>` : ""}
+
   </div>`;
 }
 
