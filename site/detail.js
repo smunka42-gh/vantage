@@ -196,12 +196,19 @@ function detail(r){
     // "no interest or equity tag". Those drop to a neutral topic, which
     // claims nothing. Same defect as "Still growing" over "shrinking",
     // one step further back.
-    let label = UNMEASURED.test(g[2]) ? (NEUTRAL[raw] || raw)
-                                      : (GATE_LABEL[raw] || raw);
-    if (raw === "Debt serviceable" && !UNMEASURED.test(g[2]))
+    // A label may only ASSERT where the check actually ran AND the
+    // company cleared it. Two cases drop to the neutral topic instead:
+    // the check could not run (fixed in v2.19), and — this — the check
+    // ran and FAILED. "Margins holding up" sat above "Lost 118.1 cents
+    // per dollar of sales" on 243 of 470 companies, and once the
+    // collapsed head began summarising the same gates as "falls short
+    // on margins", one panel asserted both.
+    const clears = g[1] === "pass" || g[1] === "near-pass";
+    let label = clears ? (GATE_LABEL[raw] || raw) : (NEUTRAL[raw] || raw);
+    if (clears && raw === "Debt serviceable")
       label = /interest coverage/.test(g[2]) ? "Can cover its interest"
                                              : "Not overloaded with debt";
-    if (raw === "Revenue durability" && !UNMEASURED.test(g[2]))
+    if (clears && raw === "Revenue durability")
       label = /grew/.test(g[2]) ? "Still growing" : "Revenue holding up";
     return `<div class="gate${risk?" risk":""}">
       <div class="g">${label}</div>
