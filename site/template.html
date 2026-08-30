@@ -97,7 +97,7 @@ thead th{
      shorter headings happen to fit nine columns on one line. */
   font-family:var(--mono); font-size:10px; letter-spacing:.09em;
   text-transform:uppercase; color:var(--muted); font-weight:500;
-  text-align:right; padding:13px 13px; border-bottom:1px solid var(--rule-strong);
+  text-align:right; padding:13px 10px; border-bottom:1px solid var(--rule-strong);
   white-space:nowrap; background:var(--raised);
   vertical-align:bottom;
 }
@@ -105,13 +105,20 @@ thead th:first-child,thead th.l{text-align:left}
 /* One rule, not a grid. This table is read ACROSS a row, and a vertical
    line between every column fights that; a single divider between the
    identity columns and the measurements helps without boxing anything in. */
+/* A rule between every column. The table is read across a row, so these
+   are kept faint — enough to separate, not enough to box each cell in. */
+thead th + th, tbody td + td{border-left:1px solid var(--rule)}
 thead th.divide, tbody td.divide{border-left:1px solid var(--rule)}
+/* A floor width: below this the browser was crushing cells into each
+   other instead of scrolling, which is why "falling now" sat on top of
+   "cheaper". The scroller handles anything narrower. */
+#tbl{min-width:1030px}
 thead th.sortable{cursor:pointer; user-select:none}
 thead th.sortable:hover{color:var(--ink)}
 thead th .caret{opacity:0; margin-left:5px}
 thead th[aria-sort] .caret{opacity:1; color:var(--accent)}
 tbody td{
-  padding:12px 13px; text-align:right; border-bottom:1px solid var(--rule);
+  padding:12px 10px; text-align:right; border-bottom:1px solid var(--rule);
   font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums;
   white-space:nowrap;
 }
@@ -120,7 +127,11 @@ tbody td.l{text-align:left; font-family:var(--sans); font-size:13.5px}
    Words gain nothing from it and lose the straight left edge the eye
    follows, so the label columns align left and use the sans face. */
 tbody td.txt{text-align:left; font-family:var(--sans); font-size:12.5px}
-thead th.txt{text-align:left}
+/* The word headings may wrap onto a second line rather than being
+   clipped or shortened. "Cheaper or pricier?" is the agreed wording and
+   an earlier attempt to fix the width by renaming it was the wrong
+   trade — the heading stays, the line breaks. */
+thead th.txt{text-align:left; white-space:normal}
 tbody tr:last-child td{border-bottom:0}
 tbody tr.row{cursor:pointer}
 tbody tr.row:hover{background:var(--raised)}
@@ -133,6 +144,18 @@ tbody tr.row.open{background:var(--accent-soft)}
    made the row read as two rows. */
 .big{font-weight:600}
 .dim{color:var(--muted)}
+
+/* "Yahoo"/"Google" spelled out cost ~90px a row for two links nobody
+   reads as words. A letter badge carries the same information; the full
+   name lives in title and aria-label. */
+.src{
+  display:inline-block; width:19px; height:19px; line-height:19px;
+  text-align:center; font-family:var(--mono); font-size:10.5px;
+  border:1px solid var(--rule); border-radius:3px;
+  color:var(--muted); text-decoration:none;
+}
+.src:hover{border-color:var(--ink); color:var(--ink); text-decoration:none}
+.rowlinks{display:inline-flex; gap:5px}
 
 col.c-exp{width:30px}
 /* Everything else sizes to content. The old fixed percentages were
@@ -205,7 +228,7 @@ tr.row:hover .expmark, tr.row.open .expmark{color:var(--ink)}
 .gate .d .asof{display:block; color:var(--faint); font-size:11.5px; margin-top:3px}
 
 /* shape pill — deliberately NOT colour-coded good/bad */
-.pill{
+.pill{max-width:100%; overflow:hidden; 
   display:inline-flex; align-items:center; gap:6px;
   font-family:var(--sans); font-size:11.5px; color:var(--muted);
   border:1px solid var(--rule-strong); border-radius:2px;
@@ -520,8 +543,8 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
             <th class="sortable divide" data-k="b" aria-sort="descending">% below usual<span class="caret">↓</span></th>
             <th class="sortable" data-k="c">Size<span class="caret">↓</span></th>
             <th>vs 10m / 2m avg</th>
-            <th class="txt">Trend</th>
-            <th class="txt">Priced</th>
+            <th class="txt">Price trend</th>
+            <th class="txt">Cheaper or pricier?</th>
             <th class="txt">Research</th>
           </tr>
         </thead>
@@ -974,8 +997,10 @@ function render(){
       <td class="txt">${!r.sh?"—":`<span class="pill" data-s="${r.sh}"><span class="dot"></span>${r.sh}</span>`}</td>
       <td class="txt">${readCell(r)}</td>
       <td class="txt"><span class="rowlinks">
-        ${r.y?`<a href="${r.y}" target="_blank" rel="noopener">Yahoo</a>`:""}
-        ${r.g?`<a href="${r.g}" target="_blank" rel="noopener">Google</a>`:""}
+        ${r.y?`<a class="src" href="${r.y}" target="_blank" rel="noopener"
+             title="Yahoo Finance" aria-label="${r.t} on Yahoo Finance">Y</a>`:""}
+        ${r.g?`<a class="src" href="${r.g}" target="_blank" rel="noopener"
+             title="Google Finance" aria-label="${r.t} on Google Finance">G</a>`:""}
       </span></td>
     </tr>
     <tr class="detail" hidden><td colspan="9">${detail(r)}</td></tr>`).join("");

@@ -143,6 +143,16 @@ def build() -> int:
                           ys + ([today] if today is not None else []), bar]]})
         return {"groups": groups} if groups else None
 
+    def _name(n):
+        """`Trade Desk (The)` is how the index lists it. Nobody says it.
+
+        Only the trailing "(The)" is moved; "(Class A)" and "(Class C)"
+        stay, because those distinguish real share classes.
+        """
+        if not n:
+            return n
+        return f"The {n[:-6].rstrip()}" if n.endswith("(The)") else n
+
     def _size_of(cap):
         """Size bucket, labelled by its RANGE rather than large/mid/small.
 
@@ -217,7 +227,7 @@ def build() -> int:
             return None if v is None else round(v, 2)
 
         return {
-            "t": t, "n": r.get("name") or a.get("name"), "s": sectors.get(t),
+            "t": t, "n": _name(r.get("name") or a.get("name")), "s": sectors.get(t),
             "tier": a.get("tier"),
             "b": pct("below_normal"),
             "m2": pct("d_ma200"),
