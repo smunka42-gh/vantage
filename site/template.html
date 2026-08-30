@@ -24,24 +24,31 @@
 body{
   background:var(--ground); color:var(--ink);
   font-family:var(--sans); font-size:15px; line-height:1.55;
-  margin:0; padding:0 24px 96px;
+  margin:0; padding:0 0 96px;
   -webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:1080px; margin:0 auto}
+/* The gutter lives on the containers, not on body, so .mast-bar can
+   reach both edges of the page while its contents stay on the same
+   measure as the table. */
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px}
 h1,h2,h3{text-wrap:balance; margin:0}
 a{color:var(--accent); text-decoration:none}
 a:hover{text-decoration:underline}
 :focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
 
 /* ---------- masthead ---------- */
+/* The bar spans the page so its rule reaches both edges; the CONTENT
+   inside keeps the same measure as everything below it, so the wordmark
+   still lines up with the first column of the table. */
+.mast-bar{border-bottom:1px solid var(--rule)}
 .mast{
+  /* one padding declaration: the shorthand below used to reset the
+     left/right gutter set above it, so the wordmark sat 24px left of
+     the table it is meant to line up with. */
+  max-width:1080px; margin:0 auto;
   display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
-  padding:34px 0 0; border-bottom:1px solid var(--rule); padding-bottom:16px;
+  padding:20px 24px 14px;
 }
-/* A masthead, not a logo. Letterspaced serif capitals read as a
-   publication nameplate, which suits a page that is deliberately a
-   document rather than an app. The trailing full stop is gone — it was
-   a stylistic tic carrying the accent colour and nothing else. */
 .mark{
   font-family:var(--serif); font-size:17px; font-weight:500;
   letter-spacing:.22em; text-transform:uppercase;
@@ -52,7 +59,7 @@ a:hover{text-decoration:underline}
 }
 
 /* ---------- the answer ---------- */
-.answer{padding:56px 0 44px; border-bottom:1px solid var(--rule)}
+.answer{padding:22px 0 20px; border-bottom:1px solid var(--rule)}
 .eyebrow{
   font-family:var(--mono); font-size:11px; letter-spacing:.14em;
   text-transform:uppercase; color:var(--muted); margin-bottom:20px;
@@ -64,12 +71,14 @@ a:hover{text-decoration:underline}
 }
 .headline b{font-weight:500; font-variant-numeric:tabular-nums}
 .headline .of{color:var(--muted)}
+/* margin-top removed: .sub used to sit BELOW the headline and now leads
+   the section, so its top margin was stacking with .answer's padding. */
 .sub{
-  margin-top:22px; color:var(--muted); max-width:56ch; font-size:14.5px;
+  margin:0; color:var(--muted); max-width:62ch; font-size:14.5px;
 }
 
 /* ---------- table ---------- */
-.sect{margin-top:56px}
+.sect{margin-top:26px}
 .sect-head{
   display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
   margin-bottom:6px;
@@ -419,12 +428,14 @@ table.rec-t tbody tr+tr td{border-top:1px solid var(--rule)}
 .foot code{font-family:var(--mono); font-size:11px}
 </style>
 
-<div class="wrap">
-
-  <header class="mast">
+<header class="mast-bar">
+  <div class="mast">
     <h1 class="mark">Vantage</h1>
     <div class="meta">S&amp;P 500 · last close {{ASOF}} · filings via SEC EDGAR</div>
-  </header>
+  </div>
+</header>
+
+<div class="wrap">
 
   <section class="answer">
     <p class="sub">
