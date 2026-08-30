@@ -17,6 +17,7 @@ Exits non-zero on failure, so the daily scan and a commit can gate on it.
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import pathlib
 import re
@@ -129,6 +130,32 @@ def main() -> int:
         if path.exists():
             left = set(re.findall(r"\{\{[A-Z_]+\}\}", path.read_text()))
             check(not left, f"{name} still contains placeholders: {sorted(left)}")
+
+    # 5b. A page that has quietly stopped updating.
+    #
+    # Measured 30 Aug 2026: GitHub fires the schedule but unreliably — one
+    # firing in ~22 opportunities, 4h 18m late. Any single miss is
+    # harmless (a delayed run has 16.5h of slack before the next open, and
+    # the state gate makes it still correct), but several consecutive days
+    # of silence would leave the page stale behind a green tick, because a
+    # run that never happens cannot fail.
+    #
+    # FIVE days, not three. The workflow commits only when the PAGE
+    # changes, so a market holiday produces no commit at all:
+    #     normal weekend        Fri -> Mon = 3 days
+    #     Monday holiday        Fri -> Tue = 4 days
+    #     Thu+Fri+Mon closed    Thu -> Tue = 5 days
+    # Three would fire every ordinary weekend, which is how a check earns
+    # being ignored.
+    if SCAN.exists():
+        stamp = json.loads(SCAN.read_text()).get("generated_utc")
+        if stamp:
+            age = (dt.datetime.now(dt.timezone.utc)
+                   - dt.datetime.fromisoformat(stamp)).days
+            check(age <= 5,
+                  f"the last scan is {age} days old ({stamp[:10]}). Five days "
+                  f"covers any weekend or holiday, so this means the daily "
+                  f"scan has stopped and the page is showing stale prices")
 
     # 6. Memory must hold no counts — they rot, and pointers do not.
     mem = (pathlib.Path.home() /

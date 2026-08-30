@@ -266,3 +266,38 @@ jobs:
           git add docs/index.html docs/simple/index.html docs/scan.json
           git commit -m "Refresh scan ($(TZ=America/New_York date '+%Y-%m-%d'))"
           git push
+
+      # UNGATED and last, deliberately.
+      #
+      # Every other step here is behind `proceed == 'true'`, so on a run
+      # that skips the scan nothing checks anything — and "the scan
+      # stopped firing" is exactly the failure that produces skipped or
+      # absent runs. This step therefore runs on EVERY firing, including
+      # ones that scanned nothing, and looks at the committed state after
+      # any commit above.
+      #
+      # A run that scanned and published passes. A run that skipped while
+      # the page is already days stale FAILS, which is what sends the
+      # notification.
+      #
+      # What this still cannot catch: a period where the workflow never
+      # fires at all. Nothing inside GitHub can — a run that does not
+      # happen cannot report. That needs an external check, and is not
+      # worth building yet.
+      - name: Has the page quietly stopped updating?
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import datetime as dt, json, pathlib, sys
+          scan = pathlib.Path("docs/scan.json")
+          if not scan.exists():
+              print("no scan.json yet — nothing to judge"); raise SystemExit
+          stamp = json.loads(scan.read_text()).get("generated_utc")
+          age = (dt.datetime.now(dt.timezone.utc)
+                 - dt.datetime.fromisoformat(stamp)).days
+          # five days: a Thu->Tue market closure is the longest real gap
+          if age > 5:
+              sys.exit(f"STALE: last scan {stamp[:10]}, {age} days ago. The daily "
+                       f"scan has stopped and the page is showing old prices.")
+          print(f"ok — last scan {stamp[:10]}, {age} days ago")
+          PY
