@@ -6,9 +6,11 @@ refuses to write anything if the price data does not pass its checks.
     python scripts/run_stage1.py      # must have been run first
     python scripts/run_stage2.py
 
-Components are computed for ALL constituents, not just the eligible
-ones, because the ticker inspector has to answer for rejected companies
-too. Only the eligible list is ranked and flagged below normal.
+Components are computed for every company STAGE 1 RAN ON, not just the
+eligible ones, because the ticker inspector has to answer for rejected
+companies too. REITs are excluded: Stage 1 never assessed them, so
+nothing downstream should either. Only the eligible list is ranked and
+flagged below normal.
 """
 from __future__ import annotations
 
@@ -75,7 +77,13 @@ def main() -> int:
     s1 = json.loads(STAGE1.read_text())
     companies = load_sp500()
     names = {c["ticker"]: c["name"] for c in companies}
-    tickers = [c["ticker"] for c in companies]
+    # Same rule as Stage 3: whatever Stage 1 did not run on, this does
+    # not either. REITs were previously priced and shown in the lookup
+    # even though no gate had ever judged them, which invited a reader to
+    # weigh a below-normal figure for a company the funnel refuses to
+    # assess.
+    skip = {t for t, r in s1.items() if r["tier"].startswith("REIT")}
+    tickers = [c["ticker"] for c in companies if c["ticker"] not in skip]
     eligible = {t for t, r in s1.items() if r["tier"] in ELIGIBLE_TIERS}
     print(f"{len(tickers)} constituents, {len(eligible)} eligible from Stage 1\n")
 

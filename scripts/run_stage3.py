@@ -120,8 +120,21 @@ def _yoy(periods, tolerance):
 
 def main() -> None:
     s1 = json.loads((HERE / "stage1_results.json").read_text())
-    tickers = sorted(t for t, r in s1.items() if r["tier"] in ELIGIBLE_TIERS)
-    print(f"{len(tickers)} eligible companies from Stage 1\n")
+    # Every company STAGE 1 ACTUALLY RAN ON — not just the eligible ones,
+    # because the ticker lookup has to answer for rejected companies too
+    # and "pricier than usual, profit falling" is exactly what explains
+    # why one is not on the list. Only the eligible list is ever ranked.
+    #
+    # REITs are excluded because Stage 1 never assessed them: they are
+    # judged on funds from operations, and their reported earnings are
+    # depressed by depreciation, so an earnings YIELD understates the
+    # whole asset class. Printing "pricier than usual" for every REIT
+    # would contradict the page's own explanation of why they are skipped.
+    # The rule is simply: whatever Stage 1 did not run on, Stage 3 does
+    # not either.
+    tickers = sorted(t for t, r in s1.items() if not r["tier"].startswith("REIT"))
+    eligible = sum(1 for r in s1.values() if r["tier"] in ELIGIBLE_TIERS)
+    print(f"{len(tickers)} constituents, {eligible} eligible from Stage 1\n")
 
     m = S.get("https://www.sec.gov/files/company_tickers.json", timeout=30).json()
     cik = {v["ticker"].replace(".", "-"): str(v["cik_str"]).zfill(10)
@@ -139,7 +152,8 @@ def main() -> None:
         if t not in cik:
             no_cik.append(t)
             continue
-        rec = {"tier": s1[t]["tier"]}
+        rec = {"tier": s1[t]["tier"],
+               "eligible": s1[t]["tier"] in ELIGIBLE_TIERS}
         try:
             facts = _facts(cik[t])
             # Stage 1 resolves filers that moved to a new CIK; Exxon's
@@ -201,7 +215,9 @@ def main() -> None:
             rec["label"] = label(rec["cheap"], rec["intact"])
             out[t] = rec
         except Exception as e:                              # noqa: BLE001
-            out[t] = {"tier": s1[t]["tier"], "cheap": None, "intact": None,
+            out[t] = {"tier": s1[t]["tier"],
+                      "eligible": s1[t]["tier"] in ELIGIBLE_TIERS,
+                      "cheap": None, "intact": None,
                       "label": "not enough history", "error": str(e)[:60]}
         if i % 60 == 0:
             print(f"   ...{i}/{len(tickers)}", flush=True)
@@ -211,8 +227,11 @@ def main() -> None:
 
     import collections
     print(f"\n{'='*62}\nSTAGE 3 — {len(out)} companies\n{'='*62}")
-    print(f"   gate 1 usable: {sum(1 for r in out.values() if r.get('cheap')):3d}")
-    print(f"   gate 2 usable: {sum(1 for r in out.values() if r.get('intact')):3d}")
+    el = [r for r in out.values() if r.get("eligible")]
+    print(f"   gate 1 usable: {sum(1 for r in out.values() if r.get('cheap')):3d}"
+          f"   (of the eligible: {sum(1 for r in el if r.get('cheap')):3d}/{len(el)})")
+    print(f"   gate 2 usable: {sum(1 for r in out.values() if r.get('intact')):3d}"
+          f"   (of the eligible: {sum(1 for r in el if r.get('intact')):3d}/{len(el)})")
     ages = sorted(r["quarter_age_days"] for r in out.values()
                   if r.get("quarter_age_days") is not None)
     if ages:
