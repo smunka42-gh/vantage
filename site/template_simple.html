@@ -408,11 +408,11 @@ tr.k-detail .work{padding:4px 12px 0}
 
 <div class="vswitch">
   <span class="vname">View</span>
-  <button class="vbtn on" id="vCards" aria-pressed="true">
+  <button class="vbtn" id="vCards" aria-pressed="false">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
       <rect x="1.6" y="2.2" width="12.8" height="4.4" rx="1"></rect>
       <rect x="1.6" y="9.4" width="12.8" height="4.4" rx="1"></rect></svg>Cards</button>
-  <button class="vbtn" id="vTable" aria-pressed="false">
+  <button class="vbtn on" id="vTable" aria-pressed="true">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
       <rect x="1.6" y="2.6" width="12.8" height="10.8" rx="1"></rect>
       <path d="M1.6 6.2h12.8M6.4 6.2v7.2"></path></svg>Table</button>
@@ -530,7 +530,7 @@ function cardHtml(r,i){
   const cheap=r.s3 && /cheaper/.test(r.s3.l||"");
   const fall =r.s3 && /profit falling/.test(r.s3.l||"");
   const n=passed(r), tot=(r.gt||[]).length||6;
-  return `<div class="co-card${i?"":" open"}" data-t="${r.t}" tabindex="0">
+  return `<div class="co-card" data-t="${r.t}" tabindex="0">
     <div class="chead">
       <div class="cleft">
         <div class="cname">
@@ -625,15 +625,15 @@ function rowHtml(r,i){
   return `<tr class="row" data-i="${i}" tabindex="0">
     <td class="k-no">${i+1}</td>
     <td><div class="k-tkr">${r.t}</div><div class="k-co">${r.n}</div></td>
+    <td class="k-size">${cap(r.c)}</td>
     <td>${markHtml(r)}</td>
     <td class="band band-first r" style="text-align:right">
       <div class="k-big">${r.b==null?"—":r.b.toFixed(1)+"%"}</div></td>
     <td class="band">${r.q3b?`<div class="k-rngb">${r.q3b}</div>
       ${r.q3s?`<div class="k-rngs">${r.q3s}</div>`:""}`:`<span class="k-rngs">—</span>`}</td>
-    <td class="band k-size">${cap(r.c)}</td>
-    <td class="band band-last"><span class="k-pill">
+    <td class="band"><span class="k-pill">
       <span class="k-dot ${dot}"></span>${tl}</span></td>
-    <td><div class="k-read${cheap?" cheap":""}">${readTxt}${
+    <td class="band band-last"><div class="k-read${cheap?" cheap":""}">${readTxt}${
       fall?`<span class="k-warn">profit falling</span>`:""}</div></td>
     <td><div class="k-srcs">
       ${src(r.y,"Yahoo Finance",`<span class="cmark">Y!</span>`)}
@@ -643,15 +643,15 @@ function rowHtml(r,i){
 
 function tableHtml(list){
   return `<table class="list">
-    <colgroup><col class="w-no"><col class="w-name"><col class="w-qual"><col class="w-below">
-      <col class="w-rng"><col class="w-size"><col class="w-trend">
+    <colgroup><col class="w-no"><col class="w-name"><col class="w-size"><col class="w-qual">
+      <col class="w-below"><col class="w-rng"><col class="w-trend">
       <col class="w-read"><col class="w-src"></colgroup>
     <thead><tr>
-      <th class="r">No.</th><th>Company</th><th>Quality</th>
+      <th class="r">No.</th><th>Company</th><th class="r">Size</th><th>Quality</th>
       <th class="r band band-first">How far below usual</th>
-      <th class="band">3-year range</th><th class="r band">Size</th>
-      <th class="band band-last">Recent direction</th>
-      <th>Vs its own history</th><th>Read up</th>
+      <th class="band">3-year range</th>
+      <th class="band">Recent direction</th>
+      <th class="band band-last">Vs its own history</th><th>Read up</th>
     </tr></thead>
     <tbody>${list.map(rowHtml).join("")}</tbody></table>`;
 }
@@ -677,7 +677,10 @@ function wireRows(list){
   });
 }
 
-let VIEW="cards";
+// The TABLE is the default view. Cards show one company at a time and
+// suit reading; the table shows every company at once and suits
+// scanning, which is what someone arriving at a screener is doing.
+let VIEW="table";
 
 const EMPTY = `<div class="quiet"><div class="q1">Nothing is far below its usual price today.</div>
         <p class="q2">That is the honest answer most days, and it is the point of the page —
