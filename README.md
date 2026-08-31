@@ -54,9 +54,9 @@ reorders, filters or scores it. See §5 of the spec.
   plus two assertions on the data itself: that it is the newest filed
   year, and that every figure is a whole year rather than a quarter
   posing as one. The gates do not run on REITs, so the scan covers
-  **470 of the 500** constituents. Latest full run: 209 pass,
-  51 borderline, 194 rejected, 16 without enough filing history —
-  **259 eligible**.
+  **1,397 of the 1,501** constituents. Latest full run: 466 pass,
+  119 borderline, 764 rejected, 45 without enough filing history —
+  **585 eligible**.
 - **Stage 2 — built.** Two moving-average components blended as real
   percentages, with an absolute 10% bar so the honest answer on a calm
   day is an empty list. 13-check validation suite passing. Latest run:
@@ -102,7 +102,7 @@ git config core.hooksPath .githooks
 
 ```
 funnel/stage1.py     the six quality gates, grading and tiers
-funnel/universe.py   S&P 500 constituents, sectors, track assignment
+funnel/universe.py   S&P Composite 1500 constituents, sectors, track assignment
 funnel/prices.py     price history and the checks that gate publishing
 funnel/stage2.py     the below-normal figure and shape labels
 funnel/stage3.py     the two Stage 3 gates and the label they produce

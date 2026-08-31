@@ -1,4 +1,4 @@
-"""Run Stage 1 across the S&P 500 and report the tier distribution.
+"""Run Stage 1 across the S&P Composite 1500 and report the tier distribution.
 
 Self-contained: the constituent list, sectors and track assignment all
 come from funnel.universe, and every financial figure comes from SEC
@@ -169,7 +169,7 @@ def main() -> None:
     OUT.write_text(json.dumps(out, indent=1))
 
     total = len(companies)
-    print(f"\n{'='*60}\nSTAGE 1 — S&P 500  (n={total})\n{'='*60}")
+    print(f"\n{'='*60}\nSTAGE 1 — S&P Composite 1500  (n={total})\n{'='*60}")
     for k in ["PASS", "BORDERLINE", "REJECTED",
               "CANNOT ASSESS", "REIT (not assessed)", "NO CIK", "ERROR"]:
         if tiers.get(k):

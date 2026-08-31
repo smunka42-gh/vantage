@@ -140,12 +140,19 @@ This is buy-and-hold accumulation, not dip trading.
 
 ## 2. Universe and data sources
 
-**Universe: the S&P 500.** Chosen because index membership is itself a
-quality screen that cannot be reproduced from filings — inclusion
-requires positive GAAP earnings in the most recent quarter and across the
-trailing four quarters, plus liquidity, float and size minimums, with a
-committee actively removing companies that deteriorate. Turnover is
-~20–25 names a year, which is the stability a low-churn watchlist needs.
+**Universe: the S&P Composite 1500** — the S&P 500, MidCap 400 and
+SmallCap 600 combined, read from their three constituent lists. Chosen
+because index membership is itself a quality screen that cannot be
+reproduced from filings: inclusion requires positive GAAP earnings in the
+most recent quarter and across the trailing four quarters, plus
+liquidity, float and size minimums, with a committee actively removing
+companies that deteriorate. That earnings test applies to all three
+indices, so a small-cap constituent has cleared the same profitability
+bar as a large-cap one.
+
+Widened from the S&P 500 on 31 Aug 2026. The three lists share a column
+layout and identical GICS sector labels, so one parser and one track rule
+serve all of them, and no gate logic changed.
 
 Deliberately **not** the full 10,391-entity EDGAR ticker map: sampling it
 returns OTC shells, warrants, foreign ADRs and pink-sheet miners. It is
@@ -804,65 +811,66 @@ certain about, or it stops being a reliable alarm.**
 
 ### 3.19 Full-index result
 
-Measured across all 500 from this repository on 30 Aug 2026, with gate 6
-active and the frame-filter, freshest-tag and part-year defects fixed:
+Measured across the S&P Composite 1500 from this repository on 31 Aug
+2026, the first run after the universe widened:
 
 | Tier | Count | Share |
 |---|---|---|
-| PASS | 209 | 41.8% |
-| BORDERLINE | 51 | 10.2% |
-| REJECTED | 194 | 38.8% |
-| CANNOT ASSESS | 16 | 3.2% |
-| REIT (not assessed) | 30 | 6.0% |
-| **Eligible for Stage 2** | **259** | **52%** |
+| PASS | 466 | 31.0% |
+| BORDERLINE | 119 | 7.9% |
+| REJECTED | 764 | 50.9% |
+| CANNOT ASSESS | 45 | 3.0% |
+| REIT (not assessed) | 104 | 6.9% |
+| ERROR / no CIK | 3 | 0.2% |
+| **Eligible for Stage 2** | **585** | **39%** |
 
 Which gate does the rejecting:
 
 | Gate | Outright fails | Near-fails |
 |---|---|---|
-| 1 · Sustained profit | 70 | 0 |
-| 2 · Return on capital | 126 | 23 |
-| 3 · Cumulative 5y FCF | 24 | 0 |
-| 4 · Debt serviceable | 68 | 27 |
-| 5 · Op margin durable | 68 | 13 |
-| 6 · Revenue durability | 12 | 36 |
+| 1 · Sustained profit | 344 | 0 |
+| 2 · Return on capital | 528 | 89 |
+| 3 · Cumulative 5y FCF | 118 | 0 |
+| 4 · Debt serviceable | 285 | 60 |
+| 5 · Op margin durable | 333 | 40 |
+| 6 · Revenue durability | 55 | 126 |
 
 By sector:
 
-| Sector | Eligible | of | Pass | Borderline | Rejected | Cannot assess |
-|---|---|---|---|---|---|---|
-| Financials | 52 | 76 | 43 | 9 | 23 | 1 |
-| Industrials | 51 | 83 | 42 | 9 | 28 | 4 |
-| Information Technology | 34 | 73 | 31 | 3 | 37 | 2 |
-| Health Care | 31 | 59 | 26 | 5 | 27 | 1 |
-| Consumer Discretionary | 26 | 47 | 23 | 3 | 19 | 2 |
-| Utilities | 20 | 31 | 10 | 10 | 11 | 0 |
-| Consumer Staples | 14 | 34 | 9 | 5 | 18 | 2 |
-| Energy | 11 | 21 | 5 | 6 | 9 | 1 |
-| Communication Services | 11 | 21 | 11 | 0 | 8 | 2 |
-| Materials | 10 | 25 | 9 | 1 | 14 | 1 |
-| Real Estate | — | 30 | — | — | — | — |
+| Sector | Eligible | of | Pass | Borderline | Rejected |
+|---|---|---|---|---|---|
+| Financials | 150 | 258 | 119 | 31 | 102 |
+| Industrials | 120 | 263 | 102 | 18 | 131 |
+| Consumer Discretionary | 76 | 193 | 61 | 15 | 111 |
+| Information Technology | 59 | 190 | 51 | 8 | 126 |
+| Health Care | 53 | 163 | 46 | 7 | 106 |
+| Utilities | 31 | 60 | 19 | 12 | 28 |
+| Materials | 28 | 77 | 20 | 8 | 46 |
+| Consumer Staples | 28 | 75 | 20 | 8 | 45 |
+| Energy | 22 | 71 | 13 | 9 | 44 |
+| Communication Services | 18 | 47 | 15 | 3 | 25 |
+| Real Estate | — | 104 | — | — | — |
 
-**What gate 6 moved.** Eligible 262 to 260. CHRW, HPQ and TGT are
-rejected; fifteen more drop from PASS to BORDERLINE. EIX becomes
-*eligible* — a sixth evaluable gate lifts companies over the
-four-gate floor, so adding a gate made two companies assessable rather
-than fewer, and CANNOT ASSESS fell 18 to 16.
+**What widening the universe moved.** The pass rate fell from 52% of the
+S&P 500 to 39% of the Composite 1500 — smaller companies clear these
+gates less often, which is what a quality screen should show. Gate 2,
+return on capital, does the most rejecting at both sizes.
 
-**What the earlier data fixes moved.** The frame-filter and freshest-tag fixes
-took eligible from 239 to 258 and CANNOT ASSESS from 29 to 19, because
-the gates finally read the newest filed year. The part-year fix then
-moved four more: D and SO to BORDERLINE, TKO and URI to PASS, for 262
-eligible and 18 unassessable. That last correction could only ever run
-one way — a part-year profit measured against a full-year balance sheet
-always understates — so no company lost its place.
+**Three companies produce no result at all.** Two are banks whose
+securities are registered with a federal banking regulator, so they file
+annual reports with that regulator rather than the SEC and never appear
+on EDGAR. The third is a second share class the SEC ticker file does not
+carry; its sibling line is in the universe, so no company is lost.
 
-None of this is uniformly generous. Gate 4 fails went 57 to 73 before
-settling at 68, and Gate 1 fails 68 to 71 and back to 70: the data is
-not kinder, it is simply *current* and whole.
+**The removed liquidity gate (§3.15) was cut on the grounds that it
+rejected zero of 500, with a note to rebuild it if the universe widened.
+It has now widened.** Not rebuilt: S&P applies its own liquidity minimum
+for admission to all three indices, so the gate would likely still reject
+nobody. Recorded here so the decision is deliberate rather than forgotten.
 
 Comparisons against runs made before v1.0 are not meaningful: those
-scored a different five-year window.
+scored a different five-year window, and runs before 31 Aug 2026 scored a
+different universe.
 
 ---
 
