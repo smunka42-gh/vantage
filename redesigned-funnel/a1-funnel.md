@@ -103,9 +103,25 @@ history. Amendments run at roughly 405 per quarter.
 have fiscal years ending outside December. A filing-date rule mis-sorts all of
 them, and the bias rotates depending on when the screen is run.
 
-**Express as a rolling window in production** — a period ending within roughly
-the last 15 months. A fixed calendar anchor goes stale and begins admitting
-companies that have stopped filing.
+**Express as a rolling window in production — 18 months.** The locked rule
+uses a fixed anchor (a period ending on or after 1 January 2025), which reaches
+back up to 20 months from the lock date and would go stale as time passes. An
+18-month rolling window reproduces the locked universe exactly while remaining
+current.
+
+The window length is measured, not chosen. Every company in the universe has
+reported within 16 months; none is beyond 18. Shorter windows cost real
+companies:
+
+| Window | Universe | Lost | Index constituents lost |
+|---|---|---|---|
+| 12 months | 3,749 | 114 | 21 |
+| 15 months | 3,859 | 4 | none |
+| **18 months** | **3,863** | **0** | none |
+
+Twelve months is too tight for the same reason the 365-day filing rule failed:
+companies with fiscal years ending in spring sit at their reporting anniversary
+and have not yet filed the next report.
 
 ---
 
@@ -130,6 +146,74 @@ Reference sets are used to **validate**, never to filter. Filtering on index
 membership would outsource the judgement to an index committee and inherit its
 lag, since constituents are typically added after a company has already
 succeeded.
+
+---
+
+## Keeping the universe current
+
+The funnel above is a one-time construction. Maintaining it is event-driven
+rather than a periodic rebuild, because EDGAR publishes a form-sorted index of
+every filing made each business day — roughly 1.3 MB listing form type, company
+and date. Reading one file per day replaces polling thousands of companies.
+
+**Rule 4 needs no requests to re-evaluate.** The rolling window slides on its
+own; recomputing it is a date comparison against stored reporting periods. Only
+a *new* annual report requires fetching, and new filings announce themselves in
+the daily index.
+
+### Triggers
+
+| Rule | Event trigger | Fallback |
+|---|---|---|
+| 1 · Exchange listing | Form 25 / 25-NSE (formal delisting); 8-K Item 3.01 (listing-deficiency notice) as early warning | Re-fetch the SEC exchange file weekly — one request covering every listing and removal |
+| 2 · Operating company | 8-K Item 5.06, change in shell company status — the event where a blank-cheque company becomes an operating business | Re-check industry codes quarterly |
+| 3 · Not a REIT | Same industry-code mechanism | Quarterly |
+| 4 · Recent annual report | New 10-K or 10-KT in the daily index | Recompute the window daily from stored data |
+
+Two further triggers matter for data integrity rather than eligibility:
+
+- **Form 8-K12B, notification of succession.** A company has changed its SEC
+  identity; its history must be relinked rather than treated as a new company.
+  This is the published fix for the succession defect described below.
+- **Form 15, deregistration.** The company is withdrawing from SEC reporting.
+  Rule 4 would eventually catch it; Form 15 catches it immediately and with a
+  stated reason.
+
+### Cadence
+
+**Daily** — read the EDGAR index, update only companies that filed something
+relevant, recompute the rolling window from stored data. A typical day is one
+request plus roughly ten; a peak day in February or March is one plus a few
+hundred.
+
+**Weekly** — re-fetch the exchange file. Newly listed companies get the full
+eligibility check; that is a handful of companies, not thousands.
+
+**Quarterly** — re-check industry codes across the universe.
+
+### Validation on every update
+
+Reference-set retention is re-checked on each update, and a failure **blocks**
+the update rather than warning.
+
+This is not ceremony. During construction, two of forty-four quarterly index
+files failed to download, and every aggregate still looked plausible — the
+universe size, the bucket distribution, and index retention all appeared
+reasonable. The only signal was that eight companies with 25-year records of
+consecutive dividend increases appeared to have two years of filing history,
+which is impossible. Silent data loss is not visible in aggregates; it is
+visible only against cases whose answer is known in advance.
+
+### Two edge cases
+
+**A company files its first-ever annual report.** It appears in the index with
+no prior record. This is a new entrant and requires the full eligibility check,
+not just rule 4.
+
+**A company that dropped out files again.** The rolling window admits it back
+automatically, which is correct. It means the universe is not monotonic —
+companies can leave and return — and downstream consumers must tolerate that
+rather than assuming the list only grows.
 
 ---
 
