@@ -1,6 +1,6 @@
 # Project tenets
 
-Seven rules that govern every stage of this project. Each was earned by
+Eight rules that govern every stage of this project. Each was earned by
 something that actually went wrong here, and each is written to be
 testable rather than aspirational — a proposal either violates one or it
 doesn't.
@@ -186,6 +186,35 @@ not, that is a wrong derivation and must fail loudly.
 **The test this implies.** A sweep of the whole history, not just HEAD,
 for home paths, usernames and email addresses — and it must run before a
 repository is made public, not after.
+
+---
+
+## 8 · One judgement, every view
+
+**The views show the same list, so they carry the same elements. When
+something is judged useless or misleading, it is removed from EVERY view,
+not from the one where it was noticed.**
+
+**Why.** Two views over one funnel exist so a reader can choose an
+arrangement, not so they can be shown different things. A fact worth
+removing from the cards was never worth keeping in the table; leaving it
+in one means the project has two answers to the same question, and the
+reader has no way to know which one it stands behind. The same argument
+already forced ONE filter function and ONE wording map across both views
+— this extends it from the plumbing to the judgement.
+
+**What this cost.** The card's progress bar was removed once its length
+was found to mean `this company's fall ÷ the biggest fall among all 470`
+— a share of whichever stock fell furthest that day, describing no
+property of the company. The identical bar was left in the table on the
+argument that a table gives it context. That was reasoning backwards from
+a decision already taken: the encoding was misleading, and the table did
+not make it less so.
+
+**The test this implies.** When a display element is deleted, grep for it
+across every template and every view before the commit — and delete what
+fed it too. Removing the bar in both places made `MAXB` dead, and a
+computation with no reader is the next thing to rot.
 
 ---
 

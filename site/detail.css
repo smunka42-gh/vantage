@@ -68,11 +68,6 @@ tr.detail > td{
 
 /* Names the five pillars in the order the gates appear, so the structure
    reads as deliberate rather than as five unrelated checks. */
-.pillars{
-  margin:-6px 0 15px; max-width:80ch;
-  color:var(--faint); font-size:12px; line-height:1.6;
-}
-.pillars b{color:var(--muted); font-weight:600}
 
 .gate{
   display:grid; grid-template-columns:minmax(120px,168px) minmax(0,1fr) 62px;
@@ -99,18 +94,7 @@ tr.detail > td{
   color:var(--muted); overflow-wrap:anywhere;
 }
 .calc b{color:var(--ink); font-weight:600}
-.calc .sep{color:var(--rule-strong); padding:0 8px}
 
-.card.stale-card{background:var(--raised)}
-.stale{font-size:13px; color:var(--muted); line-height:1.6; margin:0}
-.stale b{color:var(--ink); font-weight:600}
-.links{display:flex; gap:8px; margin-top:24px; flex-wrap:wrap}
-.links a{
-  font-family:var(--sans); font-size:12.5px; color:var(--ink);
-  border:1px solid var(--rule-strong); border-radius:2px;
-  padding:7px 13px; background:var(--surface);
-}
-.links a:hover{border-color:var(--accent); color:var(--accent); text-decoration:none}
 
 /* ---------- 52-week scale ---------- */
 /* Endpoints label BELOW the track, today's price ABOVE it. That vertical
@@ -156,11 +140,6 @@ tr.detail > td{
    reflows stops being a series. */
 .rec{overflow-x:auto; margin:0 -2px}
 /* the question each group of rows answers */
-.recq{
-  margin:16px 0 6px; font-size:12px; color:var(--muted);
-  letter-spacing:.01em;
-}
-.recq:first-of-type{margin-top:0}
 table.rec-t{border-collapse:collapse; width:100%; min-width:430px}
 table.rec-t th, table.rec-t td{
   font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums;

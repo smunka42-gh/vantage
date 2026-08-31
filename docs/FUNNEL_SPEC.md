@@ -24,6 +24,7 @@ doesn't. Full text and the evidence behind each is in
 5. **Thresholds never move to admit a company.** A named exception, or it stays out.
 6. **Every file must earn its place, and keep earning it.** A file stays only if something breaks when it goes.
 7. **The repo carries nothing about the machine it was built on.** No home path, username or email in tracked code — derive it, and prove the derivation resolved.
+8. **One judgement, every view.** The views carry the same elements; something judged useless or misleading is removed from all of them, not just where it was noticed.
 
 ## What this version is
 
