@@ -751,18 +751,18 @@ every constituent clears the bar comfortably by construction.
 
 | Track | Count | Treatment |
 |---|---|---|
-| Standard | 336 | All six tests as written. |
-| Financials | 75 + 7 | Gate 2 uses return on equity; Gate 4's fallback bar is 8%; Gate 1 allows one negative year and falls back to net income where no operating-income series is filed. The 7 are health insurers (UNH, ELV, CI, HUM, CNC, MOH, CVS) that the index files under Health Care but which are insurance companies — premiums in, claims out, large investment float. Named explicitly: matching on company name wrongly swept in hospital chains, a drug distributor and a device maker. |
-| Capital-intensive | 21 | Telecom, cable, media. Asset-heavy so return on assets misreads them, but they generate strong free cash flow — so Gate 2 alone changes, to ROE ≥ 10%. |
-| Utilities | 31 | Gate 2 → ROE ≥ 8% (regulator-allowed ROE runs 9–10.5%); Gate 3 → operating cash flow, since utility free cash flow is negative by design; Gate 4 → coverage ≥ 2.5×. |
-| REITs | 30 | Not assessed by these gates — see below. |
+| Standard | 1025 | All six tests as written. |
+| Financials | 258 + 7 | Gate 2 uses return on equity; Gate 4's fallback bar is 8%; Gate 1 allows one negative year and falls back to net income where no operating-income series is filed. The 7 are health insurers (UNH, ELV, CI, HUM, CNC, MOH, CVS) that the index files under Health Care but which are insurance companies — premiums in, claims out, large investment float. Named explicitly: matching on company name wrongly swept in hospital chains, a drug distributor and a device maker. |
+| Capital-intensive | 47 | Telecom, cable, media. Asset-heavy so return on assets misreads them, but they generate strong free cash flow — so Gate 2 alone changes, to ROE ≥ 10%. |
+| Utilities | 60 | Gate 2 → ROE ≥ 8% (regulator-allowed ROE runs 9–10.5%); Gate 3 → operating cash flow, since utility free cash flow is negative by design; Gate 4 → coverage ≥ 2.5×. |
+| REITs | 104 | Not assessed by these gates — see below. |
 
 **REITs are excluded, and the page says so.** The gates never run on
 them: a REIT is judged on funds from operations and must pay out roughly
 90% of its income, so the cash-generation and margin tests misread it
-structurally. **The scan therefore covers 470 companies, not 500** — a
-sentence the page states outright, because "all 500 are tested" was on it
-for a while and was untrue.
+structurally. **The scan therefore covers 1,397 companies, not 1,501** — a
+sentence the page states outright, because "all of them are tested" was on
+it for a while and was untrue.
 
 The intended fix is a second, FFO-based track (FFO growth, debt/EBITDA,
 occupancy trend) with its own watchlist. **It has not been built**, and
@@ -844,7 +844,7 @@ By sector:
 | Consumer Discretionary | 76 | 193 | 61 | 15 | 111 |
 | Information Technology | 59 | 190 | 51 | 8 | 126 |
 | Health Care | 53 | 163 | 46 | 7 | 106 |
-| Utilities | 31 | 60 | 19 | 12 | 28 |
+| Utilities | 60 | 60 | 19 | 12 | 28 |
 | Materials | 28 | 77 | 20 | 8 | 46 |
 | Consumer Staples | 28 | 75 | 20 | 8 | 45 |
 | Energy | 22 | 71 | 13 | 9 | 44 |
