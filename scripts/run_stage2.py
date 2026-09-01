@@ -91,6 +91,31 @@ def main() -> int:
     frames = prices.fetch(tickers)
     print(f"   {len(frames)}/{len(tickers)} returned data\n")
 
+    # --- undo splits the feed left in ----------------------------------
+    # auto_adjust=True is supposed to make these invisible and usually
+    # does, but a split from the last few weeks can arrive unadjusted —
+    # and an unadjusted 2-for-1 is a 50% "fall", which is precisely the
+    # signal this page hunts for. See funnel/prices.py for what is and is
+    # not repairable, and why a big fall with no recorded split is left
+    # alone rather than flattened.
+    repairs, rejected = prices.repair_splits(frames)
+    if repairs:
+        print(f"split repairs ({len(repairs)}):")
+        for t_, note in sorted(repairs.items()):
+            print(f"   {t_}: {note}")
+    if rejected:
+        # Dropped rather than approximated. A company scored on a series
+        # nothing could verify would be published as a large fall it did
+        # not have.
+        for t_, _ in rejected:
+            frames.pop(t_, None)
+        print(f"dropped as unscoreable ({len(rejected)}):")
+        for t_, why in rejected:
+            print(f"   {t_}: {why}")
+    if not repairs and not rejected:
+        print("no split-shaped breaks in the last year")
+    print()
+
     # --- refuse to publish bad data ------------------------------------
     problems = prices.validate(frames, tickers)
     if problems:

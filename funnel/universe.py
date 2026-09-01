@@ -28,18 +28,40 @@ WIKI_PAGES = (
 # and no contact address is embedded here.
 WIKI_USER_AGENT = "vantage/0.1 (stock quality screener; contact via repository)"
 
-# A handful of companies file two share classes, and the index lists
-# both. Keeping both would double-count one business and skew any sector
-# tally, so one ticker is kept per company. Which one is NOT guessable
-# from the letter: Alphabet's plain ticker is the non-voting retail line,
-# while for Fox and News Corp the "A" line is the widely traded one.
+# ONE RULE for dual-class companies: keep the ticker the SEC's own
+# company_tickers.json names first for that filer, and drop the rest.
 #
-# The first three were each checked individually. The rest were resolved
-# against the SEC's own ticker file, which lists one canonical symbol per
-# filer — a published field rather than a judgement of ours. CWEN-A needs
-# no entry: the SEC file does not carry it at all, so it never matches a
-# company and drops out on its own.
-DUPLICATE_SHARE_CLASSES_TO_DROP = {"GOOGL", "FOX", "NWS", "CENTA", "UA"}
+# The alternative was a hand-checked list, which is how this started —
+# five entries, each argued individually, on the reasoning that the right
+# line is not guessable from the letter (Alphabet's plain ticker is the
+# non-voting retail line; for Fox and News Corp the "A" line is the
+# widely traded one). That reasoning was sound and it does not scale: it
+# needs a human decision every time the index changes, and by the time
+# the universe reached 1,500 it had produced two rules that contradicted
+# each other on Alphabet.
+#
+# A published field decided by someone else beats a judgement of ours,
+# even a well-argued one. The cost of the switch is that Alphabet is now
+# GOOGL rather than GOOG — the two track each other within a fraction of
+# a percent, so no gate or price reading moves.
+#
+# Companies the SEC file does not carry at all (CWEN-A) need no entry:
+# they never match a filer and drop out here on their own.
+SEC_TICKERS = "https://www.sec.gov/files/company_tickers.json"
+SEC_USER_AGENT_FALLBACK = "vantage (stock quality screener)"
+
+
+def _canonical_tickers() -> dict[int, str]:
+    """CIK -> the ticker the SEC lists first for that filer."""
+    import os
+    ua = os.environ.get("SEC_USER_AGENT", SEC_USER_AGENT_FALLBACK)
+    raw = requests.get(SEC_TICKERS, headers={"User-Agent": ua}, timeout=30)
+    raw.raise_for_status()
+    first: dict[int, str] = {}
+    for row in raw.json().values():
+        first.setdefault(int(row["cik_str"]), row["ticker"].upper())
+    return first
+
 
 # Which Stage 1 track a company is judged on. The rule for adding one:
 # a track is justified when a metric MISREADS a business model, never
@@ -74,6 +96,12 @@ def _constituents(url: str) -> list[dict]:
     populate — so the fetch fails with CERTIFICATE_VERIFY_FAILED on a
     machine where everything else works. requests carries its own CA
     bundle, and this is also the only way to set a User-Agent.
+
+    Each page carries several tables — constituents, historical changes,
+    navigation boxes. The constituent one has BOTH a Symbol and a GICS
+    Sector column AND a plausible row count. Picking "the largest table"
+    instead once selected a 619-row table of index additions and
+    removals in place of the 400 actual members.
     """
     html = requests.get(url, headers={"User-Agent": WIKI_USER_AGENT},
                         timeout=30)
@@ -85,17 +113,10 @@ def _constituents(url: str) -> list[dict]:
             break
     else:
         raise RuntimeError(f"no constituent table found at {url}")
-    rows = []
-    for _, r in table.iterrows():
-        ticker = str(r["Symbol"]).strip().replace(".", "-")
-        if ticker in DUPLICATE_SHARE_CLASSES_TO_DROP:
-            continue
-        rows.append({
-            "ticker": ticker,
-            "name": str(r["Security"]).strip(),
-            "sector": str(r["GICS Sector"]).strip(),
-        })
-    return rows
+    return [{"ticker": str(r["Symbol"]).strip().replace(".", "-"),
+             "name": str(r["Security"]).strip(),
+             "sector": str(r["GICS Sector"]).strip()}
+            for _, r in table.iterrows()]
 
 
 def load_sp500() -> list[dict]:
@@ -104,12 +125,20 @@ def load_sp500() -> list[dict]:
     The name is historical: this screened the S&P 500 before widening to
     the Composite 1500. Callers are unchanged because the shape is.
     """
-    seen, rows = set(), []
+    canonical = _canonical_tickers()
+    by_cik = {t: c for c, t in canonical.items()}     # ticker -> cik
+    seen_cik, seen_ticker, rows = set(), set(), []
     for url in WIKI_PAGES:
         for r in _constituents(url):
-            if r["ticker"] in seen:      # a company promoted between
-                continue                 # indices can appear on two pages
-            seen.add(r["ticker"])
+            t = r["ticker"]
+            if t in seen_ticker:          # promoted between indices
+                continue
+            cik = by_cik.get(t)
+            if cik is None:               # not the SEC's canonical line
+                continue                  # for this filer, or unknown
+            if cik in seen_cik:
+                continue
+            seen_cik.add(cik); seen_ticker.add(t)
             rows.append(r)
     if len(rows) < 1200:
         raise RuntimeError(f"only {len(rows)} constituents parsed; expected ~1500")
